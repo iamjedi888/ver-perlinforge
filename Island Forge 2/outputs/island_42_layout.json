@@ -1,0 +1,576 @@
+{
+  "meta": {
+    "seed": 42,
+    "size_px": 513,
+    "world_size_cm": 201700,
+    "audio_weights": {
+      "sub_bass": 0.5,
+      "bass": 0.5,
+      "midrange": 0.5,
+      "presence": 0.5,
+      "brilliance": 0.5,
+      "tempo_bpm": 120,
+      "duration_s": 0
+    },
+    "n_plots": 32,
+    "water_level": 0.2,
+    "world_wrap": true
+  },
+  "town_center": {
+    "world_x_cm": -197,
+    "world_y_cm": -197,
+    "world_z_cm": 19000
+  },
+  "zone_tiers": [
+    {
+      "zone_index": 0,
+      "tier": 1,
+      "center_x": -197,
+      "center_y": -197,
+      "radius_cm": 18153,
+      "biome_hint": "Plains"
+    },
+    {
+      "zone_index": 1,
+      "tier": 2,
+      "center_x": -197,
+      "center_y": -197,
+      "radius_cm": 30255,
+      "biome_hint": "Forest"
+    },
+    {
+      "zone_index": 2,
+      "tier": 3,
+      "center_x": -197,
+      "center_y": -197,
+      "radius_cm": 42357,
+      "biome_hint": "Highland"
+    },
+    {
+      "zone_index": 3,
+      "tier": 4,
+      "center_x": -197,
+      "center_y": -197,
+      "radius_cm": 54459,
+      "biome_hint": "Mountain"
+    }
+  ],
+  "farm_cluster": {
+    "world_x_cm": 26146,
+    "world_y_cm": 23001,
+    "world_z_cm": 0,
+    "radius_cm": 65660,
+    "n_plots": 32
+  },
+  "plots": [
+    {
+      "plot_index": 0,
+      "pixel_row": 228,
+      "pixel_col": 228,
+      "world_x_cm": -11206,
+      "world_y_cm": -11206,
+      "world_z_cm": 12091,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 1,
+      "pixel_row": 228,
+      "pixel_col": 268,
+      "world_x_cm": 4522,
+      "world_y_cm": -11206,
+      "world_z_cm": 14676,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 2,
+      "pixel_row": 228,
+      "pixel_col": 308,
+      "world_x_cm": 20249,
+      "world_y_cm": -11206,
+      "world_z_cm": 49165,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 3,
+      "pixel_row": 228,
+      "pixel_col": 348,
+      "world_x_cm": 35976,
+      "world_y_cm": -11206,
+      "world_z_cm": 42162,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 4,
+      "pixel_row": 228,
+      "pixel_col": 388,
+      "world_x_cm": 51703,
+      "world_y_cm": -11206,
+      "world_z_cm": 35758,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 5,
+      "pixel_row": 228,
+      "pixel_col": 428,
+      "world_x_cm": 67430,
+      "world_y_cm": -11206,
+      "world_z_cm": 43098,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 6,
+      "pixel_row": 268,
+      "pixel_col": 228,
+      "world_x_cm": -11206,
+      "world_y_cm": 4522,
+      "world_z_cm": 14259,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 7,
+      "pixel_row": 268,
+      "pixel_col": 268,
+      "world_x_cm": 4522,
+      "world_y_cm": 4522,
+      "world_z_cm": 33972,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 8,
+      "pixel_row": 268,
+      "pixel_col": 308,
+      "world_x_cm": 20249,
+      "world_y_cm": 4522,
+      "world_z_cm": 49814,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 9,
+      "pixel_row": 268,
+      "pixel_col": 348,
+      "world_x_cm": 35976,
+      "world_y_cm": 4522,
+      "world_z_cm": 45783,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 10,
+      "pixel_row": 268,
+      "pixel_col": 388,
+      "world_x_cm": 51703,
+      "world_y_cm": 4522,
+      "world_z_cm": 14904,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 11,
+      "pixel_row": 268,
+      "pixel_col": 428,
+      "world_x_cm": 67430,
+      "world_y_cm": 4522,
+      "world_z_cm": 19566,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 12,
+      "pixel_row": 308,
+      "pixel_col": 228,
+      "world_x_cm": -11206,
+      "world_y_cm": 20249,
+      "world_z_cm": 43724,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 13,
+      "pixel_row": 308,
+      "pixel_col": 268,
+      "world_x_cm": 4522,
+      "world_y_cm": 20249,
+      "world_z_cm": 49537,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 14,
+      "pixel_row": 308,
+      "pixel_col": 308,
+      "world_x_cm": 20249,
+      "world_y_cm": 20249,
+      "world_z_cm": 47642,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 15,
+      "pixel_row": 308,
+      "pixel_col": 348,
+      "world_x_cm": 35976,
+      "world_y_cm": 20249,
+      "world_z_cm": 14495,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 16,
+      "pixel_row": 308,
+      "pixel_col": 388,
+      "world_x_cm": 51703,
+      "world_y_cm": 20249,
+      "world_z_cm": 13469,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 17,
+      "pixel_row": 308,
+      "pixel_col": 428,
+      "world_x_cm": 67430,
+      "world_y_cm": 20249,
+      "world_z_cm": 12538,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 18,
+      "pixel_row": 348,
+      "pixel_col": 228,
+      "world_x_cm": -11206,
+      "world_y_cm": 35976,
+      "world_z_cm": 43524,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 19,
+      "pixel_row": 348,
+      "pixel_col": 268,
+      "world_x_cm": 4522,
+      "world_y_cm": 35976,
+      "world_z_cm": 38157,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 20,
+      "pixel_row": 348,
+      "pixel_col": 308,
+      "world_x_cm": 20249,
+      "world_y_cm": 35976,
+      "world_z_cm": 47071,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 21,
+      "pixel_row": 348,
+      "pixel_col": 348,
+      "world_x_cm": 35976,
+      "world_y_cm": 35976,
+      "world_z_cm": 28168,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 22,
+      "pixel_row": 348,
+      "pixel_col": 388,
+      "world_x_cm": 51703,
+      "world_y_cm": 35976,
+      "world_z_cm": 16977,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 23,
+      "pixel_row": 348,
+      "pixel_col": 428,
+      "world_x_cm": 67430,
+      "world_y_cm": 35976,
+      "world_z_cm": 17579,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 24,
+      "pixel_row": 388,
+      "pixel_col": 228,
+      "world_x_cm": -11206,
+      "world_y_cm": 51703,
+      "world_z_cm": 28147,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 25,
+      "pixel_row": 388,
+      "pixel_col": 268,
+      "world_x_cm": 4522,
+      "world_y_cm": 51703,
+      "world_z_cm": 18875,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 26,
+      "pixel_row": 388,
+      "pixel_col": 308,
+      "world_x_cm": 20249,
+      "world_y_cm": 51703,
+      "world_z_cm": 35915,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 27,
+      "pixel_row": 388,
+      "pixel_col": 348,
+      "world_x_cm": 35976,
+      "world_y_cm": 51703,
+      "world_z_cm": 44301,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 28,
+      "pixel_row": 388,
+      "pixel_col": 388,
+      "world_x_cm": 51703,
+      "world_y_cm": 51703,
+      "world_z_cm": 36121,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 29,
+      "pixel_row": 388,
+      "pixel_col": 428,
+      "world_x_cm": 67430,
+      "world_y_cm": 51703,
+      "world_z_cm": 26959,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 30,
+      "pixel_row": 428,
+      "pixel_col": 228,
+      "world_x_cm": -11206,
+      "world_y_cm": 67430,
+      "world_z_cm": 32391,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    },
+    {
+      "plot_index": 31,
+      "pixel_row": 428,
+      "pixel_col": 268,
+      "world_x_cm": 4522,
+      "world_y_cm": 67430,
+      "world_z_cm": 13957,
+      "biome": "Farm Town",
+      "zone_tier": 0
+    }
+  ],
+  "biome_distribution_pct": {
+    "Ocean": 0.0,
+    "Plains": 13.8,
+    "Forest": 33.3,
+    "Highland": 5.6,
+    "Mountain": 4.7,
+    "Peak": 1.7,
+    "Farm Town": 40.8
+  },
+  "verse_constants": {
+    "comment": "Paste these into plot_registry.verse",
+    "PLOT_COUNT": 32,
+    "WORLD_SIZE_CM": 201700,
+    "TOWN_X": -197,
+    "TOWN_Y": -197,
+    "WORLD_WRAP": true,
+    "WATER_LEVEL_NORMALIZED": 0.2,
+    "FARM_CENTER_X": 26146,
+    "FARM_CENTER_Y": 23001,
+    "FARM_RADIUS_CM": 65660,
+    "PLOT_POSITIONS": [
+      [
+        -11206,
+        -11206,
+        12091
+      ],
+      [
+        4522,
+        -11206,
+        14676
+      ],
+      [
+        20249,
+        -11206,
+        49165
+      ],
+      [
+        35976,
+        -11206,
+        42162
+      ],
+      [
+        51703,
+        -11206,
+        35758
+      ],
+      [
+        67430,
+        -11206,
+        43098
+      ],
+      [
+        -11206,
+        4522,
+        14259
+      ],
+      [
+        4522,
+        4522,
+        33972
+      ],
+      [
+        20249,
+        4522,
+        49814
+      ],
+      [
+        35976,
+        4522,
+        45783
+      ],
+      [
+        51703,
+        4522,
+        14904
+      ],
+      [
+        67430,
+        4522,
+        19566
+      ],
+      [
+        -11206,
+        20249,
+        43724
+      ],
+      [
+        4522,
+        20249,
+        49537
+      ],
+      [
+        20249,
+        20249,
+        47642
+      ],
+      [
+        35976,
+        20249,
+        14495
+      ],
+      [
+        51703,
+        20249,
+        13469
+      ],
+      [
+        67430,
+        20249,
+        12538
+      ],
+      [
+        -11206,
+        35976,
+        43524
+      ],
+      [
+        4522,
+        35976,
+        38157
+      ],
+      [
+        20249,
+        35976,
+        47071
+      ],
+      [
+        35976,
+        35976,
+        28168
+      ],
+      [
+        51703,
+        35976,
+        16977
+      ],
+      [
+        67430,
+        35976,
+        17579
+      ],
+      [
+        -11206,
+        51703,
+        28147
+      ],
+      [
+        4522,
+        51703,
+        18875
+      ],
+      [
+        20249,
+        51703,
+        35915
+      ],
+      [
+        35976,
+        51703,
+        44301
+      ],
+      [
+        51703,
+        51703,
+        36121
+      ],
+      [
+        67430,
+        51703,
+        26959
+      ],
+      [
+        -11206,
+        67430,
+        32391
+      ],
+      [
+        4522,
+        67430,
+        13957
+      ]
+    ],
+    "ZONE_TIER_RADII_CM": [
+      18153,
+      30255,
+      42357,
+      54459
+    ]
+  }
+}
