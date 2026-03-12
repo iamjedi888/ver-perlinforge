@@ -35,6 +35,41 @@ from flask import Flask, request, jsonify, send_file, session, redirect
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# ── Oracle DB + OCI Object Storage (graceful fallback if not configured) ──────
+try:
+    from oracle_db import (
+        upsert_member, update_member_skin, get_all_members,
+        save_audio_track, get_audio_tracks, delete_audio_track,
+        save_island, get_recent_islands,
+        get_announcements, post_announcement,
+        oci_upload, oci_upload_bytes, oci_delete,
+        audio_object_name, preview_object_name,
+        heightmap_object_name, layout_object_name,
+        init_schema, status as db_status,
+    )
+    DB_MODULE = True
+except ImportError:
+    DB_MODULE = False
+    def upsert_member(*a, **k): return True
+    def update_member_skin(*a, **k): return True
+    def get_all_members(): return []
+    def save_audio_track(*a, **k): return True
+    def get_audio_tracks(**k): return []
+    def delete_audio_track(*a): return True
+    def save_island(*a, **k): return True
+    def get_recent_islands(limit=20): return []
+    def get_announcements(): return []
+    def post_announcement(*a, **k): return True
+    def oci_upload(*a, **k): return ""
+    def oci_upload_bytes(*a, **k): return ""
+    def oci_delete(*a): return False
+    def audio_object_name(fn): return f"audio/{fn}"
+    def preview_object_name(seed): return f"previews/island_{seed}_preview.png"
+    def heightmap_object_name(seed): return f"heightmaps/island_{seed}_heightmap.png"
+    def layout_object_name(seed): return f"layouts/island_{seed}_layout.json"
+    def init_schema(): pass
+    def db_status(): return {"fallback_mode": True, "oracle_online": False}
+
 from audio_to_heightmap import (
     analyse_audio, generate_terrain, generate_moisture,
     classify_biomes, find_plot_positions, build_layout,
@@ -272,6 +307,12 @@ def auth_callback():
         "access_token": access_token,
         "skin": None, "skin_name": "Default", "skin_img": "",
     }
+    # Persist member to Oracle DB
+    upsert_member(
+        epic_id=userinfo.get("sub",""),
+        display_name=display_name,
+        avatar_url=userinfo.get("picture",""),
+    )
     return redirect("/dashboard")
 
 @app.route("/auth/logout")
@@ -555,6 +596,12 @@ def api_set_skin():
     session["user"]["skin_name"]=data.get("name","")
     session["user"]["skin_img"]=data.get("img","")
     session.modified=True
+    update_member_skin(
+        epic_id=session["user"].get("account_id",""),
+        skin_id=data.get("id",""),
+        skin_name=data.get("name",""),
+        skin_img=data.get("img",""),
+    )
     return jsonify({"ok":True})
 
 # ─────────────────────────────────────────────────────────────
@@ -803,7 +850,7 @@ def random_seed():
 
 @app.route("/health")
 def health():
-    return jsonify({"ok": True, "service": "triptokforge", "version": "3.0"})
+    return jsonify({"ok": True, "service": "triptokforge", "version": "3.0", **db_status()})
 
 # ─────────────────────────────────────────────────────────────
 # PLATFORM PAGES — Gallery, Feed, Jukebox, Community, Dev, Admin
@@ -1188,12 +1235,23 @@ def admin():
     return _shell("Admin", content, user=session.get("user"))
 
 
-    port=int(os.environ.get("PORT",5000))
+# ═══════════════════════════════════════════════════════════════════════════════
+# STARTUP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Init Oracle schema on startup (safe no-op if DB not configured)
+try:
+    init_schema()
+except Exception as _e:
+    print(f"[startup] DB schema init skipped: {_e}")
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     print(f"""
   ╔══════════════════════════════════════╗
-  ║   TriptokForge Platform v2.0         ║
+  ║   TriptokForge Platform v3.0         ║
   ║   https://triptokforge.org           ║
   ╚══════════════════════════════════════╝
-  Island Forge + Epic OAuth + Member Cards
+  Island Forge + Epic OAuth + Oracle DB
 """)
-    app.run(host="0.0.0.0",port=port,debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)
