@@ -1,0 +1,34 @@
+# Generated outputs — never commit
+outputs/
+saved_audio/
+*.png
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.aac
+*.m4a
+*.aiff
+*.opus
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — NEVER commit these
+.env.local
+secrets.txt

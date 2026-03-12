@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ISLAND FORGE — UEFN Procedural Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #111318;
+    --border:   #1e2330;
+    --border2:  #2a3045;
+    --accent:   #00e5a0;
+    --accent2:  #0091ff;
+    --warn:     #ff6b35;
+    --del:      #ff4444;
+    --text:     #c8d0e0;
+    --dim:      #4a5570;
+    --med:      #7a8aaa;
+    --mono:     'Share Tech Mono', monospace;
+    --display:  'Bebas Neue', sans-serif;
+    --body:     'DM Sans', sans-serif;
+  }
+  html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--body); font-size:14px; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image: linear-gradient(rgba(0,229,160,.02) 1px,transparent 1px), linear-gradient(90deg,rgba(0,229,160,.02) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+  .shell { position:relative; z-index:1; display:grid; grid-template-rows:auto 1fr; min-height:100vh; }
+
+  /* HEADER */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 28px; border-bottom:1px solid var(--border);
+    background:rgba(10,12,16,.97); backdrop-filter:blur(8px);
+    position:sticky; top:0; z-index:100;
+  }
+  .logo { display:flex; align-items:baseline; gap:10px; }
+  .logo-mark { font-family:var(--display); font-size:26px; letter-spacing:3px; color:var(--accent); }
+  .logo-sub  { font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:2px; }
+  .header-right { display:flex; align-items:center; gap:16px; }
+  .status-pill {
+    display:flex; align-items:center; gap:7px;
+    font-family:var(--mono); font-size:11px; color:var(--dim);
+    background:var(--surface); border:1px solid var(--border);
+    padding:5px 12px; border-radius:20px;
+  }
+  .status-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* MAIN GRID */
+  main { display:grid; grid-template-columns:340px 1fr; height:calc(100vh - 57px); }
+
+  /* LEFT PANEL */
+  .panel-left { border-right:1px solid var(--border); overflow-y:auto; background:var(--surface); display:flex; flex-direction:column; }
+  .psec { padding:18px 20px; border-bottom:1px solid var(--border); }
+  .sec-label {
+    font-family:var(--mono); font-size:9px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--dim); margin-bottom:14px; display:flex; align-items:center; gap:8px;
+  }
+  .sec-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .ctrl { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+  .ctrl:last-child { margin-bottom:0; }
+  label { font-family:var(--mono); font-size:11px; color:var(--med); display:flex; justify-content:space-between; }
+  .val  { color:var(--accent); }
+
+  input[type=range] {
+    -webkit-appearance:none; width:100%; height:3px;
+    background:var(--border2); border-radius:2px; outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+    background:var(--accent); border:2px solid var(--bg);
+    box-shadow:0 0 6px rgba(0,229,160,.4); cursor:pointer; transition:transform .15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.3); }
+
+  input[type=number], select {
+    width:100%; background:var(--bg); border:1px solid var(--border2);
+    border-radius:4px; color:var(--text); font-family:var(--mono); font-size:12px;
+    padding:7px 10px; outline:none; transition:border-color .2s;
+  }
+  input[type=number]:focus, select:focus { border-color:var(--accent); }
+
+  .seed-row { display:flex; gap:8px; }
+  .seed-row input { flex:1; }
+  .btn-icon {
+    background:var(--border2); border:1px solid var(--border2);
+    border-radius:4px; color:var(--med); cursor:pointer;
+    padding:7px 11px; font-size:15px; transition:all .2s; display:flex; align-items:center;
+  }
+  .btn-icon:hover { background:var(--border); color:var(--accent); border-color:var(--accent); }
+
+  /* WORLD SIZE CARDS */
+  .ws-card {
+    background:var(--bg); border:1px solid var(--border2); border-radius:4px;
+    padding:8px 10px; cursor:pointer; transition:all .2s; user-select:none;
+  }
+  .ws-card:hover { border-color:var(--accent2); background:rgba(0,145,255,.05); }
+  .ws-card-active { border-color:var(--accent) !important; background:rgba(0,229,160,.06) !important; }
+  .ws-name { font-family:var(--mono); font-size:10px; color:var(--text); font-weight:600; }
+  .ws-km   { font-family:var(--display); font-size:18px; color:var(--accent); line-height:1.1; margin:2px 0; }
+  .ws-card-active .ws-km { color:var(--accent); }
+  .ws-desc { font-family:var(--mono); font-size:8px; color:var(--dim); }
+
+
+    border:1px dashed var(--border2); border-radius:6px;
+    padding:16px; text-align:center; cursor:pointer; transition:all .2s;
+    position:relative; overflow:hidden;
+  }
+  .audio-drop:hover, .audio-drop.dragover { border-color:var(--accent2); background:rgba(0,145,255,.04); }
+  .audio-drop input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .audio-drop-icon { font-size:22px; margin-bottom:5px; }
+  .audio-drop-text { font-family:var(--mono); font-size:10px; color:var(--dim); line-height:1.7; }
+  .audio-formats { font-size:9px; color:var(--dim); margin-top:2px; }
+
+  /* ── PLAYER ── */
+  .player-wrap {
+    margin-top:12px; background:var(--bg); border:1px solid var(--border2);
+    border-radius:6px; overflow:hidden; display:none;
+  }
+  .player-wrap.visible { display:block; }
+
+  /* Waveform canvas */
+  #waveform-canvas {
+    width:100%; height:48px; display:block;
+    cursor:pointer; /* click to seek */
+  }
+
+  /* Live frequency bars */
+  .live-bars-wrap {
+    padding:0 10px 0; height:36px; display:flex; align-items:flex-end;
+    gap:2px; overflow:hidden;
+  }
+  .live-bar {
+    flex:1; border-radius:1px 1px 0 0; min-height:2px;
+    transition:height .06s linear;
+  }
+
+  /* Transport controls */
+  .player-controls {
+    display:flex; align-items:center; gap:8px;
+    padding:8px 10px; border-top:1px solid var(--border);
+  }
+  .btn-play {
+    width:28px; height:28px; border-radius:50%;
+    background:var(--accent); border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--bg); font-size:11px; flex-shrink:0; transition:transform .15s;
+  }
+  .btn-play:hover { transform:scale(1.1); }
+  .btn-play:active { transform:scale(.95); }
+
+  .player-info { flex:1; overflow:hidden; min-width:0; }
+  .player-title {
+    font-family:var(--mono); font-size:9px; color:var(--accent);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .player-time {
+    font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:1px;
+  }
+
+  /* Seek bar */
+  .seek-wrap { flex:1; display:flex; align-items:center; }
+  input.seek-bar {
+    -webkit-appearance:none; width:100%; height:3px;
+    background:var(--border2); border-radius:2px; outline:none; cursor:pointer;
+  }
+  input.seek-bar::-webkit-slider-thumb {
+    -webkit-appearance:none; width:10px; height:10px; border-radius:50%;
+    background:var(--accent); border:2px solid var(--bg);
+    box-shadow:0 0 4px rgba(0,229,160,.5); cursor:pointer;
+  }
+
+  /* Volume */
+  .vol-wrap { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+  .vol-icon { font-size:11px; color:var(--dim); cursor:pointer; user-select:none; }
+  input.vol-bar {
+    -webkit-appearance:none; width:50px; height:3px;
+    background:var(--border2); border-radius:2px; outline:none; cursor:pointer;
+  }
+  input.vol-bar::-webkit-slider-thumb {
+    -webkit-appearance:none; width:9px; height:9px; border-radius:50%;
+    background:var(--med); cursor:pointer;
+  }
+
+  /* Band viz (static — shown before playback starts) */
+  .band-wrap { margin-top:10px; display:none; }
+  .band-bars { display:flex; gap:3px; height:28px; align-items:flex-end; }
+  .band-bar  { flex:1; border-radius:2px 2px 0 0; min-height:2px; transition:height .4s; }
+  .band-labels { display:flex; gap:3px; margin-top:2px; }
+  .band-lbl { flex:1; text-align:center; font-family:var(--mono); font-size:8px; color:var(--dim); }
+
+  /* Audio library */
+  .audio-lib { margin-top:12px; }
+  .audio-lib-title { font-family:var(--mono); font-size:9px; color:var(--dim); letter-spacing:1px; margin-bottom:6px; }
+  .audio-file-list { display:flex; flex-direction:column; gap:4px; max-height:160px; overflow-y:auto; }
+  .audio-file-item {
+    display:flex; align-items:center; gap:6px;
+    padding:7px 8px; border-radius:4px; border:1px solid var(--border);
+    background:var(--bg); cursor:pointer; transition:all .15s;
+    font-family:var(--mono); font-size:10px; color:var(--med);
+  }
+  .audio-file-item:hover { border-color:var(--accent2); color:var(--text); }
+  .audio-file-item.active { border-color:var(--accent); color:var(--accent); background:rgba(0,229,160,.04); }
+  .audio-file-item.playing { border-color:var(--accent); background:rgba(0,229,160,.07); }
+  .audio-file-item.playing .audio-file-name { color:var(--accent); }
+
+  .audio-play-btn {
+    background:none; border:1px solid var(--border2); border-radius:50%;
+    width:18px; height:18px; cursor:pointer; color:var(--dim);
+    font-size:8px; display:flex; align-items:center; justify-content:center;
+    transition:all .15s; flex-shrink:0;
+  }
+  .audio-play-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .audio-file-item.playing .audio-play-btn { border-color:var(--accent); color:var(--accent); background:rgba(0,229,160,.1); }
+
+  .audio-file-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .audio-file-size { color:var(--dim); font-size:9px; flex-shrink:0; }
+  .audio-file-del {
+    background:none; border:none; color:var(--dim); cursor:pointer;
+    font-size:12px; padding:0 2px; transition:color .15s; flex-shrink:0;
+  }
+  .audio-file-del:hover { color:var(--del); }
+  .audio-active-tag { font-family:var(--mono); font-size:9px; color:var(--accent); margin-top:6px; min-height:14px; }
+
+  /* GENERATE BTN */
+  .btn-generate {
+    margin:16px 20px; width:calc(100% - 40px); padding:15px;
+    background:transparent; border:1px solid var(--accent);
+    border-radius:6px; color:var(--accent);
+    font-family:var(--display); font-size:19px; letter-spacing:4px;
+    cursor:pointer; position:relative; overflow:hidden; transition:all .25s;
+  }
+  .btn-generate::before {
+    content:''; position:absolute; inset:0; background:var(--accent);
+    transform:translateX(-100%); transition:transform .25s; z-index:0;
+  }
+  .btn-generate:hover::before { transform:translateX(0); }
+  .btn-generate:hover { color:var(--bg); }
+  .btn-generate span { position:relative; z-index:1; }
+  .btn-generate:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-generate:disabled::before { display:none; }
+
+  /* RIGHT PANEL */
+  .panel-right { display:flex; flex-direction:column; overflow:hidden; }
+
+  /* MAP */
+  .map-container {
+    flex:1; position:relative; display:flex;
+    align-items:center; justify-content:center;
+    background:var(--bg); overflow:hidden;
+  }
+  .map-placeholder { display:flex; flex-direction:column; align-items:center; gap:12px; opacity:.25; }
+  .map-ring {
+    width:180px; height:180px; border-radius:50%; border:1px solid var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; animation:spin 20s linear infinite;
+  }
+  .map-ring::before { content:''; position:absolute; width:120px; height:120px; border-radius:50%; border:1px dashed var(--med); }
+  .map-ring::after  { content:''; position:absolute; width:65px;  height:65px;  border-radius:50%; border:1px solid var(--border2); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .map-ring-text { font-family:var(--mono); font-size:9px; color:var(--dim); }
+  .map-ph-text   { font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:2px; }
+  #map-img { max-width:100%; max-height:100%; display:none; image-rendering:pixelated; box-shadow:0 0 60px rgba(0,0,0,.8); }
+  .map-coords {
+    position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+    font-family:var(--mono); font-size:10px; color:var(--dim);
+    background:rgba(10,12,16,.85); padding:4px 10px; border-radius:3px;
+    border:1px solid var(--border); pointer-events:none; opacity:0; transition:opacity .2s; white-space:nowrap;
+  }
+  .map-container:hover .map-coords { opacity:1; }
+  .gen-overlay {
+    position:absolute; inset:0; background:rgba(10,12,16,.88);
+    display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px; z-index:10;
+  }
+  .gen-overlay.active { display:flex; }
+  .spinner { width:44px; height:44px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+  .gen-msg { font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:2px; }
+
+  /* STATS */
+  .stats-bar {
+    border-top:1px solid var(--border); background:var(--surface);
+    padding:12px 20px; display:flex; gap:28px; align-items:center; flex-wrap:wrap;
+  }
+  .stat { display:flex; flex-direction:column; gap:1px; }
+  .stat-lbl { font-family:var(--mono); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--dim); }
+  .stat-val { font-family:var(--mono); font-size:13px; color:var(--accent); }
+  .biome-legend { display:flex; gap:10px; flex-wrap:wrap; margin-left:auto; }
+  .biome-chip { display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; color:var(--med); }
+  .biome-dot  { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+  /* TOOLBAR */
+  .toolbar {
+    border-top:1px solid var(--border); background:var(--surface);
+    padding:10px 20px; display:flex; gap:8px; align-items:center;
+  }
+  .btn-dl {
+    display:flex; align-items:center; gap:6px; padding:8px 14px;
+    border-radius:5px; font-family:var(--mono); font-size:11px; letter-spacing:1px;
+    cursor:pointer; transition:all .2s; text-decoration:none; border:1px solid transparent;
+  }
+  .btn-primary  { background:var(--accent); color:var(--bg); }
+  .btn-primary:hover { background:#00c888; }
+  .btn-secondary { background:transparent; color:var(--med); border-color:var(--border2); }
+  .btn-secondary:hover { border-color:var(--accent2); color:var(--accent2); }
+  .btn-disabled { opacity:.35; pointer-events:none; }
+  .tb-spacer { flex:1; }
+
+  /* VERSE MODAL */
+  .modal-bg {
+    position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.82);
+    backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center;
+  }
+  .modal-bg.open { display:flex; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border2);
+    border-radius:8px; width:min(680px,90vw); max-height:80vh;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .modal-hdr {
+    padding:14px 18px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:var(--mono); font-size:10px; color:var(--dim);
+    letter-spacing:2px; text-transform:uppercase;
+  }
+  .btn-x { background:none; border:none; color:var(--dim); cursor:pointer; font-size:17px; transition:color .15s; }
+  .btn-x:hover { color:var(--del); }
+  .modal-code {
+    flex:1; overflow-y:auto; padding:18px; font-family:var(--mono);
+    font-size:12px; line-height:1.8; color:var(--med); white-space:pre; tab-size:4;
+  }
+  .modal-ftr { padding:10px 18px; border-top:1px solid var(--border); display:flex; gap:8px; }
+
+  /* TOAST */
+  .toast {
+    position:fixed; bottom:22px; right:22px; z-index:999;
+    background:var(--surface); border:1px solid var(--border2);
+    border-left:3px solid var(--accent); border-radius:6px;
+    padding:10px 16px; font-family:var(--mono); font-size:11px; color:var(--text);
+    transform:translateY(60px); opacity:0; transition:all .3s; max-width:300px;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.err  { border-left-color:var(--del); }
+
+  ::-webkit-scrollbar { width:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<header>
+  <div class="logo">
+    <span class="logo-mark">ISLAND FORGE</span>
+    <span class="logo-sub">UEFN Procedural Generator v1.0</span>
+  </div>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span id="status-text">READY</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+
+    <!-- SEED -->
+    <div class="psec">
+      <div class="sec-label">Seed</div>
+      <div class="ctrl">
+        <label>Generation Seed</label>
+        <div class="seed-row">
+          <input type="number" id="seed" value="42" min="1" max="99999"/>
+          <button class="btn-icon" onclick="randomSeed()" title="Randomise [R]">⟳</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ISLAND -->
+    <div class="psec">
+      <div class="sec-label">Island</div>
+      <div class="ctrl">
+        <label>Resolution <span class="val" id="size-val">2017²</span></label>
+        <select id="size" onchange="document.getElementById('size-val').textContent=this.value+'²';wsUpdateInfo(_wsCm,_wsPreset,parseInt(document.querySelector('.ws-card-active')?.dataset.px||2017))">
+          <option value="505">505 × 505 — Quick test</option>
+          <option value="1009">1009 × 1009 — Standard / BR</option>
+          <option value="2017" selected>2017 × 2017 — Double BR ✓</option>
+          <option value="4033">4033 × 4033 — Skyrim scale</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <label>Farm Plots <span class="val" id="plots-val">32</span></label>
+        <input type="range" id="plots" min="4" max="32" value="32"
+               oninput="document.getElementById('plots-val').textContent=this.value"/>
+      </div>
+      <div class="ctrl">
+        <label>Plot Spacing <span class="val" id="spacing-val">40px</span></label>
+        <input type="range" id="spacing" min="20" max="80" value="40"
+               oninput="document.getElementById('spacing-val').textContent=this.value+'px'"/>
+      </div>
+    </div>
+
+    <!-- WORLD SIZE -->
+    <div class="psec" id="world-size-sec">
+      <div class="sec-label">World Scale</div>
+
+      <!-- Preset cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px" id="ws-presets">
+        <div class="ws-card" data-preset="uefn_small"   data-cm="50000"    data-px="505"  onclick="selectWorldSize(this)">
+          <div class="ws-name">UEFN Small</div>
+          <div class="ws-km">0.5 km</div>
+          <div class="ws-desc">Default island</div>
+        </div>
+        <div class="ws-card" data-preset="uefn_max"     data-cm="100000"   data-px="1009" onclick="selectWorldSize(this)">
+          <div class="ws-name">UEFN Max</div>
+          <div class="ws-km">1 km</div>
+          <div class="ws-desc">Creative limit</div>
+        </div>
+        <div class="ws-card" data-preset="br_chapter2"  data-cm="550000"   data-px="1009" onclick="selectWorldSize(this)">
+          <div class="ws-name">BR Map</div>
+          <div class="ws-km">5.5 km</div>
+          <div class="ws-desc">Chapter 2 scale</div>
+        </div>
+        <div class="ws-card ws-card-active" data-preset="double_br" data-cm="1100000" data-px="2017" onclick="selectWorldSize(this)">
+          <div class="ws-name">Double BR <span style="color:var(--accent);font-size:8px">DEFAULT</span></div>
+          <div class="ws-km">11 km</div>
+          <div class="ws-desc">2× Battle Royale</div>
+        </div>
+        <div class="ws-card" data-preset="skyrim"       data-cm="3700000"  data-px="4033" onclick="selectWorldSize(this)">
+          <div class="ws-name">Skyrim</div>
+          <div class="ws-km">37 km</div>
+          <div class="ws-desc">Open world RPG</div>
+        </div>
+        <div class="ws-card" data-preset="gta5"         data-cm="8100000"  data-px="8129" onclick="selectWorldSize(this)">
+          <div class="ws-name">GTA V</div>
+          <div class="ws-km">81 km</div>
+          <div class="ws-desc">Massive sandbox</div>
+        </div>
+      </div>
+
+      <!-- Custom cm input -->
+      <div class="ctrl">
+        <label>Custom Size (cm) <span class="val" id="ws-cm-val">1,100,000</span></label>
+        <input type="range" id="ws_cm_slider" min="0" max="100" value="38"
+               oninput="wsSliderChange(this.value)"/>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:3px">
+          <span>500m</span><span>5km</span><span>11km</span><span>37km</span><span>81km</span>
+        </div>
+      </div>
+
+      <!-- Size comparison bar -->
+      <div style="margin:10px 0 6px;font-family:var(--mono);font-size:9px;color:var(--dim)">SIZE RELATIVE TO BR MAP</div>
+      <div style="height:6px;background:var(--border2);border-radius:3px;overflow:hidden">
+        <div id="ws-bar" style="height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:3px;width:20%;transition:width .3s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:3px">
+        <span>↑ BR (5.5km)</span><span id="ws-bar-label">11km = 2× BR</span>
+      </div>
+
+      <!-- Resolution recommendation -->
+      <div style="margin-top:10px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-family:var(--mono);font-size:9px;line-height:1.8;color:var(--dim)">
+        <span style="color:var(--med)">REC HEIGHTMAP:</span> <span id="ws-rec-px" style="color:var(--accent)">2017 × 2017 px</span><br>
+        <span style="color:var(--med)">RESOLUTION:</span> <span id="ws-cpp" style="color:var(--text)">~546 cm/px (~5.5 m/px)</span>
+      </div>
+
+      <!-- World Partition warning — only shown for large maps -->
+      <div id="wp-warning" style="margin-top:10px;padding:10px;background:rgba(255,107,53,.06);border:1px solid rgba(255,107,53,.3);border-radius:4px;display:none">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--warn);letter-spacing:2px;margin-bottom:6px">⚠ WORLD PARTITION REQUIRED</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--dim);line-height:1.8">
+          Maps &gt; 2km need World Partition enabled in UEFN:<br>
+          <span style="color:var(--text)">Edit → Project Settings → World<br>
+          → Enable World Partition<br>
+          → World Settings → Enable Streaming</span><br><br>
+          <span style="color:var(--warn)">Without this the landscape will crash the editor.</span><br><br>
+          Full setup steps are included in the exported <span style="color:var(--accent)">layout.json</span>.
+        </div>
+      </div>
+    </div>
+
+    <!-- WORLD -->
+    <div class="psec">
+      <div class="sec-label">World</div>
+      <div class="ctrl">
+        <label>
+          Water Level
+          <span class="val" id="water-val">0.20</span>
+        </label>
+        <input type="range" id="water_level" min="0" max="48" value="20"
+               oninput="document.getElementById('water-val').textContent=(this.value/100).toFixed(2)"/>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:3px">
+          <span>No water</span><span>Normal</span><span>Flooded</span>
+        </div>
+      </div>
+      <div class="ctrl" style="flex-direction:row;align-items:center;justify-content:space-between">
+        <label style="flex:1;margin-bottom:0">
+          World Wrap
+          <span style="color:var(--dim);font-size:9px;display:block;font-weight:300">
+            Teleport edge→opposite shore
+          </span>
+        </label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="world_wrap" checked/>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="wrap-note" style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:6px;line-height:1.6;padding:8px;background:var(--bg);border-radius:4px;border:1px solid var(--border)">
+        ℹ Edge zones (N/S/E/W) teleport players to opposite side. Works best with ocean at borders. Brief teleport flash unavoidable in UEFN.
+      </div>
+
+      <!-- FARM CLUSTER DIRECTION -->
+      <div class="ctrl" style="margin-top:16px">
+        <label>Farm Town Direction <span class="val" id="angle-val">SE</span></label>
+        <div style="position:relative;width:80px;height:80px;margin:10px auto">
+          <div style="width:80px;height:80px;border-radius:50%;border:1px solid var(--border2);position:relative;background:var(--bg)">
+            <!-- Cardinal labels -->
+            <span style="position:absolute;top:2px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:8px;color:var(--dim)">N</span>
+            <span style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:8px;color:var(--dim)">S</span>
+            <span style="position:absolute;left:3px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:8px;color:var(--dim)">W</span>
+            <span style="position:absolute;right:3px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:8px;color:var(--dim)">E</span>
+            <!-- Center dot (town) -->
+            <div style="position:absolute;top:50%;left:50%;width:6px;height:6px;background:#f0dc28;border-radius:50%;transform:translate(-50%,-50%)"></div>
+            <!-- Direction arrow -->
+            <div id="compass-arrow" style="position:absolute;top:50%;left:50%;width:2px;height:26px;background:var(--accent);transform-origin:bottom center;transform:translateX(-50%) rotate(135deg);border-radius:2px 2px 0 0"></div>
+            <!-- Farm dot -->
+            <div id="farm-dot" style="position:absolute;width:8px;height:8px;background:rgb(210,160,60);border-radius:50%;transform:translate(-50%,-50%);top:78%;left:78%"></div>
+          </div>
+        </div>
+        <input type="range" id="cluster_angle" min="0" max="359" value="135"
+               oninput="updateCompass(this.value)"/>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:3px">
+          <span>N (0°)</span><span>E (90°)</span><span>S (180°)</span><span>W (270°)</span>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <label>Farm Cluster Density <span class="val" id="spread-val">Normal</span></label>
+        <input type="range" id="cluster_spread" min="50" max="200" value="100"
+               oninput="updateSpread(this.value)"/>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:3px">
+          <span>Village tight</span><span>Normal</span><span>Township loose</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TERRAIN LAYERS -->
+    <div class="psec">
+      <div class="sec-label">Terrain Layers</div>
+      <div class="ctrl">
+        <label>Sub Bass — Ridges <span class="val" id="sub-val">0.50</span></label>
+        <input type="range" id="sub_bass" min="0" max="100" value="50"
+               oninput="document.getElementById('sub-val').textContent=fmt(this.value)"/>
+      </div>
+      <div class="ctrl">
+        <label>Bass — Hills <span class="val" id="bass-val">0.50</span></label>
+        <input type="range" id="bass" min="0" max="100" value="50"
+               oninput="document.getElementById('bass-val').textContent=fmt(this.value)"/>
+      </div>
+      <div class="ctrl">
+        <label>Midrange — Detail <span class="val" id="mid-val">0.50</span></label>
+        <input type="range" id="midrange" min="0" max="100" value="50"
+               oninput="document.getElementById('mid-val').textContent=fmt(this.value)"/>
+      </div>
+      <div class="ctrl">
+        <label>Presence — Erosion <span class="val" id="pres-val">0.50</span></label>
+        <input type="range" id="presence" min="0" max="100" value="50"
+               oninput="document.getElementById('pres-val').textContent=fmt(this.value)"/>
+      </div>
+      <div class="ctrl">
+        <label>Brilliance — Micro <span class="val" id="bril-val">0.50</span></label>
+        <input type="range" id="brilliance" min="0" max="100" value="50"
+               oninput="document.getElementById('bril-val').textContent=fmt(this.value)"/>
+      </div>
+    </div>
+
+    <!-- AUDIO -->
+    <div class="psec">
+      <div class="sec-label">Audio Input</div>
+
+      <!-- Drop zone -->
+      <div class="audio-drop" id="audio-drop">
+        <input type="file" id="audio-file"
+               accept=".wav,.mp3,.flac,.ogg,.aac,.m4a,.aiff,.opus"
+               onchange="uploadAudio(this)"/>
+        <div class="audio-drop-icon">🎵</div>
+        <div class="audio-drop-text">Drop audio file or click to browse</div>
+        <div class="audio-formats">wav · mp3 · flac · ogg · aac · m4a · aiff · opus</div>
+      </div>
+
+      <!-- ── PLAYER ── -->
+      <div class="player-wrap" id="player-wrap">
+
+        <!-- Waveform / seek canvas -->
+        <canvas id="waveform-canvas" height="48"></canvas>
+
+        <!-- Live frequency bars -->
+        <div class="live-bars-wrap" id="live-bars"></div>
+
+        <!-- Transport -->
+        <div class="player-controls">
+          <button class="btn-play" id="btn-play" onclick="playerToggle()">▶</button>
+          <div class="player-info">
+            <div class="player-title" id="player-title">—</div>
+            <div class="player-time" id="player-time">0:00 / 0:00</div>
+          </div>
+          <input type="range" class="seek-bar" id="seek-bar"
+                 min="0" max="1000" value="0" step="1"
+                 oninput="playerSeek(this.value)"/>
+          <div class="vol-wrap">
+            <span class="vol-icon" onclick="playerToggleMute()">🔊</span>
+            <input type="range" class="vol-bar" id="vol-bar"
+                   min="0" max="100" value="80"
+                   oninput="playerVolume(this.value)"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Band visualiser (static weight display) -->
+      <div class="band-wrap" id="band-wrap">
+        <div class="band-bars">
+          <div class="band-bar" id="bar-sub"  style="background:var(--warn)"></div>
+          <div class="band-bar" id="bar-bass" style="background:#ff9f35"></div>
+          <div class="band-bar" id="bar-mid"  style="background:var(--accent)"></div>
+          <div class="band-bar" id="bar-pres" style="background:var(--accent2)"></div>
+          <div class="band-bar" id="bar-bril" style="background:#aa66ff"></div>
+        </div>
+        <div class="band-labels">
+          <div class="band-lbl">SUB</div>
+          <div class="band-lbl">BASS</div>
+          <div class="band-lbl">MID</div>
+          <div class="band-lbl">PRES</div>
+          <div class="band-lbl">BRIL</div>
+        </div>
+      </div>
+
+      <!-- Active audio tag -->
+      <div class="audio-active-tag" id="audio-active-tag"></div>
+
+      <!-- Saved audio library -->
+      <div class="audio-lib" id="audio-lib">
+        <div class="audio-lib-title">SAVED AUDIO LIBRARY</div>
+        <div class="audio-file-list" id="audio-file-list">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:4px 0">
+            No saved files — upload one above
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENERATE -->
+    <button class="btn-generate" id="btn-gen" onclick="generate()">
+      <span>GENERATE ISLAND</span>
+    </button>
+
+  </div><!-- /panel-left -->
+
+  <!-- RIGHT PANEL -->
+  <div class="panel-right">
+    <div class="map-container" id="map-container">
+      <div class="map-placeholder" id="map-ph">
+        <div class="map-ring"><span class="map-ring-text">NO MAP</span></div>
+        <div class="map-ph-text">CONFIGURE → GENERATE</div>
+      </div>
+      <img id="map-img" alt="Island preview"/>
+      <div class="gen-overlay" id="gen-overlay">
+        <div class="spinner"></div>
+        <div class="gen-msg" id="gen-msg">GENERATING...</div>
+      </div>
+      <div class="map-coords" id="map-coords">px(—,—)  world(—,—)</div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-lbl">Plots</div><div class="stat-val" id="s-plots">—</div></div>
+      <div class="stat"><div class="stat-lbl">Resolution</div><div class="stat-val" id="s-res">—</div></div>
+      <div class="stat"><div class="stat-lbl">Seed</div><div class="stat-val" id="s-seed">—</div></div>
+      <div class="stat"><div class="stat-lbl">Town</div><div class="stat-val" id="s-town">—</div></div>
+      <div class="biome-legend" id="biome-legend"></div>
+    </div>
+
+    <div class="toolbar">
+      <a class="btn-dl btn-primary btn-disabled" id="dl-hm" href="/download/heightmap" download="island_heightmap.png">↓ Heightmap PNG</a>
+      <a class="btn-dl btn-secondary btn-disabled" id="dl-js" href="/download/layout" download="island_layout.json">↓ Layout JSON</a>
+      <a class="btn-dl btn-secondary btn-disabled" id="dl-pv" href="/download/preview" download="island_preview.png">↓ Preview</a>
+      <div class="tb-spacer"></div>
+      <button class="btn-dl btn-secondary btn-disabled" id="btn-verse" onclick="openVerse()">&lt;/&gt; Verse Constants</button>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- VERSE MODAL -->
+<div class="modal-bg" id="verse-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span>plot_registry.verse — Generated Constants</span>
+      <button class="btn-x" onclick="closeVerse()">✕</button>
+    </div>
+    <div class="modal-code" id="verse-code"></div>
+    <div class="modal-ftr">
+      <button class="btn-dl btn-primary" onclick="copyVerse()">Copy All</button>
+      <button class="btn-dl btn-secondary" onclick="closeVerse()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── HELPERS ──
+const fmt = v => (v/100).toFixed(2);
+const $  = id => document.getElementById(id);
+
+function toast(msg, err=false) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.toggle('err', err);
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function setStatus(s) { $('status-text').textContent = s; }
+
+// ══════════════════════════════════════════════════════════════
+// AUDIO PLAYER ENGINE
+// ══════════════════════════════════════════════════════════════
+
+// ── HTML5 Audio element (hidden, streams from server) ──
+const _audio = new Audio();
+_audio.volume = 0.8;
+_audio.loop   = true;
+
+// Web Audio API — for live frequency analysis
+let _audioCtx    = null;
+let _analyser    = null;
+let _source      = null;
+let _rafId       = null;
+let _liveBars    = [];
+const N_BARS     = 24;   // frequency bars in live visualiser
+const BAR_COLORS = ['#ff6b35','#ff9f35','#00e5a0','#0091ff','#aa66ff'];
+
+// Current player state
+let _playerFile  = null;   // filename currently loaded
+let _isMuted     = false;
+let _seeking     = false;
+
+// ── Setup Web Audio context (must be triggered by user gesture) ──
+function ensureAudioCtx() {
+  if (_audioCtx) return;
+  _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  _analyser = _audioCtx.createAnalyser();
+  _analyser.fftSize = 256;
+  _analyser.smoothingTimeConstant = 0.75;
+  _source = _audioCtx.createMediaElementSource(_audio);
+  _source.connect(_analyser);
+  _analyser.connect(_audioCtx.destination);
+  buildLiveBars();
+  drawLoop();
+}
+
+// ── Build live frequency bar elements ──
+function buildLiveBars() {
+  const wrap = $('live-bars');
+  wrap.innerHTML = '';
+  _liveBars = [];
+  for (let i = 0; i < N_BARS; i++) {
+    const b = document.createElement('div');
+    b.className = 'live-bar';
+    b.style.background = BAR_COLORS[Math.floor(i / N_BARS * BAR_COLORS.length)];
+    b.style.height = '2px';
+    wrap.appendChild(b);
+    _liveBars.push(b);
+  }
+}
+
+// ── Animation loop — updates bars + waveform progress ──
+function drawLoop() {
+  _rafId = requestAnimationFrame(drawLoop);
+  if (!_analyser) return;
+
+  const buf  = new Uint8Array(_analyser.frequencyBinCount);
+  _analyser.getByteFrequencyData(buf);
+
+  // Map FFT bins → N_BARS (log scale, emphasise low-mid)
+  const binCount = buf.length;
+  for (let i = 0; i < N_BARS; i++) {
+    const lo  = Math.floor(Math.pow(i / N_BARS, 1.6) * binCount);
+    const hi  = Math.floor(Math.pow((i+1) / N_BARS, 1.6) * binCount);
+    let sum = 0;
+    for (let b = lo; b < hi; b++) sum += buf[b];
+    const avg = hi > lo ? sum / (hi - lo) : 0;
+    const h   = Math.max(2, (avg / 255) * 34);
+    _liveBars[i].style.height = h + 'px';
+  }
+
+  // Update waveform progress overlay
+  if (!_audio.paused && !_seeking && _audio.duration) {
+    const pct = _audio.currentTime / _audio.duration;
+    drawWaveformProgress(pct);
+    if (!_seeking) $('seek-bar').value = Math.round(pct * 1000);
+    $('player-time').textContent = fmtTime(_audio.currentTime) + ' / ' + fmtTime(_audio.duration);
+  }
+}
+
+// ── Waveform canvas ──
+let _waveformData = null;   // Float32Array of normalised amplitudes
+
+function drawWaveform(data) {
+  _waveformData = data;
+  drawWaveformProgress(0);
+}
+
+function drawWaveformProgress(pct) {
+  const canvas = $('waveform-canvas');
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 280;
+  canvas.width  = W;
+  canvas.height = 48;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, 48);
+
+  const data = _waveformData;
+  if (!data || !data.length) {
+    // No data yet — draw a flat line
+    ctx.strokeStyle = 'rgba(0,229,160,.2)';
+    ctx.beginPath(); ctx.moveTo(0,24); ctx.lineTo(W,24); ctx.stroke();
+    return;
+  }
+
+  const step  = Math.ceil(data.length / W);
+  const playX = Math.round(pct * W);
+
+  for (let x = 0; x < W; x++) {
+    let max = 0;
+    for (let s = x * step; s < (x+1)*step && s < data.length; s++) {
+      max = Math.max(max, Math.abs(data[s]));
+    }
+    const h = Math.max(1, max * 44);
+
+    // Played region = accent, unplayed = dim
+    if (x < playX) {
+      ctx.fillStyle = 'rgba(0,229,160,.85)';
+    } else {
+      ctx.fillStyle = 'rgba(0,229,160,.18)';
+    }
+    ctx.fillRect(x, 24 - h/2, 1, h);
+  }
+
+  // Playhead line
+  if (pct > 0) {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(playX - 1, 0, 2, 48);
+  }
+}
+
+// Sample audio for waveform display (offline decode)
+async function buildWaveform(url) {
+  try {
+    const ctx  = new OfflineAudioContext(1, 44100 * 30, 44100);
+    const resp = await fetch(url);
+    const ab   = await resp.arrayBuffer();
+    const buf  = await ctx.decodeAudioData(ab);
+    const raw  = buf.getChannelData(0);
+    // Downsample to 600 points
+    const pts  = 600;
+    const step = Math.floor(raw.length / pts);
+    const out  = new Float32Array(pts);
+    for (let i = 0; i < pts; i++) {
+      let mx = 0;
+      for (let j = 0; j < step; j++) mx = Math.max(mx, Math.abs(raw[i*step+j]||0));
+      out[i] = mx;
+    }
+    drawWaveform(out);
+  } catch(e) {
+    console.warn('waveform decode failed', e);
+    drawWaveformProgress(0);
+  }
+}
+
+// ── Player controls ──
+function playerToggle() {
+  ensureAudioCtx();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  if (_audio.paused) {
+    _audio.play();
+    $('btn-play').textContent = '⏸';
+    updateLibPlayingState();
+  } else {
+    _audio.pause();
+    $('btn-play').textContent = '▶';
+    updateLibPlayingState();
+  }
+}
+
+function playerSeek(val) {
+  if (!_audio.duration) return;
+  _seeking = true;
+  const t = (val / 1000) * _audio.duration;
+  _audio.currentTime = t;
+  drawWaveformProgress(val / 1000);
+  $('player-time').textContent = fmtTime(t) + ' / ' + fmtTime(_audio.duration);
+  setTimeout(() => { _seeking = false; }, 100);
+}
+
+function playerVolume(val) {
+  _audio.volume = val / 100;
+  $('vol-icon') && ($('vol-icon') ? null : null);
+  const icon = document.querySelector('.vol-icon');
+  if (icon) icon.textContent = val == 0 ? '🔇' : val < 50 ? '🔉' : '🔊';
+  _isMuted = (val == 0);
+}
+
+function playerToggleMute() {
+  _isMuted = !_isMuted;
+  _audio.muted = _isMuted;
+  const icon = document.querySelector('.vol-icon');
+  if (icon) icon.textContent = _isMuted ? '🔇' : '🔊';
+}
+
+// Click canvas to seek
+$('waveform-canvas') && $('waveform-canvas').addEventListener('click', function(e) {
+  const rect = this.getBoundingClientRect();
+  const pct  = (e.clientX - rect.left) / rect.width;
+  if (_audio.duration) {
+    _audio.currentTime = pct * _audio.duration;
+    $('seek-bar').value = Math.round(pct * 1000);
+    drawWaveformProgress(pct);
+  }
+});
+
+_audio.addEventListener('ended', () => {
+  $('btn-play').textContent = '▶';
+  updateLibPlayingState();
+});
+
+_audio.addEventListener('loadedmetadata', () => {
+  $('player-time').textContent = '0:00 / ' + fmtTime(_audio.duration);
+});
+
+function fmtTime(s) {
+  if (!isFinite(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2,'0');
+}
+
+// ── Load a file into the player ──
+async function playerLoad(filename, autoplay = true) {
+  _playerFile = filename;
+  const url   = `/audio/stream/${encodeURIComponent(filename)}`;
+
+  _audio.src  = url;
+  _audio.load();
+
+  $('player-title').textContent = filename;
+  $('player-time').textContent  = '0:00 / ...';
+  $('seek-bar').value = 0;
+  $('player-wrap').classList.add('visible');
+
+  // Build waveform in background (short files only to avoid OOM)
+  buildWaveform(url);
+
+  if (autoplay) {
+    ensureAudioCtx();
+    if (_audioCtx.state === 'suspended') await _audioCtx.resume();
+    await _audio.play().catch(e => console.warn('autoplay blocked:', e));
+    $('btn-play').textContent = '⏸';
+  }
+
+  updateLibPlayingState();
+  $('audio-active-tag').textContent = `▶ ${filename}`;
+}
+
+function updateLibPlayingState() {
+  document.querySelectorAll('.audio-file-item').forEach(el => {
+    const isThis = el.dataset.fn === _playerFile;
+    const isPlaying = isThis && !_audio.paused;
+    el.classList.toggle('playing', isPlaying);
+    el.classList.toggle('active',  isThis);
+    const btn = el.querySelector('.audio-play-btn');
+    if (btn) btn.textContent = isPlaying ? '⏸' : '▶';
+  });
+}
+
+// ── AUDIO UPLOAD ──
+async function uploadAudio(input) {
+  const file = input.files[0];
+  if (!file) return;
+  setStatus('ANALYSING AUDIO...');
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch('/upload_audio', { method:'POST', body:fd });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    applyWeights(d.weights);
+    showBands(d.weights);
+    await refreshAudioLib();
+    // Auto-load and play the newly uploaded file
+    await playerLoad(d.filename, true);
+    setStatus('READY');
+    toast(`Loaded: ${d.filename}`);
+  } catch(e) {
+    setStatus('READY');
+    toast(e.message, true);
+  }
+  input.value = '';
+}
+
+function applyWeights(w) {
+  const map = {
+    sub_bass:'sub_bass', bass:'bass',
+    midrange:'midrange', presence:'presence', brilliance:'brilliance'
+  };
+  const labels = {
+    sub_bass:'sub-val', bass:'bass-val',
+    midrange:'mid-val', presence:'pres-val', brilliance:'bril-val'
+  };
+  for (const [k,id] of Object.entries(map)) {
+    $(id).value = Math.round(w[k]*100);
+    $(labels[k]).textContent = w[k].toFixed(2);
+  }
+}
+
+function showBands(w) {
+  $('band-wrap').style.display = 'block';
+  const pairs = [
+    ['bar-sub', w.sub_bass], ['bar-bass', w.bass],
+    ['bar-mid', w.midrange], ['bar-pres', w.presence], ['bar-bril', w.brilliance]
+  ];
+  pairs.forEach(([id,val]) => $(id).style.height = Math.max(2, val*28)+'px');
+}
+
+// ── AUDIO LIBRARY ──
+async function refreshAudioLib() {
+  try {
+    const r = await fetch('/audio/list');
+    const d = await r.json();
+    if (!d.ok) return;
+    const list = $('audio-file-list');
+    if (!d.files.length) {
+      list.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:4px 0">No saved files — upload one above</div>';
+      return;
+    }
+    list.innerHTML = d.files.map(f => `
+      <div class="audio-file-item ${f.filename===_playerFile ? ((!_audio.paused)?'playing':'active') : ''}" data-fn="${f.filename}">
+        <button class="audio-play-btn" data-fn="${f.filename}">${(f.filename===_playerFile && !_audio.paused)?'⏸':'▶'}</button>
+        <span class="audio-file-name" title="${f.filename}">${f.filename}</span>
+        <span class="audio-file-size">${f.size_kb}kb</span>
+        <button class="audio-file-del" onclick="deleteAudio(event,'${f.filename}')" title="Delete">✕</button>
+      </div>
+    `).join('');
+
+    // Row click = select + play  |  play btn click = toggle play
+    list.querySelectorAll('.audio-file-item').forEach(el => {
+      el.addEventListener('click', async e => {
+        if (e.target.classList.contains('audio-file-del')) return;
+        const fn = el.dataset.fn;
+        if (e.target.classList.contains('audio-play-btn')) {
+          // Toggle play/pause for currently loaded file
+          if (fn === _playerFile) {
+            playerToggle();
+          } else {
+            await selectAudio(fn);
+          }
+          return;
+        }
+        // Row click: select + load weights + play
+        await selectAudio(fn);
+      });
+    });
+  } catch(e) {
+    console.warn('audio lib refresh failed', e);
+  }
+}
+
+async function selectAudio(filename) {
+  setStatus('LOADING AUDIO...');
+  try {
+    const r = await fetch('/audio/select', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({filename})
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    applyWeights(d.weights);
+    showBands(d.weights);
+    await playerLoad(filename, true);
+    await refreshAudioLib();
+    setStatus('READY');
+    toast(`▶ ${filename}`);
+  } catch(e) {
+    setStatus('READY');
+    toast(e.message, true);
+  }
+}
+
+async function deleteAudio(e, filename) {
+  e.stopPropagation();
+  try {
+    const r = await fetch(`/audio/${encodeURIComponent(filename)}`, {method:'DELETE'});
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    if (filename === _playerFile) {
+      _audio.pause();
+      _audio.src = '';
+      _playerFile = null;
+      $('player-wrap').classList.remove('visible');
+      $('audio-active-tag').textContent = '';
+      $('band-wrap').style.display = 'none';
+      $('btn-play').textContent = '▶';
+    }
+    await refreshAudioLib();
+    toast(`Deleted: ${filename}`);
+  } catch(e) {
+    toast(e.message, true);
+  }
+}
+
+// ── SEED ──
+async function randomSeed() {
+  try {
+    const r = await fetch('/random_seed');
+    const d = await r.json();
+    $('seed').value = d.seed;
+  } catch {
+    $('seed').value = Math.floor(Math.random()*99999)+1;
+  }
+}
+
+// ── WORLD SIZE ──
+const WS_PRESETS = [
+  { preset:'uefn_small',  cm:50_000,    px:505,  label:'0.5km' },
+  { preset:'uefn_max',    cm:100_000,   px:1009, label:'1km'   },
+  { preset:'br_chapter2', cm:550_000,   px:1009, label:'5.5km' },
+  { preset:'double_br',   cm:1_100_000, px:2017, label:'11km'  },
+  { preset:'skyrim',      cm:3_700_000, px:4033, label:'37km'  },
+  { preset:'gta5',        cm:8_100_000, px:8129, label:'81km'  },
+];
+// Slider breakpoints: map 0-100 → cm logarithmically across presets
+// positions: 0=uefn_small, 20=uefn_max, 35=br_ch2, 50=double_br, 75=skyrim, 100=gta5
+const WS_STOPS = [
+  {pos:0,   p:'uefn_small'},
+  {pos:20,  p:'uefn_max'},
+  {pos:35,  p:'br_chapter2'},
+  {pos:50,  p:'double_br'},
+  {pos:75,  p:'skyrim'},
+  {pos:100, p:'gta5'},
+];
+let _wsCm = 1_100_000;
+let _wsPreset = 'double_br';
+
+function selectWorldSize(el) {
+  // Deactivate all cards
+  document.querySelectorAll('.ws-card').forEach(c => c.classList.remove('ws-card-active'));
+  el.classList.add('ws-card-active');
+  _wsCm     = parseInt(el.dataset.cm);
+  _wsPreset = el.dataset.preset;
+  const recPx = parseInt(el.dataset.px);
+  wsUpdateInfo(_wsCm, _wsPreset, recPx);
+  // Sync slider to closest stop
+  const stop = WS_STOPS.find(s => s.p === _wsPreset);
+  if (stop) $('ws_cm_slider').value = stop.pos;
+}
+
+function wsSliderChange(val) {
+  val = parseInt(val);
+  // Find two surrounding stops and interpolate
+  let lo = WS_STOPS[0], hi = WS_STOPS[WS_STOPS.length-1];
+  for (let i = 0; i < WS_STOPS.length-1; i++) {
+    if (val >= WS_STOPS[i].pos && val <= WS_STOPS[i+1].pos) {
+      lo = WS_STOPS[i]; hi = WS_STOPS[i+1]; break;
+    }
+  }
+  const t  = (hi.pos === lo.pos) ? 0 : (val - lo.pos) / (hi.pos - lo.pos);
+  const loCm = WS_PRESETS.find(p=>p.preset===lo.p).cm;
+  const hiCm = WS_PRESETS.find(p=>p.preset===hi.p).cm;
+  // Log-interpolate between the two stops
+  const cm = Math.round(Math.exp(Math.log(loCm) + t * (Math.log(hiCm) - Math.log(loCm))));
+  _wsCm = cm;
+
+  // Find closest preset
+  const closest = WS_PRESETS.reduce((a,b) =>
+    Math.abs(b.cm - cm) < Math.abs(a.cm - cm) ? b : a);
+  _wsPreset = closest.preset;
+
+  // Highlight matching card
+  document.querySelectorAll('.ws-card').forEach(c => {
+    c.classList.toggle('ws-card-active', c.dataset.preset === _wsPreset);
+  });
+  wsUpdateInfo(cm, _wsPreset, closest.px);
+}
+
+function wsUpdateInfo(cm, preset, recPx) {
+  const km     = (cm / 100_000).toFixed(1);
+  const brRatio = cm / 550_000;
+  const cpp    = (cm / parseInt($('size').value)).toFixed(0);
+  const mpp    = (cm / parseInt($('size').value) / 100).toFixed(1);
+
+  $('ws-cm-val').textContent = cm.toLocaleString();
+  $('ws-rec-px').textContent = `${recPx} × ${recPx} px`;
+  $('ws-cpp').textContent    = `~${cpp} cm/px (~${mpp} m/px)`;
+
+  // Size bar — capped at GTA V as 100%
+  const barPct = Math.min(100, (cm / 8_100_000) * 100);
+  $('ws-bar').style.width = Math.max(2, barPct) + '%';
+
+  const brLabel = brRatio < 1
+    ? `${km}km = ${(1/brRatio).toFixed(1)}× smaller than BR`
+    : `${km}km = ${brRatio.toFixed(1)}× BR`;
+  $('ws-bar-label').textContent = brLabel;
+
+  // World Partition warning
+  const needsWP = cm > 200_000;
+  $('wp-warning').style.display = needsWP ? 'block' : 'none';
+
+  // Auto-suggest resolution in the size dropdown if rec matches an option
+  const sizeSelect = $('size');
+  const recStr = String(recPx);
+  for (const opt of sizeSelect.options) {
+    if (opt.value === recStr) {
+      sizeSelect.value = recStr;
+      $('size-val').textContent = recStr + '²';
+      break;
+    }
+  }
+}
+
+// ── GENERATE ──
+async function generate() {
+  const btn = $('btn-gen');
+  btn.disabled = true;
+  $('gen-overlay').classList.add('active');
+  setStatus('GENERATING...');
+  const msgs = ['RUNNING NOISE...','CLASSIFYING BIOMES...','PLACING PLOTS...','RENDERING...'];
+  let mi = 0;
+  const ticker = setInterval(() => { $('gen-msg').textContent = msgs[mi++ % msgs.length]; }, 650);
+
+  const weights = {
+    sub_bass:   $('sub_bass').value/100,
+    bass:       $('bass').value/100,
+    midrange:   $('midrange').value/100,
+    presence:   $('presence').value/100,
+    brilliance: $('brilliance').value/100,
+    tempo_bpm:  120, duration_s: 0
+  };
+
+  try {
+    const r = await fetch('/generate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        seed:       parseInt($('seed').value),
+        size:       parseInt($('size').value),
+        plots:      parseInt($('plots').value),
+        spacing:    parseInt($('spacing').value),
+        world_size: _wsPreset,
+        world_size_cm: _wsCm,
+        weights
+      })
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+
+    // Show map
+    $('map-img').src = 'data:image/png;base64,'+d.preview_b64;
+    $('map-img').style.display = 'block';
+    $('map-ph').style.display  = 'none';
+
+    // Stats
+    $('s-plots').textContent = d.plots_found;
+    $('s-res').textContent   = $('size').value + '²';
+    $('s-seed').textContent  = $('seed').value;
+    const t = d.town_center;
+    $('s-town').textContent  = `${Math.round(t.world_x_cm/100)}m, ${Math.round(t.world_y_cm/100)}m`;
+
+    // Biome legend
+    $('biome-legend').innerHTML = d.biome_stats.map(b =>
+      `<div class="biome-chip"><div class="biome-dot" style="background:${b.colour}"></div>${b.name} ${b.pct}%</div>`
+    ).join('');
+
+    // Store verse constants
+    window._verseData = d;
+
+    // Enable downloads
+    ['dl-hm','dl-js','dl-pv','btn-verse'].forEach(id => $(id).classList.remove('btn-disabled'));
+
+    setStatus(`DONE — ${d.plots_found} PLOTS`);
+    toast(`Generated — ${d.plots_found} plots  •  saved to outputs/`);
+
+  } catch(e) {
+    setStatus('ERROR');
+    toast('Failed: '+e.message, true);
+    console.error(e);
+  } finally {
+    clearInterval(ticker);
+    btn.disabled = false;
+    $('gen-overlay').classList.remove('active');
+  }
+}
+
+// ── VERSE MODAL ──
+function openVerse() {
+  const d = window._verseData;
+  if (!d) return;
+  const vc = d.verse_constants;
+  const pos = vc.PLOT_POSITIONS.map((p,i) =>
+    `    array{${p[0]}, ${p[1]}, ${p[2]}}${i<vc.PLOT_POSITIONS.length-1?',':''}`
+  ).join('\n');
+  const radii = vc.ZONE_TIER_RADII_CM.map((r,i) =>
+    `    ${r}${i<vc.ZONE_TIER_RADII_CM.length-1?',':''}`
+  ).join('\n');
+  $('verse-code').textContent =
+`# ── plot_registry.verse — Generated Constants ──
+# Island Forge  •  Seed: ${d.meta.seed}  •  ${d.meta.size_px}px
+# World: ${d.meta.world_size_km}km (${d.meta.world_size_preset || 'custom'}) — ${d.meta.meters_per_pixel || '?'}m/px
+# Water Level: ${d.meta.water_level}  •  World Wrap: ${d.meta.world_wrap}
+${d.meta.world_partition_warning ? '# ⚠ World Partition required — see layout.json meta.world_partition_warning' : '# ✓ No World Partition needed at this size'}
+
+PLOT_COUNT<private> : int = ${vc.PLOT_COUNT}
+WORLD_SIZE_CM<private> : int = ${vc.WORLD_SIZE_CM}
+WORLD_SIZE_PRESET<private> : string = ${vc.WORLD_SIZE_PRESET || '"double_br"'}
+WORLD_WRAP<private> : logic = ${vc.WORLD_WRAP ? 'true' : 'false'}
+WATER_LEVEL<private> : float = ${vc.WATER_LEVEL_NORMALIZED}
+
+TOWN_X<private> : int = ${vc.TOWN_X}
+TOWN_Y<private> : int = ${vc.TOWN_Y}
+
+# Plot world positions [X_cm, Y_cm, Z_cm]
+PlotPositions<private> : [][]int = array{
+${pos}
+}
+
+# Zone tier radii from island center (cm)
+ZoneTierRadii<private> : []int = array{
+${radii}
+}`;
+  $('verse-modal').classList.add('open');
+}
+
+function closeVerse() { $('verse-modal').classList.remove('open'); }
+function copyVerse() {
+  navigator.clipboard.writeText($('verse-code').textContent)
+    .then(() => toast('Copied to clipboard'));
+}
+
+// ── MAP HOVER ──
+$('map-img').addEventListener('mousemove', e => {
+  const rect = e.target.getBoundingClientRect();
+  const size = parseInt($('size').value);
+  const px = Math.round((e.clientX-rect.left)/rect.width*size);
+  const py = Math.round((e.clientY-rect.top)/rect.height*size);
+  const half = 201700/2, cell = 201700/size;
+  const wx = Math.round(px*cell-half), wy = Math.round(py*cell-half);
+  $('map-coords').textContent = `px(${px}, ${py})  world(${wx}cm, ${wy}cm)`;
+});
+
+// ── DRAG AND DROP ──
+const drop = $('audio-drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const inp = $('audio-file');
+  const dt = new DataTransfer(); dt.items.add(file); inp.files = dt.files;
+  uploadAudio(inp);
+});
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT') return;
+  if (e.key === 'Enter') generate();
+  if (e.key === 'r' || e.key === 'R') randomSeed();
+  if (e.key === 'Escape') closeVerse();
+});
+
+// ── WORLD WRAP TOGGLE ──
+$('world_wrap').addEventListener('change', function() {
+  $('wrap-note').style.opacity = this.checked ? '1' : '0.4';
+});
+
+// ── WATER LEVEL VISUAL HINT ──
+$('water_level').addEventListener('input', function() {
+  const v = this.value / 100;
+  const hue = v < 0.1 ? 'var(--warn)' : v > 0.35 ? 'var(--accent2)' : 'var(--accent)';
+  $('water-val').style.color = hue;
+});
+
+// ── COMPASS ──
+const COMPASS_LABELS = {
+  0:'N', 22:'NNE', 45:'NE', 67:'ENE', 90:'E', 112:'ESE',
+  135:'SE', 157:'SSE', 180:'S', 202:'SSW', 225:'SW', 247:'WSW',
+  270:'W', 292:'WNW', 315:'NW', 337:'NNW'
+};
+function compassLabel(deg) {
+  const nearest = Object.keys(COMPASS_LABELS).reduce((a,b) =>
+    Math.abs(b - deg) < Math.abs(a - deg) ? b : a
+  );
+  return COMPASS_LABELS[nearest];
+}
+function updateCompass(deg) {
+  deg = parseInt(deg);
+  $('compass-arrow').style.transform = `translateX(-50%) rotate(${deg}deg)`;
+  // Farm dot position (on circle edge at 26px radius)
+  const rad = (deg - 90) * Math.PI / 180;
+  const r = 28;
+  const cx = 40, cy = 40;
+  const fx = cx + Math.cos(rad) * r;
+  const fy = cy + Math.sin(rad) * r;
+  const dot = $('farm-dot');
+  dot.style.left = fx + 'px';
+  dot.style.top  = fy + 'px';
+  $('angle-val').textContent = compassLabel(deg) + ' (' + deg + '°)';
+}
+function updateSpread(v) {
+  const labels = {50:'Village tight', 75:'Compact', 100:'Normal', 150:'Spacious', 200:'Township loose'};
+  const nearest = Object.keys(labels).reduce((a,b) => Math.abs(b-v)<Math.abs(a-v)?b:a);
+  $('spread-val').textContent = labels[nearest] || 'Custom';
+}
+updateCompass(135); // init
+
+// ── INIT ──
+refreshAudioLib();
+</script>
+</body>
+</html>
