@@ -446,7 +446,7 @@ async function loadSkins(){{
 function renderSkins(skins){{
   const g=document.getElementById('skinGrid');
   if(!skins.length){{g.innerHTML='<div class="loading">No results.</div>';return;}}
-  const esc=n=>n.replace(/['"]/g,'');g.innerHTML=skins.slice(0,120).map(s=>`<div class="si" onclick="selectSkin('${{s.id}}','${{esc(s.name)}}','${{s.img}}')"; title="${{s.name}}"><img src="${{s.img}}" loading="lazy"><div class="si-n">${{s.name}}</div></div>`).join('');
+  const esc=n=>n.replace(/['"]/g,'');g.innerHTML=skins.slice(0,120).map(s=>'<div class="si" onclick="selectSkin(\'' +s.id+ '\',\'' +esc(s.name)+ '\',\'' +s.img+ '\')" title="' +s.name+ '"><img src="' +s.img+ '" loading="lazy"><div class="si-n">' +s.name+ '</div></div>').join('');
 }}
 function filterSkins(){{const q=document.getElementById('skinSearch').value.toLowerCase();renderSkins(q?allSkins.filter(s=>s.name.toLowerCase().includes(q)):allSkins);}}
 async function selectSkin(id,name,img){{
@@ -1186,6 +1186,7 @@ def admin():
       <button type="submit" class="btn btn-o">Logout Admin</button>
     </form>"""
     return _shell("Admin", content, user=session.get("user"))
+
 
     port=int(os.environ.get("PORT",5000))
     print(f"""
