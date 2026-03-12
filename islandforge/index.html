@@ -120,68 +120,84 @@
   .audio-formats { font-size:9px; color:var(--dim); margin-top:2px; }
 
   /* ── PLAYER ── */
-  .player-wrap {
-    margin-top:12px; background:var(--bg); border:1px solid var(--border2);
-    border-radius:6px; overflow:hidden; display:none;
+  /* ── PERSISTENT BOTTOM PLAYER BAR ── */
+  #global-player {
+    position:fixed; bottom:0; left:0; right:0; z-index:500;
+    background:rgba(10,12,16,.97); border-top:1px solid var(--border2);
+    backdrop-filter:blur(16px);
+    transform:translateY(100%);
+    transition:transform .35s cubic-bezier(.4,0,.2,1), opacity .3s;
+    opacity:1;
   }
-  .player-wrap.visible { display:block; }
+  #global-player.visible { transform:translateY(0); }
+  #global-player.dimmed  { opacity:.28; }
+  #global-player:hover   { opacity:1 !important; }
 
-  /* Waveform canvas */
+  /* Waveform strip across full width */
   #waveform-canvas {
-    width:100%; height:48px; display:block;
-    cursor:pointer; /* click to seek */
+    width:100%; height:40px; display:block;
+    cursor:pointer; border-bottom:1px solid var(--border);
   }
 
-  /* Live frequency bars */
+  /* Frequency bars row */
   .live-bars-wrap {
-    padding:0 10px 0; height:36px; display:flex; align-items:flex-end;
-    gap:2px; overflow:hidden;
+    position:absolute; top:0; left:0; right:0; height:40px;
+    display:flex; align-items:flex-end; gap:1px;
+    padding:0 2px; pointer-events:none; overflow:hidden;
   }
   .live-bar {
     flex:1; border-radius:1px 1px 0 0; min-height:2px;
-    transition:height .06s linear;
+    transition:height .05s linear; opacity:.55;
   }
 
-  /* Transport controls */
+  /* Main transport row */
   .player-controls {
-    display:flex; align-items:center; gap:8px;
-    padding:8px 10px; border-top:1px solid var(--border);
+    display:flex; align-items:center; gap:12px;
+    padding:8px 20px;
   }
+
+  /* Prev / Next */
+  .btn-skip {
+    background:none; border:none; color:var(--dim); cursor:pointer;
+    font-size:14px; padding:4px 6px; transition:color .15s; flex-shrink:0;
+  }
+  .btn-skip:hover { color:var(--accent); }
+
   .btn-play {
-    width:28px; height:28px; border-radius:50%;
+    width:32px; height:32px; border-radius:50%;
     background:var(--accent); border:none; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
-    color:var(--bg); font-size:11px; flex-shrink:0; transition:transform .15s;
+    color:var(--bg); font-size:12px; flex-shrink:0; transition:transform .15s;
   }
-  .btn-play:hover { transform:scale(1.1); }
-  .btn-play:active { transform:scale(.95); }
+  .btn-play:hover { transform:scale(1.1); background:#00c888; }
+  .btn-play:active { transform:scale(.92); }
 
-  .player-info { flex:1; overflow:hidden; min-width:0; }
+  .player-info { min-width:160px; max-width:220px; overflow:hidden; flex-shrink:0; }
   .player-title {
-    font-family:var(--mono); font-size:9px; color:var(--accent);
+    font-family:var(--mono); font-size:10px; color:var(--accent);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .player-time {
-    font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:1px;
-  }
+  .player-time { font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:2px; }
 
-  /* Seek bar */
+  /* Seek bar — takes remaining space */
   .seek-wrap { flex:1; display:flex; align-items:center; }
   input.seek-bar {
     -webkit-appearance:none; width:100%; height:3px;
     background:var(--border2); border-radius:2px; outline:none; cursor:pointer;
   }
   input.seek-bar::-webkit-slider-thumb {
-    -webkit-appearance:none; width:10px; height:10px; border-radius:50%;
+    -webkit-appearance:none; width:11px; height:11px; border-radius:50%;
     background:var(--accent); border:2px solid var(--bg);
-    box-shadow:0 0 4px rgba(0,229,160,.5); cursor:pointer;
+    box-shadow:0 0 6px rgba(0,229,160,.6); cursor:pointer; transition:transform .1s;
   }
+  input.seek-bar::-webkit-slider-thumb:hover { transform:scale(1.3); }
 
   /* Volume */
-  .vol-wrap { display:flex; align-items:center; gap:5px; flex-shrink:0; }
-  .vol-icon { font-size:11px; color:var(--dim); cursor:pointer; user-select:none; }
+  .vol-wrap { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .vol-icon { font-size:12px; color:var(--dim); cursor:pointer; user-select:none; transition:color .15s; }
+  .vol-icon:hover { color:var(--accent); }
   input.vol-bar {
-    -webkit-appearance:none; width:50px; height:3px;
+    -webkit-appearance:none; width:60px; height:3px;
     background:var(--border2); border-radius:2px; outline:none; cursor:pointer;
   }
   input.vol-bar::-webkit-slider-thumb {
@@ -189,12 +205,15 @@
     background:var(--med); cursor:pointer;
   }
 
-  /* Band viz (static — shown before playback starts) */
+  /* Band viz (static weight display in sidebar) */
   .band-wrap { margin-top:10px; display:none; }
   .band-bars { display:flex; gap:3px; height:28px; align-items:flex-end; }
   .band-bar  { flex:1; border-radius:2px 2px 0 0; min-height:2px; transition:height .4s; }
   .band-labels { display:flex; gap:3px; margin-top:2px; }
   .band-lbl { flex:1; text-align:center; font-family:var(--mono); font-size:8px; color:var(--dim); }
+
+  /* Nudge main content up when player is visible */
+  body.player-open main { height:calc(100vh - 57px - 90px); }
 
   /* Audio library */
   .audio-lib { margin-top:12px; }
@@ -595,33 +614,7 @@
         <div class="audio-formats">wav · mp3 · flac · ogg · aac · m4a · aiff · opus</div>
       </div>
 
-      <!-- ── PLAYER ── -->
-      <div class="player-wrap" id="player-wrap">
-
-        <!-- Waveform / seek canvas -->
-        <canvas id="waveform-canvas" height="48"></canvas>
-
-        <!-- Live frequency bars -->
-        <div class="live-bars-wrap" id="live-bars"></div>
-
-        <!-- Transport -->
-        <div class="player-controls">
-          <button class="btn-play" id="btn-play" onclick="playerToggle()">▶</button>
-          <div class="player-info">
-            <div class="player-title" id="player-title">—</div>
-            <div class="player-time" id="player-time">0:00 / 0:00</div>
-          </div>
-          <input type="range" class="seek-bar" id="seek-bar"
-                 min="0" max="1000" value="0" step="1"
-                 oninput="playerSeek(this.value)"/>
-          <div class="vol-wrap">
-            <span class="vol-icon" onclick="playerToggleMute()">🔊</span>
-            <input type="range" class="vol-bar" id="vol-bar"
-                   min="0" max="100" value="80"
-                   oninput="playerVolume(this.value)"/>
-          </div>
-        </div>
-      </div>
+      <!-- ── PLAYER (persistent bar — see #global-player at bottom of body) ── -->
 
       <!-- Band visualiser (static weight display) -->
       <div class="band-wrap" id="band-wrap">
@@ -893,9 +886,12 @@ function playerToggle() {
     _audio.play();
     $('btn-play').textContent = '⏸';
     updateLibPlayingState();
+    startDimTimer();
   } else {
     _audio.pause();
     $('btn-play').textContent = '▶';
+    clearTimeout(_dimTimer);
+    $('global-player').classList.remove('dimmed');
     updateLibPlayingState();
   }
 }
@@ -938,7 +934,10 @@ $('waveform-canvas') && $('waveform-canvas').addEventListener('click', function(
 
 _audio.addEventListener('ended', () => {
   $('btn-play').textContent = '▶';
+  $('global-player').classList.remove('dimmed');
   updateLibPlayingState();
+  // Auto-advance to next track
+  playerNext();
 });
 
 _audio.addEventListener('loadedmetadata', () => {
@@ -963,9 +962,13 @@ async function playerLoad(filename, autoplay = true) {
   $('player-title').textContent = filename;
   $('player-time').textContent  = '0:00 / ...';
   $('seek-bar').value = 0;
-  $('player-wrap').classList.add('visible');
 
-  // Build waveform in background (short files only to avoid OOM)
+  // Show persistent bottom bar
+  const gp = $('global-player');
+  gp.classList.add('visible');
+  document.body.classList.add('player-open');
+
+  // Build waveform
   buildWaveform(url);
 
   if (autoplay) {
@@ -973,10 +976,44 @@ async function playerLoad(filename, autoplay = true) {
     if (_audioCtx.state === 'suspended') await _audioCtx.resume();
     await _audio.play().catch(e => console.warn('autoplay blocked:', e));
     $('btn-play').textContent = '⏸';
+    startDimTimer();
   }
 
   updateLibPlayingState();
-  $('audio-active-tag').textContent = `▶ ${filename}`;
+  if ($('audio-active-tag')) $('audio-active-tag').textContent = filename;
+}
+
+// ── Dim player when idle ──
+let _dimTimer = null;
+function startDimTimer() {
+  clearTimeout(_dimTimer);
+  $('global-player').classList.remove('dimmed');
+  _dimTimer = setTimeout(() => {
+    if (!_audio.paused) $('global-player').classList.add('dimmed');
+  }, 4000);
+}
+$('global-player') && $('global-player').addEventListener('mousemove', () => {
+  clearTimeout(_dimTimer);
+  $('global-player').classList.remove('dimmed');
+  if (!_audio.paused) startDimTimer();
+});
+
+// ── Prev / Next ──
+function playerPrev() {
+  const items = [...document.querySelectorAll('.audio-file-item')];
+  if (!items.length) return;
+  const cur = items.findIndex(el => el.dataset.filename === _playerFile);
+  const idx = cur <= 0 ? items.length - 1 : cur - 1;
+  const fn  = items[idx].dataset.filename;
+  if (fn) playerLoad(fn, true);
+}
+function playerNext() {
+  const items = [...document.querySelectorAll('.audio-file-item')];
+  if (!items.length) return;
+  const cur = items.findIndex(el => el.dataset.filename === _playerFile);
+  const idx = cur >= items.length - 1 ? 0 : cur + 1;
+  const fn  = items[idx].dataset.filename;
+  if (fn) playerLoad(fn, true);
 }
 
 function updateLibPlayingState() {
@@ -1432,5 +1469,36 @@ updateCompass(135); // init
 // ── INIT ──
 refreshAudioLib();
 </script>
+
+<!-- ══════════════════════════════════════════════════════
+     PERSISTENT BOTTOM PLAYER BAR
+     ══════════════════════════════════════════════════════ -->
+<div id="global-player">
+  <div style="position:relative">
+    <canvas id="waveform-canvas" height="40"></canvas>
+    <div class="live-bars-wrap" id="live-bars"></div>
+  </div>
+  <div class="player-controls">
+    <button class="btn-skip" onclick="playerPrev()" title="Previous">⏮</button>
+    <button class="btn-play" id="btn-play" onclick="playerToggle()">▶</button>
+    <button class="btn-skip" onclick="playerNext()" title="Next">⏭</button>
+    <div class="player-info">
+      <div class="player-title" id="player-title">NO TRACK LOADED</div>
+      <div class="player-time"  id="player-time">0:00 / 0:00</div>
+    </div>
+    <div class="seek-wrap">
+      <input type="range" class="seek-bar" id="seek-bar"
+             min="0" max="1000" value="0" step="1"
+             oninput="playerSeek(this.value)"/>
+    </div>
+    <div class="vol-wrap">
+      <span class="vol-icon" id="vol-icon" onclick="playerToggleMute()">🔊</span>
+      <input type="range" class="vol-bar" id="vol-bar"
+             min="0" max="100" value="80"
+             oninput="playerVolume(this.value)"/>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
