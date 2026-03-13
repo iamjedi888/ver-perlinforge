@@ -145,6 +145,12 @@ def root():
 @app.route("/home")
 def homepage():
     user = session.get("user")
+    try: _n_members = len(get_all_members())
+    except: _n_members = 0
+    try: _n_islands = len(get_recent_islands(limit=999))
+    except: _n_islands = 0
+    try: _n_audio = len(get_audio_tracks())
+    except: _n_audio = 0
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -229,9 +235,9 @@ footer{{position:relative;z-index:1;border-top:1px solid var(--border);padding:4
   </div>
 </section>
 <div class="stats-bar">
-  <div class="stat"><span class="sn">FREE</span><span class="sl">Always</span></div>
-  <div class="stat"><span class="sn">UEFN</span><span class="sl">Island Tools</span></div>
-  <div class="stat"><span class="sn">EPIC</span><span class="sl">OAuth Login</span></div>
+  <div class="stat"><span class="sn">{{_n_members if _n_members else 'FREE'}}</span><span class="sl">{{'Members' if _n_members else 'Always'}}</span></div>
+  <div class="stat"><span class="sn">{{_n_islands if _n_islands else 'UEFN'}}</span><span class="sl">{{'Islands' if _n_islands else 'Island Tools'}}</span></div>
+  <div class="stat"><span class="sn">{{_n_audio if _n_audio else 'EPIC'}}</span><span class="sl">{{'Tracks' if _n_audio else 'OAuth Login'}}</span></div>
   <div class="stat"><span class="sn">PRO</span><span class="sl">Member Cards</span></div>
 </div>
 <section class="sec" id="features">
@@ -538,6 +544,16 @@ def forge():
 # API — STATS
 # ─────────────────────────────────────────────────────────────
 
+
+
+@app.route("/api/members")
+def api_members():
+    try:
+        members = get_all_members()
+        return jsonify({"ok": True, "count": len(members), "members": members})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/stats")
 @login_required
 def api_stats():
@@ -727,6 +743,29 @@ def generate():
         _state["preview_bytes"] = prev_buf.getvalue()
         prev_b64 = base64.b64encode(_state["preview_bytes"]).decode("utf-8")
 
+        # ── Upload to OCI Object Storage ──
+        preview_url = ""
+        heightmap_url = ""
+        layout_url = ""
+        try:
+            preview_url   = oci_upload_bytes(_state["preview_bytes"],   preview_object_name(seed))
+            heightmap_url = oci_upload_bytes(_state["heightmap_bytes"], heightmap_object_name(seed))
+            layout_url    = oci_upload_bytes(json.dumps(layout, indent=2).encode(), layout_object_name(seed))
+        except Exception as oci_err:
+            print(f"[oci] island upload failed (non-fatal): {oci_err}")
+
+        # ── Save island to Oracle DB ──
+        creator_id = session.get("user", {}).get("accountId", "anonymous")
+        try:
+            save_island(
+                seed=seed, creator_id=creator_id, world_size_cm=world_size_cm,
+                preview_url=preview_url, heightmap_url=heightmap_url,
+                layout_url=layout_url, weights=weights,
+                biome_stats={b["name"]: b["pct"] for b in biome_stats if "name" in b},
+            )
+        except Exception as db_err:
+            print(f"[db] save_island failed (non-fatal): {db_err}")
+
         # ── Biome stats ──
         total = size * size
         biome_stats = [
@@ -750,6 +789,9 @@ def generate():
             "water_level":     water_level,
             "world_size_cm":   world_size_cm,
             "saved_to":        OUTPUT_DIR,
+            "preview_url":     preview_url,
+            "heightmap_url":   heightmap_url,
+            "layout_url":      layout_url,
         })
     except Exception as e:
         traceback.print_exc()
@@ -774,8 +816,21 @@ def upload_audio():
             save_path=os.path.join(AUDIO_DIR,f"{stem}_{c}{sfx}"); c+=1
         f.save(save_path)
         weights=analyse_audio(save_path)
-        _state["audio_path"]=save_path; _state["audio_filename"]=os.path.basename(save_path); _state["audio_weights"]=weights
-        return jsonify({"ok":True,"filename":os.path.basename(save_path),"weights":weights})
+        fn = os.path.basename(save_path)
+        _state["audio_path"]=save_path; _state["audio_filename"]=fn; _state["audio_weights"]=weights
+        # ── Upload to OCI Object Storage ──
+        storage_url = ""
+        try:
+            storage_url = oci_upload(save_path, audio_object_name(fn))
+        except Exception as oci_err:
+            print(f"[oci] audio upload failed (non-fatal): {oci_err}")
+        # ── Save metadata to Oracle DB ──
+        uploader_id = session.get("user", {}).get("accountId", "anonymous")
+        try:
+            save_audio_track(fn, weights, uploader_id=uploader_id, storage_url=storage_url)
+        except Exception as db_err:
+            print(f"[db] save_audio_track failed (non-fatal): {db_err}")
+        return jsonify({"ok":True,"filename":fn,"weights":weights,"storage_url":storage_url})
     except Exception as e:
         traceback.print_exc(); return jsonify({"ok":False,"error":str(e)}),500
 
@@ -805,6 +860,16 @@ def audio_delete(filename):
         path=os.path.join(AUDIO_DIR,os.path.basename(filename))
         if not os.path.exists(path): return jsonify({"ok":False,"error":"Not found"}),404
         os.remove(path)
+        # ── Delete from OCI ──
+        try:
+            oci_delete(audio_object_name(filename))
+        except Exception as oci_err:
+            print(f"[oci] delete failed (non-fatal): {oci_err}")
+        # ── Delete from DB ──
+        try:
+            delete_audio_track(filename)
+        except Exception as db_err:
+            print(f"[db] delete_audio_track failed (non-fatal): {db_err}")
         if _state["audio_filename"]==filename:
             _state["audio_path"]=_state["audio_filename"]=_state["audio_weights"]=None
         return jsonify({"ok":True})
@@ -848,9 +913,25 @@ def random_seed():
 # MAIN
 # ─────────────────────────────────────────────────────────────
 
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    pages=["/home","/forge","/gallery","/feed","/jukebox","/community","/dev","/privacy"]
+    urls="".join(f"<url><loc>https://triptokforge.org{p}</loc></url>" for p in pages)
+    xml=f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+    return xml, 200, {"Content-Type": "application/xml"}
+
 @app.route("/health")
 def health():
-    return jsonify({"ok": True, "service": "triptokforge", "version": "3.0", **db_status()})
+    stats = {}
+    try:
+        stats["members"] = len(get_all_members())
+        stats["islands"]  = len(get_recent_islands(limit=999))
+        stats["audio"]    = len(get_audio_tracks())
+    except:
+        pass
+    return jsonify({"ok": True, "service": "triptokforge", "version": "3.0", **db_status(), **stats})
 
 # ─────────────────────────────────────────────────────────────
 # PLATFORM PAGES — Gallery, Feed, Jukebox, Community, Dev, Admin
@@ -881,6 +962,23 @@ def _shell(title, content, active="", user=None):
                   if user else
                   f'<a href="/auth/epic" style="background:#00d4ff;color:#020408;padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:1px;text-decoration:none">⚡ LOGIN</a>')
     nav = _NAV.format(login_link=login_link)
+    _pinned_banner = ""
+    try:
+        _anns = get_announcements()
+        _pinned = [a for a in _anns if a.get("pinned")]
+        if _pinned:
+            _p = _pinned[0]
+            _pinned_banner = (
+                '<div style="background:rgba(255,107,0,0.08);border-bottom:1px solid rgba(255,107,0,0.3);'
+                'padding:10px 40px;font-size:13px;color:#ff9944;font-family:Rajdhani,sans-serif;'
+                'display:flex;align-items:center;gap:12px;position:relative;z-index:99;margin-top:60px">'
+                '<span style="font-family:Orbitron,monospace;font-size:9px;letter-spacing:2px;color:#ff6b00">PINNED</span>'
+                '<strong>' + _p.get("title","") + '</strong>'
+                '<span style="color:#aa6622">' + _p.get("body","")[:120] + '</span>'
+                '</div>'
+            )
+    except:
+        pass
     return f"""<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -891,7 +989,7 @@ def _shell(title, content, active="", user=None):
 *{{margin:0;padding:0;box-sizing:border-box}}
 body{{background:var(--black);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh}}
 body::before{{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}}
-.page{{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:88px 40px 80px}}
+.page{{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:88px 40px 120px}}
 h1{{font-family:'Orbitron',monospace;font-size:clamp(22px,3vw,36px);font-weight:900;color:#fff;margin-bottom:8px}}
 .sub{{color:var(--dim);font-size:16px;margin-bottom:40px;line-height:1.6}}
 .tag{{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--accent);margin-bottom:14px}}
@@ -906,33 +1004,404 @@ h1{{font-family:'Orbitron',monospace;font-size:clamp(22px,3vw,36px);font-weight:
 .btn-o{{background:transparent;color:var(--text);border:1px solid var(--border)}}.btn-o:hover{{border-color:var(--accent);color:var(--accent)}}
 .coming{{display:inline-block;padding:4px 12px;background:rgba(255,107,0,.1);border:1px solid rgba(255,107,0,.3);
          color:var(--accent2);font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;margin-bottom:20px}}
+
+/* ── Persistent Player ── */
+#tf-player{{
+  position:fixed;bottom:0;left:0;right:0;z-index:999;
+  background:rgba(6,13,24,0.97);
+  border-top:1px solid var(--border);
+  backdrop-filter:blur(20px);
+  display:flex;align-items:center;gap:0;
+  height:64px;
+  transform:translateY(100%);
+  transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}}
+#tf-player.visible{{transform:translateY(0)}}
+#tf-player.expanded{{height:auto;flex-direction:column;padding-bottom:0}}
+
+/* left — track info */
+.tfp-info{{
+  display:flex;align-items:center;gap:14px;
+  padding:0 20px;min-width:220px;flex:1;
+  border-right:1px solid var(--border);height:64px;
+}}
+.tfp-icon{{
+  width:36px;height:36px;background:var(--panel);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-size:14px;position:relative;overflow:hidden;
+}}
+.tfp-icon::after{{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(0,212,255,0.2),transparent);
+}}
+.tfp-bars{{display:flex;align-items:flex-end;gap:2px;height:18px}}
+.tfp-bars span{{width:3px;background:var(--accent);border-radius:1px;animation:tfbar 0.8s ease-in-out infinite alternate}}
+.tfp-bars span:nth-child(2){{animation-delay:0.15s;height:60%}}
+.tfp-bars span:nth-child(3){{animation-delay:0.3s;height:90%}}
+.tfp-bars span:nth-child(4){{animation-delay:0.1s;height:40%}}
+.tfp-bars span:nth-child(5){{animation-delay:0.25s;height:75%}}
+@keyframes tfbar{{from{{transform:scaleY(0.3)}}to{{transform:scaleY(1)}}}}
+.tfp-bars.paused span{{animation-play-state:paused}}
+.tfp-name{{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;color:#fff;letter-spacing:1px;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}}
+.tfp-meta{{font-size:11px;color:var(--dim);letter-spacing:1px;margin-top:2px}}
+
+/* center — controls */
+.tfp-controls{{
+  display:flex;align-items:center;gap:8px;
+  padding:0 24px;height:64px;
+}}
+.tfp-btn{{
+  width:32px;height:32px;border:1px solid var(--border);background:transparent;
+  color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:13px;transition:all 0.2s;flex-shrink:0;
+}}
+.tfp-btn:hover{{border-color:var(--accent);color:var(--accent)}}
+.tfp-btn.play{{
+  width:40px;height:40px;background:var(--accent);color:var(--black);
+  border-color:var(--accent);font-size:15px;
+}}
+.tfp-btn.play:hover{{background:#fff;border-color:#fff}}
+
+/* progress bar */
+.tfp-progress-wrap{{
+  flex:1;display:flex;align-items:center;gap:10px;
+  padding:0 16px;height:64px;min-width:0;
+}}
+.tfp-time{{font-family:'Orbitron',monospace;font-size:9px;color:var(--dim);flex-shrink:0;letter-spacing:1px}}
+.tfp-bar{{flex:1;height:3px;background:var(--border);cursor:pointer;position:relative}}
+.tfp-bar-fill{{height:100%;background:var(--accent);width:0%;transition:width 0.25s linear;pointer-events:none}}
+.tfp-bar:hover .tfp-bar-fill{{background:#fff}}
+
+/* right — volume + track picker toggle */
+.tfp-right{{
+  display:flex;align-items:center;gap:10px;
+  padding:0 16px;height:64px;border-left:1px solid var(--border);
+}}
+.tfp-vol{{width:72px;height:3px;background:var(--border);cursor:pointer;position:relative}}
+.tfp-vol-fill{{height:100%;background:var(--accent);width:80%;pointer-events:none}}
+.tfp-toggle{{
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;color:var(--dim);
+  background:transparent;border:1px solid var(--border);padding:5px 10px;cursor:pointer;
+  transition:all 0.2s;white-space:nowrap;
+}}
+.tfp-toggle:hover{{border-color:var(--accent);color:var(--accent)}}
+.tfp-close{{
+  width:28px;height:28px;background:transparent;border:none;color:var(--dim);
+  cursor:pointer;font-size:16px;padding:0;transition:color 0.2s;
+}}
+.tfp-close:hover{{color:#fff}}
+
+/* track list drawer */
+.tfp-drawer{{
+  width:100%;border-top:1px solid var(--border);
+  background:rgba(6,13,24,0.99);
+  max-height:0;overflow:hidden;
+  transition:max-height 0.3s ease;
+}}
+.tfp-drawer.open{{max-height:240px;overflow-y:auto}}
+.tfp-track{{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 20px;cursor:pointer;
+  border-bottom:1px solid rgba(26,58,92,0.4);
+  transition:background 0.15s;
+}}
+.tfp-track:hover{{background:rgba(0,212,255,0.05)}}
+.tfp-track.active{{background:rgba(0,212,255,0.08);border-left:2px solid var(--accent)}}
+.tfp-track-name{{font-family:'Orbitron',monospace;font-size:10px;color:#fff;letter-spacing:0.5px;
+                 flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.tfp-track-size{{font-size:11px;color:var(--dim)}}
+.tfp-empty{{padding:20px;text-align:center;color:var(--dim);font-size:13px;font-family:'Orbitron',monospace;letter-spacing:1px}}
 </style></head><body>
 {nav}
+{_pinned_banner}
 <div class="page">{content}</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PERSISTENT GLOBAL PLAYER                           -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div id="tf-player">
+  <!-- Info -->
+  <div class="tfp-info">
+    <div class="tfp-icon">
+      <div class="tfp-bars" id="tfp-bars">
+        <span style="height:50%"></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <div>
+      <div class="tfp-name" id="tfp-name">NO TRACK</div>
+      <div class="tfp-meta" id="tfp-meta">SELECT A TRACK</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="tfp-controls">
+    <button class="tfp-btn" id="tfp-prev" title="Previous">&#9664;&#9664;</button>
+    <button class="tfp-btn play" id="tfp-play" title="Play/Pause">&#9654;</button>
+    <button class="tfp-btn" id="tfp-next" title="Next">&#9654;&#9654;</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="tfp-progress-wrap">
+    <span class="tfp-time" id="tfp-cur">0:00</span>
+    <div class="tfp-bar" id="tfp-bar"><div class="tfp-bar-fill" id="tfp-fill"></div></div>
+    <span class="tfp-time" id="tfp-dur">0:00</span>
+  </div>
+
+  <!-- Right -->
+  <div class="tfp-right">
+    <div class="tfp-vol" id="tfp-vol" title="Volume"><div class="tfp-vol-fill" id="tfp-vfill"></div></div>
+    <button class="tfp-toggle" id="tfp-toggle">&#9835; TRACKS</button>
+    <button class="tfp-close" id="tfp-close" title="Close">&#215;</button>
+  </div>
+
+  <!-- Track drawer -->
+  <div class="tfp-drawer" id="tfp-drawer">
+    <div class="tfp-empty" id="tfp-empty">Loading tracks...</div>
+  </div>
+</div>
+
+<audio id="tfp-audio" preload="none"></audio>
+
+<script>
+(function(){{
+  const audio   = document.getElementById('tfp-audio');
+  const player  = document.getElementById('tf-player');
+  const bars    = document.getElementById('tfp-bars');
+  const nameEl  = document.getElementById('tfp-name');
+  const metaEl  = document.getElementById('tfp-meta');
+  const playBtn = document.getElementById('tfp-play');
+  const prevBtn = document.getElementById('tfp-prev');
+  const nextBtn = document.getElementById('tfp-next');
+  const fill    = document.getElementById('tfp-fill');
+  const curEl   = document.getElementById('tfp-cur');
+  const durEl   = document.getElementById('tfp-dur');
+  const bar     = document.getElementById('tfp-bar');
+  const volBar  = document.getElementById('tfp-vol');
+  const vfill   = document.getElementById('tfp-vfill');
+  const toggle  = document.getElementById('tfp-toggle');
+  const drawer  = document.getElementById('tfp-drawer');
+  const closeBtn= document.getElementById('tfp-close');
+  const emptyEl = document.getElementById('tfp-empty');
+
+  let tracks = [];
+  let current = -1;
+  let drawerOpen = false;
+  let vol = 0.8;
+
+  // ── Restore state from sessionStorage ──
+  try {{
+    const saved = JSON.parse(sessionStorage.getItem('tfp') || '{{}}');
+    if (saved.vol !== undefined) vol = saved.vol;
+    audio.volume = vol;
+    vfill.style.width = (vol * 100) + '%';
+  }} catch(e) {{}}
+
+  function fmt(s) {{
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s/60), ss = Math.floor(s%60);
+    return m + ':' + String(ss).padStart(2,'0');
+  }}
+
+  function saveState() {{
+    try {{
+      sessionStorage.setItem('tfp', JSON.stringify({{
+        current, vol, filename: tracks[current]?.filename || '', time: audio.currentTime
+      }}));
+    }} catch(e) {{}}
+  }}
+
+  // ── Load tracks from server ──
+  async function loadTracks() {{
+    try {{
+      const r = await fetch('/audio/list');
+      const d = await r.json();
+      tracks = d.files || [];
+      renderDrawer();
+      // Restore last playing track
+      try {{
+        const saved = JSON.parse(sessionStorage.getItem('tfp') || '{{}}');
+        if (saved.filename) {{
+          const idx = tracks.findIndex(t => t.filename === saved.filename);
+          if (idx >= 0) {{
+            current = idx;
+            setTrack(idx, false);
+            if (saved.time) audio.currentTime = saved.time;
+            player.classList.add('visible');
+          }}
+        }}
+      }} catch(e) {{}}
+      if (tracks.length > 0 && current < 0) {{
+        player.classList.add('visible');
+      }}
+    }} catch(e) {{
+      emptyEl.textContent = 'Could not load tracks.';
+    }}
+  }}
+
+  function renderDrawer() {{
+    if (!tracks.length) {{
+      emptyEl.textContent = 'No tracks uploaded yet. Visit Island Forge to upload audio.';
+      emptyEl.style.display = 'block';
+      return;
+    }}
+    emptyEl.style.display = 'none';
+    // Remove old track rows
+    drawer.querySelectorAll('.tfp-track').forEach(el => el.remove());
+    tracks.forEach((t, i) => {{
+      const row = document.createElement('div');
+      row.className = 'tfp-track' + (i === current ? ' active' : '');
+      row.innerHTML = `<div class="tfp-track-name">${{t.filename}}</div><div class="tfp-track-size">${{t.size_kb}} KB</div>`;
+      row.addEventListener('click', () => {{ setTrack(i, true); }});
+      drawer.appendChild(row);
+    }});
+  }}
+
+  function setTrack(idx, autoplay) {{
+    current = idx;
+    const t = tracks[idx];
+    if (!t) return;
+    const src = '/audio/stream/' + encodeURIComponent(t.filename);
+    audio.src = src;
+    const label = t.filename.replace(/\.[^.]+$/, '').replace(/_/g,' ').toUpperCase();
+    nameEl.textContent = label.length > 22 ? label.slice(0,22) + '…' : label;
+    metaEl.textContent = t.size_kb + ' KB  ·  TRIPTOKFORGE';
+    fill.style.width = '0%';
+    curEl.textContent = '0:00';
+    durEl.textContent = '0:00';
+    renderDrawer();
+    player.classList.add('visible');
+    if (autoplay) {{ audio.play(); }}
+    saveState();
+  }}
+
+  // ── Play/Pause ──
+  playBtn.addEventListener('click', () => {{
+    if (!audio.src) {{
+      if (tracks.length > 0) setTrack(0, true);
+      return;
+    }}
+    if (audio.paused) audio.play(); else audio.pause();
+  }});
+
+  audio.addEventListener('play', () => {{
+    playBtn.innerHTML = '&#9646;&#9646;';
+    bars.classList.remove('paused');
+  }});
+  audio.addEventListener('pause', () => {{
+    playBtn.innerHTML = '&#9654;';
+    bars.classList.add('paused');
+  }});
+  audio.addEventListener('ended', () => {{
+    if (current < tracks.length - 1) setTrack(current + 1, true);
+    else {{ playBtn.innerHTML = '&#9654;'; bars.classList.add('paused'); }}
+  }});
+
+  // ── Progress ──
+  audio.addEventListener('timeupdate', () => {{
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    fill.style.width = pct + '%';
+    curEl.textContent = fmt(audio.currentTime);
+    durEl.textContent = fmt(audio.duration);
+    saveState();
+  }});
+
+  bar.addEventListener('click', e => {{
+    if (!audio.duration) return;
+    const rect = bar.getBoundingClientRect();
+    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+  }});
+
+  // ── Prev / Next ──
+  prevBtn.addEventListener('click', () => {{
+    if (audio.currentTime > 3) {{ audio.currentTime = 0; return; }}
+    if (current > 0) setTrack(current - 1, !audio.paused);
+  }});
+  nextBtn.addEventListener('click', () => {{
+    if (current < tracks.length - 1) setTrack(current + 1, !audio.paused);
+  }});
+
+  // ── Volume ──
+  volBar.addEventListener('click', e => {{
+    const rect = volBar.getBoundingClientRect();
+    vol = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audio.volume = vol;
+    vfill.style.width = (vol * 100) + '%';
+    saveState();
+  }});
+
+  // ── Drawer toggle ──
+  toggle.addEventListener('click', () => {{
+    drawerOpen = !drawerOpen;
+    drawer.classList.toggle('open', drawerOpen);
+    player.classList.toggle('expanded', drawerOpen);
+    toggle.textContent = drawerOpen ? '✕ CLOSE' : '♫ TRACKS';
+  }});
+
+  // ── Close player ──
+  closeBtn.addEventListener('click', () => {{
+    audio.pause();
+    player.classList.remove('visible');
+    saveState();
+  }});
+
+  // ── Init ──
+  loadTracks();
+  // Refresh track list every 30s in case new uploads happen
+  setInterval(loadTracks, 30000);
+}})();
+</script>
 </body></html>"""
 
 
 @app.route("/gallery")
 def gallery():
+    # Try Oracle DB first, fall back to disk
     islands = []
-    if os.path.exists(OUTPUT_DIR):
-        for fn in sorted(os.listdir(OUTPUT_DIR)):
-            if fn.endswith("_preview.png"):
-                seed = fn.replace("_preview.png","").replace("island_","")
-                has_layout = os.path.exists(os.path.join(OUTPUT_DIR, f"island_{seed}_layout.json"))
-                islands.append({"seed": seed, "preview": fn, "has_layout": has_layout})
+    try:
+        rows = get_recent_islands(limit=24)
+        for r in rows:
+            seed = str(r.get("seed", ""))
+            preview_url = r.get("preview_url", "")
+            layout_url  = r.get("layout_url", "")
+            creator     = r.get("creator_id", "anonymous")
+            world_size  = r.get("world_size_cm", 0)
+            preview_src = preview_url if preview_url else f"/outputs/island_{seed}_preview.png"
+            layout_href = layout_url  if layout_url  else (f"/outputs/island_{seed}_layout.json" if os.path.exists(os.path.join(OUTPUT_DIR, f"island_{seed}_layout.json")) else "")
+            islands.append({"seed": seed, "preview_src": preview_src,
+                            "layout_href": layout_href, "creator": creator, "world_size": world_size})
+    except Exception as e:
+        print(f"[gallery] DB query failed, using disk: {e}")
+
+    if not islands:
+        if os.path.exists(OUTPUT_DIR):
+            for fn in sorted(os.listdir(OUTPUT_DIR)):
+                if fn.endswith("_preview.png"):
+                    seed = fn.replace("_preview.png","").replace("island_","")
+                    has_layout = os.path.exists(os.path.join(OUTPUT_DIR, f"island_{seed}_layout.json"))
+                    islands.append({
+                        "seed": seed,
+                        "preview_src": f"/outputs/{fn}",
+                        "layout_href": f"/outputs/island_{seed}_layout.json" if has_layout else "",
+                        "creator": "", "world_size": 0,
+                    })
 
     cards = ""
     if islands:
-        for isl in islands[-12:]:  # most recent 12
+        for isl in islands:
+            size_label    = f"{isl['world_size']:,} cm" if isl.get("world_size") else ""
+            creator_label = isl.get("creator","")[:16] if isl.get("creator","") not in ("anonymous","local","","") else ""
+            meta = " · ".join(filter(None, [size_label, creator_label]))
             cards += f"""
             <div class="card">
-              <img src="/outputs/{isl['preview']}" style="width:100%;aspect-ratio:1;object-fit:cover;margin-bottom:14px;image-rendering:pixelated">
+              <img src="{isl['preview_src']}" style="width:100%;aspect-ratio:1;object-fit:cover;margin-bottom:14px;image-rendering:pixelated"
+                   onerror="this.style.background='var(--panel)';this.style.minHeight='120px';this.removeAttribute('src')">
               <h3>SEED #{isl['seed']}</h3>
-              <p style="margin-bottom:14px">Generated island heightmap</p>
+              {f'<p style="color:var(--dim);font-size:12px;margin-bottom:10px">{meta}</p>' if meta else ''}
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <a href="/outputs/{isl['preview']}" download class="btn btn-o" style="font-size:9px;padding:7px 14px">⬇ Preview</a>
-                {'<a href="/outputs/island_'+isl['seed']+'_layout.json" download class="btn btn-o" style="font-size:9px;padding:7px 14px">⬇ Layout</a>' if isl['has_layout'] else ''}
+                <a href="{isl['preview_src']}" download class="btn btn-o" style="font-size:9px;padding:7px 14px">&#11015; Preview</a>
+                {f'<a href="{isl['layout_href']}" download class="btn btn-o" style="font-size:9px;padding:7px 14px">&#11015; Layout</a>' if isl.get("layout_href") else ''}
               </div>
             </div>"""
     else:
@@ -941,7 +1410,7 @@ def gallery():
     content = f"""
     <div class="tag">// Island Gallery</div>
     <h1>Generated Islands</h1>
-    <p class="sub">All islands generated on this server. Download heightmaps and layout JSON for UEFN import.</p>
+    <p class="sub">All islands generated by the community. Download heightmaps and layout JSON for UEFN import.</p>
     <div class="grid">{cards}</div>"""
     return _shell("Gallery", content, user=session.get("user"))
 
@@ -957,137 +1426,215 @@ def serve_output(filename):
 
 @app.route("/feed")
 def feed():
-    content = """
-    <div class="tag">// Esports Feed</div>
-    <h1>Fortnite Esports & News</h1>
-    <div class="coming">LIVE FEED — COMING SOON</div>
-    <p class="sub">FNCS results, map updates, and community highlights. Connect your Epic account to personalise your feed.</p>
+    # ── Latest islands from DB ──
+    island_cards = ""
+    try:
+        recent = get_recent_islands(limit=6)
+        for r in recent:
+            seed        = str(r.get("seed",""))
+            preview_src = r.get("preview_url","") or f"/outputs/island_{seed}_preview.png"
+            layout_href = r.get("layout_url","") or f"/outputs/island_{seed}_layout.json"
+            creator     = r.get("creator_id","anonymous")[:16]
+            world_size  = f"{r.get('world_size_cm',0):,} cm" if r.get("world_size_cm") else ""
+            island_cards += f'''
+            <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px">
+              <img src="{preview_src}" style="width:64px;height:64px;object-fit:cover;image-rendering:pixelated;flex-shrink:0;border:1px solid var(--border)"
+                   onerror="this.style.display='none'">
+              <div style="flex:1;min-width:0">
+                <div style="font-family:'Orbitron',monospace;font-size:11px;color:#fff;margin-bottom:4px">SEED #{seed}</div>
+                <div style="font-size:12px;color:var(--dim)">{world_size}{" · " + creator if creator not in ("anonymous","") else ""}</div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <a href="{preview_src}" download class="btn btn-o" style="font-size:9px;padding:5px 10px">&#11015; PNG</a>
+                  <a href="{layout_href}" download class="btn btn-o" style="font-size:9px;padding:5px 10px">&#11015; JSON</a>
+                </div>
+              </div>
+            </div>'''
+    except Exception as e:
+        island_cards = f'<p class="sub">Could not load islands: {e}</p>'
+
+    if not island_cards:
+        island_cards = '<p class="sub">No islands yet. <a href="/forge" style="color:var(--accent)">Be the first →</a></p>'
+
+    # ── Latest announcements from DB ──
+    ann_html = ""
+    try:
+        anns = get_announcements()
+        for a in anns[:4]:
+            ann_html += f'''
+            <div class="card">
+              <h3>{a.get("title","")}</h3>
+              <p style="margin-top:8px">{a.get("body","")}</p>
+              <p style="color:var(--dim);font-size:11px;margin-top:10px;font-family:monospace">{a.get("posted_by","")}</p>
+            </div>'''
+    except:
+        pass
+
+    if not ann_html:
+        ann_html = '<div class="card"><h3>NO ANNOUNCEMENTS</h3><p>Check back soon.</p></div>'
+
+    content = f"""
+    <div class="tag">// Community Feed</div>
+    <h1>Latest Activity</h1>
+    <p class="sub">Recent islands from the community and platform announcements.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:40px">
+      <div>
+        <div style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:12px">// RECENT ISLANDS</div>
+        <div style="display:flex;flex-direction:column;gap:2px;background:var(--border);border:1px solid var(--border)">{island_cards}</div>
+        <div style="margin-top:12px"><a href="/gallery" class="btn btn-o" style="font-size:10px">View All Islands →</a></div>
+      </div>
+      <div>
+        <div style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:12px">// ANNOUNCEMENTS</div>
+        <div class="grid" style="grid-template-columns:1fr">{ann_html}</div>
+      </div>
+    </div>
+
     <div class="grid">
-      <div class="card">
-        <h3>FNCS RESULTS</h3>
-        <p>Fortnite Champion Series standings, match results, and VODs from recent events.</p>
-      </div>
-      <div class="card">
-        <h3>MAP UPDATES</h3>
-        <p>Season patch notes, new POI reveals, and map change breakdowns as they happen.</p>
-      </div>
-      <div class="card">
-        <h3>COMMUNITY SPOTLIGHTS</h3>
-        <p>Featured UEFN islands, creative maps, and player highlights from the TriptokForge community.</p>
-      </div>
-      <div class="card">
-        <h3>ISLAND FORGE DROPS</h3>
-        <p>Latest islands generated by members. Preview, download, and load directly into UEFN.</p>
-      </div>
+      <div class="card"><h3>FNCS RESULTS</h3><p>Fortnite Champion Series standings and VODs. <span style="color:var(--accent2);font-size:11px">COMING SOON</span></p></div>
+      <div class="card"><h3>MAP UPDATES</h3><p>Season patch notes and POI breakdowns. <span style="color:var(--accent2);font-size:11px">COMING SOON</span></p></div>
     </div>"""
     return _shell("Feed", content, user=session.get("user"))
 
 
 @app.route("/jukebox")
 def jukebox():
-    # Load jukebox.json if it exists
-    jukebox_path = os.path.join(BASE_DIR, "data", "jukebox.json")
     tracks = []
-    if os.path.exists(jukebox_path):
-        with open(jukebox_path) as f:
-            tracks = json.load(f)
-
-    # Also include uploaded audio files
-    if os.path.exists(AUDIO_DIR):
-        for fn in sorted(os.listdir(AUDIO_DIR)):
-            if os.path.splitext(fn)[1].lower() in SUPPORTED_EXTS:
-                tracks.append({"title": fn, "artist": "Member Upload",
-                                "url": f"/audio/stream/{fn}", "uploaded": True})
+    try:
+        db_tracks = get_audio_tracks()
+        for t in db_tracks:
+            fn = t.get("filename","")
+            tracks.append({
+                "title": fn,
+                "artist": t.get("uploader_id","Member")[:16],
+                "url": f"/audio/stream/{fn}",
+                "bpm": round(t.get("tempo_bpm", 0)) if t.get("tempo_bpm") else 0,
+            })
+    except Exception as e:
+        print(f"[jukebox] DB error, using disk: {e}")
+        if os.path.exists(AUDIO_DIR):
+            for fn in sorted(os.listdir(AUDIO_DIR)):
+                if os.path.splitext(fn)[1].lower() in SUPPORTED_EXTS:
+                    tracks.append({"title": fn, "artist": "Upload", "url": f"/audio/stream/{fn}", "bpm": 0})
 
     track_html = ""
-    for t in tracks:
-        track_html += f"""
-        <div class="card" style="display:flex;align-items:center;gap:16px;padding:16px 20px;cursor:pointer"
-             onclick="playTrack('{t.get('url','#')}','{t.get('title','')}','{t.get('artist','')}')">
-          <div style="width:36px;height:36px;background:rgba(0,212,255,.1);border:1px solid var(--border);
-               display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">▶</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-family:'Orbitron',monospace;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{t.get('title','Unknown')}</div>
-            <div style="font-size:12px;color:var(--dim);margin-top:2px">{t.get('artist','')}</div>
-          </div>
-          {'<span style="font-size:9px;color:var(--accent2);letter-spacing:1px">UPLOAD</span>' if t.get('uploaded') else ''}
-        </div>"""
+    for i, t in enumerate(tracks):
+        label = t["title"].replace("_"," ").rsplit(".",1)[0].upper()
+        bpm_badge = f'<span style="font-family:Orbitron,monospace;font-size:9px;color:var(--accent);letter-spacing:1px">{t["bpm"]} BPM</span>' if t.get("bpm") else ""
+        track_html += (
+            f'<div class="card" style="display:flex;align-items:center;gap:16px;padding:14px 20px;cursor:pointer" ' +
+            f'onclick="jkPlay({i})" id="jkrow-{i}">' +
+            '<div style="width:34px;height:34px;background:rgba(0,212,255,.06);border:1px solid var(--border);' +
+            'display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:var(--accent)">&#9654;</div>' +
+            '<div style="flex:1;min-width:0">' +
+            f'<div style="font-family:Orbitron,monospace;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{label}</div>' +
+            f'<div style="font-size:11px;color:var(--dim);margin-top:3px;display:flex;gap:10px;align-items:center"><span>{t.get("artist","")}</span>{bpm_badge}</div>' +
+            '</div></div>'
+        )
 
     if not track_html:
-        track_html = '<p class="sub">No tracks yet. <a href="/forge" style="color:var(--accent)">Upload audio in Island Forge →</a></p>'
+        track_html = '<p class="sub">No tracks yet. <a href="/forge" style="color:var(--accent)">Upload audio in Island Forge</a></p>'
+
+    import json as _json
+    import json as _json
+    track_urls_js   = _json.dumps([t["url"] for t in tracks])
+    track_titles_js = _json.dumps([t["title"].replace("'","") for t in tracks])
+
+    track_list_html = f'<div class="grid" style="grid-template-columns:1fr">{track_html}</div>'
 
     content = f"""
     <div class="tag">// Jukebox</div>
     <h1>Community Jukebox</h1>
-    <p class="sub">Tracks uploaded by members and used to generate islands. Click any track to preview.</p>
-    <audio id="jk-audio" style="display:none"></audio>
-    <div id="jk-now" style="margin-bottom:24px;padding:14px 20px;background:var(--panel);border:1px solid var(--border);
-         font-family:'Orbitron',monospace;font-size:11px;color:var(--dim);display:none">
-      ▶ <span id="jk-title">—</span>
-      <button onclick="document.getElementById('jk-audio').pause();document.getElementById('jk-now').style.display='none'"
-              style="float:right;background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px">■</button>
+    <p class="sub">{len(tracks)} tracks &middot; Click any track to play</p>
+    <div id="jk-now" style="display:none;margin-bottom:20px;padding:12px 20px;background:var(--panel);
+         border:1px solid var(--accent);font-family:'Orbitron',monospace;font-size:11px;color:var(--accent);
+         align-items:center;gap:12px">
+      &#9654; <span id="jk-title" style="flex:1">&#8212;</span>
+      <button onclick="document.getElementById('jk-a').pause();document.getElementById('jk-now').style.display='none'"
+              style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px">&#9646;</button>
     </div>
-    <div class="grid" style="grid-template-columns:1fr">{track_html}</div>
+    <audio id="jk-a"></audio>
+    {track_list_html}
     <script>
-    function playTrack(url, title, artist) {{
-      const a = document.getElementById('jk-audio');
-      a.src = url; a.play();
-      document.getElementById('jk-title').textContent = title + (artist ? ' — ' + artist : '');
-      document.getElementById('jk-now').style.display = 'block';
+    const jkU={track_urls_js};
+    const jkT={track_titles_js};
+    let jkC=-1;
+    function jkPlay(i){{
+      jkC=i;
+      const a=document.getElementById("jk-a");
+      a.src=jkU[i]; a.play();
+      document.getElementById("jk-title").textContent=jkT[i];
+      document.getElementById("jk-now").style.display="flex";
+      document.querySelectorAll("[id^=jkrow-]").forEach((el,j)=>{{
+        el.style.borderColor = j===i ? "var(--accent)" : "";
+      }});
     }}
     </script>"""
     return _shell("Jukebox", content, user=session.get("user"))
 
-
 @app.route("/community")
 def community():
-    members_path = os.path.join(BASE_DIR, "data", "members.json")
-    announcements_path = os.path.join(BASE_DIR, "data", "announcements.json")
     members = []
     announcements = []
-    if os.path.exists(members_path):
-        with open(members_path) as f: members = json.load(f)
-    if os.path.exists(announcements_path):
-        with open(announcements_path) as f: announcements = json.load(f)
+    try:
+        members = get_all_members()
+    except Exception as e:
+        print(f"[community] members DB error: {e}")
+    try:
+        announcements = get_announcements()
+    except Exception as e:
+        print(f"[community] announcements DB error: {e}")
 
     ann_html = ""
-    for a in announcements[-3:]:
-        ann_html += f"""
-        <div class="card" style="margin-bottom:12px">
-          <h3>{a.get('title','Announcement')}</h3>
-          <p style="margin-bottom:8px">{a.get('body','')}</p>
-          <span style="font-size:11px;color:var(--dim)">{a.get('date','')}</span>
-        </div>"""
+    for a in (announcements or [])[:5]:
+        pinned = a.get("pinned", False)
+        ann_html += (
+            '<div class="card" style="margin-bottom:12px' +
+            (';border-color:var(--accent2)' if pinned else '') + '">' +
+            ('<span style="font-size:9px;color:var(--accent2);letter-spacing:2px;font-family:Orbitron,monospace">PINNED</span><br>' if pinned else '') +
+            '<h3>' + a.get("title","Announcement") + '</h3>' +
+            '<p style="margin-bottom:8px;margin-top:6px">' + a.get("body","") + '</p>' +
+            '<span style="font-size:11px;color:var(--dim)">' + a.get("posted_by","") + '</span>' +
+            '</div>'
+        )
 
     mem_html = ""
-    for m in members[:20]:
-        mem_html += f"""
-        <div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px">
-          <div style="width:40px;height:40px;border-radius:50%;background:rgba(0,212,255,.1);
-               border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
-               font-size:18px;flex-shrink:0">{m.get('avatar','👤')}</div>
-          <div>
-            <div style="font-family:'Orbitron',monospace;font-size:12px;color:#fff">{m.get('name','Member')}</div>
-            <div style="font-size:11px;color:var(--dim)">{m.get('role','Member')} • {m.get('islands',0)} islands</div>
-          </div>
-        </div>"""
-    if not mem_html:
-        mem_html = '<p style="color:var(--dim);font-size:14px">No members yet — be the first to <a href="/auth/epic" style="color:var(--accent)">connect your Epic account</a>.</p>'
+    for m in (members or [])[:24]:
+        skin_img = m.get("skin_img","")
+        name = m.get("display_name", m.get("name","Member"))
+        avatar = m.get("avatar_url","")
+        img_src = skin_img or avatar or ""
+        initials = name[:2].upper() if name else "??"
+        img_tag = ('<img src="' + img_src + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">') if img_src else ''
+        mem_html += (
+            '<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px">' +
+            '<div style="width:44px;height:44px;border-radius:4px;background:rgba(0,212,255,.06);' +
+            'border:1px solid var(--border);display:flex;align-items:center;justify-content:center;' +
+            'font-size:11px;flex-shrink:0;overflow:hidden;font-family:Orbitron,monospace;color:var(--accent)">' +
+            img_tag + (initials if not img_src else '') + '</div>' +
+            '<div style="flex:1;min-width:0">' +
+            '<div style="font-family:Orbitron,monospace;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + name + '</div>' +
+            '<div style="font-size:11px;color:var(--dim);margin-top:2px">' + (m.get("skin_name","") or "Member") + '</div>' +
+            '</div></div>'
+        )
 
-    content = f"""
-    <div class="tag">// Community</div>
-    <h1>TriptokForge Community</h1>
-    <p class="sub">Connect with other Fortnite creators and players building on the platform.</p>
-    <div style="display:grid;grid-template-columns:1fr 300px;gap:32px;align-items:start">
-      <div>
-        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:14px">ANNOUNCEMENTS</div>
-        {ann_html or '<p style="color:var(--dim);font-size:14px">No announcements yet.</p>'}
-      </div>
-      <div>
-        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:14px">MEMBERS</div>
-        <div style="display:flex;flex-direction:column;gap:8px">{mem_html}</div>
-      </div>
-    </div>"""
+    if not mem_html:
+        mem_html = '<p style="color:var(--dim);font-size:14px">No members yet. <a href="/auth/epic" style="color:var(--accent)">Connect your Epic account</a>.</p>'
+
+    n_mem = len(members)
+    n_ann = len(announcements)
+    content = (
+        '<div class="tag">// Community</div>' +
+        '<h1>TriptokForge Community</h1>' +
+        f'<p class="sub">{n_mem} members · {n_ann} announcements</p>' +
+        '<div style="display:grid;grid-template-columns:1fr 320px;gap:32px;align-items:start">' +
+        '<div>' +
+        '<div style="font-family:Orbitron,monospace;font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:14px">// ANNOUNCEMENTS</div>' +
+        (ann_html or '<p style="color:var(--dim);font-size:14px">No announcements yet.</p>') +
+        '</div>' +
+        f'<div><div style="font-family:Orbitron,monospace;font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:14px">// MEMBERS ({n_mem})</div>' +
+        '<div style="display:flex;flex-direction:column;gap:4px">' + mem_html + '</div></div>' +
+        '</div>'
+    )
     return _shell("Community", content, user=session.get("user"))
 
 
@@ -1184,34 +1731,80 @@ def admin():
     if request.method == "POST":
         action = request.form.get("action")
         if action == "announcement":
-            ann_path = os.path.join(BASE_DIR, "data", "announcements.json")
-            anns = []
-            if os.path.exists(ann_path):
-                with open(ann_path) as f: anns = json.load(f)
-            anns.append({
-                "title": request.form.get("title",""),
-                "body":  request.form.get("body",""),
-                "date":  request.form.get("date",""),
-            })
-            os.makedirs(os.path.join(BASE_DIR,"data"), exist_ok=True)
-            with open(ann_path,"w") as f: json.dump(anns, f, indent=2)
-            msg = "Announcement posted."
+            title = request.form.get("title","")
+            body  = request.form.get("body","")
+            date  = request.form.get("date","")
+            posted_by = session.get("user",{}).get("display_name","admin")
+            # Save to Oracle DB
+            try:
+                post_announcement(title=title, body=body, posted_by=posted_by)
+                msg = "Announcement posted to DB."
+            except Exception as db_err:
+                print(f"[admin] DB post failed: {db_err}")
+                # Fallback to JSON
+                ann_path = os.path.join(BASE_DIR, "data", "announcements.json")
+                anns = []
+                if os.path.exists(ann_path):
+                    with open(ann_path) as f: anns = json.load(f)
+                anns.append({"title": title, "body": body, "date": date})
+                os.makedirs(os.path.join(BASE_DIR,"data"), exist_ok=True)
+                with open(ann_path,"w") as f: json.dump(anns, f, indent=2)
+                msg = "Announcement posted (local fallback)."
+        elif action == "delete_announcement":
+            ann_id = request.form.get("ann_id","")
+            try:
+                from oracle_db import _get_pool
+                pool = _get_pool()
+                with pool.acquire() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("DELETE FROM announcements WHERE id = :id", {"id": int(ann_id)})
+                    conn.commit()
+                msg = "Announcement deleted."
+            except Exception as e:
+                msg = f"Delete failed: {e}"
         elif action == "logout_admin":
             session.pop("admin", None)
             return redirect("/admin")
 
-    # Count stats
-    n_islands = len([f for f in os.listdir(OUTPUT_DIR) if f.endswith("_layout.json")]) if os.path.exists(OUTPUT_DIR) else 0
-    n_audio   = len([f for f in os.listdir(AUDIO_DIR) if os.path.splitext(f)[1].lower() in SUPPORTED_EXTS]) if os.path.exists(AUDIO_DIR) else 0
+    # Count stats — prefer DB counts
+    try:
+        n_islands = len(get_recent_islands(limit=999))
+    except:
+        n_islands = len([f for f in os.listdir(OUTPUT_DIR) if f.endswith("_layout.json")]) if os.path.exists(OUTPUT_DIR) else 0
+    try:
+        n_audio = len(get_audio_tracks())
+    except:
+        n_audio = len([f for f in os.listdir(AUDIO_DIR) if os.path.splitext(f)[1].lower() in SUPPORTED_EXTS]) if os.path.exists(AUDIO_DIR) else 0
+    try:
+        n_members = len(get_all_members())
+    except:
+        n_members = 0
+    try:
+        announcements = get_announcements()
+        n_announcements = len(announcements)
+    except:
+        n_announcements = 0
+        announcements = []
+
+    ann_rows = ""
+    for a in (announcements or [])[:5]:
+        ann_rows += f'''<div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+            <strong style="color:#fff">{a.get("title","")}</strong>
+            <span style="color:var(--dim);margin-left:8px;font-size:11px">{a.get("posted_by","")}</span>
+            <p style="color:var(--dim);margin-top:4px">{a.get("body","")[:120]}</p>
+            </div>'''
 
     content = f"""
     <div class="tag">// Admin Panel</div>
     <h1>TriptokForge Admin</h1>
     {f'<div style="color:var(--accent);margin-bottom:20px;font-family:monospace">{msg}</div>' if msg else ''}
     <div class="grid" style="margin-bottom:32px">
-      <div class="card"><h3>ISLANDS GENERATED</h3><div style="font-family:'Orbitron',monospace;font-size:36px;color:var(--accent)">{n_islands}</div></div>
+      <div class="card"><h3>ISLANDS</h3><div style="font-family:'Orbitron',monospace;font-size:36px;color:var(--accent)">{n_islands}</div></div>
       <div class="card"><h3>AUDIO FILES</h3><div style="font-family:'Orbitron',monospace;font-size:36px;color:var(--accent)">{n_audio}</div></div>
+      <div class="card"><h3>MEMBERS</h3><div style="font-family:'Orbitron',monospace;font-size:36px;color:var(--accent)">{n_members}</div></div>
+      <div class="card"><h3>ANNOUNCEMENTS</h3><div style="font-family:'Orbitron',monospace;font-size:36px;color:var(--accent)">{n_announcements}</div></div>
     </div>
+    {f'<div class="card" style="margin-bottom:24px;max-width:560px"><h3 style="margin-bottom:12px">RECENT ANNOUNCEMENTS</h3>{ann_rows}</div>' if ann_rows else ''}
     <div class="card" style="margin-bottom:20px;max-width:560px">
       <h3 style="margin-bottom:16px">POST ANNOUNCEMENT</h3>
       <form method="POST">
@@ -1234,6 +1827,20 @@ def admin():
     </form>"""
     return _shell("Admin", content, user=session.get("user"))
 
+
+
+
+@app.errorhandler(404)
+def not_found(e):
+    path = os.path.join(BASE_DIR, "404.html")
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read(), 404
+    return "<h1>404</h1>", 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return _shell("Error", '<div class="tag">// Error 500</div><h1>Something Broke</h1><p class="sub">An internal error occurred.</p><a href="/home" class="btn btn-o">Back Home</a>'), 500
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STARTUP

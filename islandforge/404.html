@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>404 — Something Is Here</title>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&family=Orbitron:wght@900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #000;
+    --blood: #8b0000;
+    --rust: #3a1a00;
+    --amber: #ff9500;
+    --dim-amber: #7a4500;
+    --fog: rgba(0,0,0,0.85);
+    --text: #c8a96e;
+    --flicker: #ffe8a0;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    width:100%; height:100%;
+    background:#000;
+    overflow:hidden;
+    cursor: none;
+  }
+
+  /* ── SCENE ── */
+  #scene {
+    position: fixed;
+    inset: 0;
+    background: #000;
+  }
+
+  /* Animated town silhouette */
+  #town {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 320px;
+    transform-origin: bottom center;
+    animation: townSway 6s ease-in-out infinite;
+  }
+
+  @keyframes townSway {
+    0%   { transform: rotate(-0.4deg) translateX(-4px); }
+    25%  { transform: rotate(0.2deg) translateX(2px); }
+    50%  { transform: rotate(0.5deg) translateX(5px); }
+    75%  { transform: rotate(-0.1deg) translateX(-2px); }
+    100% { transform: rotate(-0.4deg) translateX(-4px); }
+  }
+
+  #town svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Glowing windows that flicker */
+  .win {
+    animation: winFlicker 0s ease-in-out infinite;
+  }
+  .win1 { animation-duration: 3.1s; animation-delay: 0.2s; }
+  .win2 { animation-duration: 4.7s; animation-delay: 1.1s; }
+  .win3 { animation-duration: 2.3s; animation-delay: 0.7s; }
+  .win4 { animation-duration: 5.9s; animation-delay: 2.0s; }
+  .win5 { animation-duration: 3.8s; animation-delay: 0.4s; }
+  .win6 { animation-duration: 6.2s; animation-delay: 1.7s; }
+
+  @keyframes winFlicker {
+    0%,100% { opacity: 1; }
+    10%      { opacity: 0.3; }
+    12%      { opacity: 0.9; }
+    40%      { opacity: 1; }
+    41%      { opacity: 0.1; }
+    42%      { opacity: 0.8; }
+    80%      { opacity: 0.7; }
+    82%      { opacity: 0.05; }
+    84%      { opacity: 0.9; }
+  }
+
+  /* ── FOG LAYER ── */
+  #fog {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 200% 60% at 50% 100%, rgba(20,8,0,0.7) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* ── FLASHLIGHT ── */
+  #flashlight {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    /* Dark overlay with a radial cutout following cursor */
+    background: radial-gradient(
+      circle 180px at 50% 50%,
+      transparent 0%,
+      transparent 40%,
+      rgba(0,0,0,0.55) 65%,
+      rgba(0,0,0,0.92) 85%,
+      rgba(0,0,0,0.98) 100%
+    );
+    transition: background 0.05s linear;
+  }
+
+  /* Inner light cone tint */
+  #flashlight::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      circle 100px at 50% 50%,
+      rgba(255, 220, 130, 0.08) 0%,
+      transparent 100%
+    );
+    transition: background 0.05s linear;
+  }
+
+  /* ── CUSTOM CURSOR ── */
+  #cursor {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--amber);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 200;
+    transform: translate(-50%,-50%);
+    box-shadow: 0 0 12px var(--amber), 0 0 4px var(--amber);
+    transition: transform 0.05s;
+  }
+
+  /* ── EYES IN THE DARK ── */
+  .eyes {
+    position: absolute;
+    pointer-events: none;
+    animation: eyesBlink 7s ease-in-out infinite;
+    opacity: 0;
+  }
+  .eyes.show { opacity: 1; }
+
+  #eyes1 { bottom: 30%; left: 8%; animation-delay: 2s; }
+  #eyes2 { bottom: 45%; right: 12%; animation-delay: 5s; }
+  #eyes3 { bottom: 20%; left: 55%; animation-delay: 1s; }
+
+  @keyframes eyesBlink {
+    0%,100%  { opacity: 0; }
+    10%,90%  { opacity: 0; }
+    20%      { opacity: 0.9; }
+    21%      { opacity: 0.1; }
+    22%      { opacity: 0.9; }
+    70%      { opacity: 0.7; }
+    85%      { opacity: 0; }
+  }
+
+  .eye {
+    display: inline-block;
+    width: 8px;
+    height: 12px;
+    background: #ff2200;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ff2200, 0 0 20px #ff0000;
+    margin: 0 10px;
+  }
+
+  /* ── STATIC NOISE OVERLAY ── */
+  #noise {
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 40;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
+    animation: noiseAnim 0.1s steps(1) infinite;
+  }
+  @keyframes noiseAnim {
+    0%   { background-position: 0 0; }
+    10%  { background-position: -5% -10%; }
+    20%  { background-position: -15% 5%; }
+    30%  { background-position: 7% -25%; }
+    40%  { background-position: 20% 10%; }
+    50%  { background-position: -25% 0; }
+    60%  { background-position: 15% 35%; }
+    70%  { background-position: 0 -20%; }
+    80%  { background-position: -20% -5%; }
+    90%  { background-position: 10% 15%; }
+    100% { background-position: 0 0; }
+  }
+
+  /* ── SCAN LINES ── */
+  #scanlines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 41;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+  }
+
+  /* ── UI CONTENT ── */
+  #ui {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    text-align: center;
+    padding: 40px;
+  }
+
+  .error-code {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(80px, 18vw, 180px);
+    font-weight: 900;
+    color: transparent;
+    -webkit-text-stroke: 2px var(--dim-amber);
+    line-height: 1;
+    letter-spacing: -4px;
+    animation: codeFlicker 4s ease-in-out infinite;
+    text-shadow: 0 0 80px rgba(139,0,0,0.3);
+    margin-bottom: 0;
+  }
+
+  @keyframes codeFlicker {
+    0%,100% { -webkit-text-stroke-color: var(--dim-amber); opacity: 1; }
+    3%       { opacity: 0.4; }
+    4%       { opacity: 1; }
+    50%      { -webkit-text-stroke-color: #5a2a00; }
+    72%      { opacity: 0.9; }
+    73%      { opacity: 0.2; -webkit-text-stroke-color: var(--blood); }
+    74%      { opacity: 1; }
+  }
+
+  .tagline {
+    font-family: 'Creepster', cursive;
+    font-size: clamp(18px, 3vw, 36px);
+    color: var(--amber);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    animation: tagFlicker 6s ease-in-out infinite;
+    text-shadow: 0 0 20px rgba(255,149,0,0.5);
+  }
+
+  @keyframes tagFlicker {
+    0%,100% { opacity: 1; }
+    15%      { opacity: 0.8; }
+    16%      { opacity: 0.1; }
+    17%      { opacity: 0.9; }
+    60%      { opacity: 0.7; }
+  }
+
+  .subtitle {
+    font-family: 'Special Elite', serif;
+    font-size: clamp(12px, 1.5vw, 16px);
+    color: #5a3a18;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+    line-height: 1.8;
+  }
+
+  .subtitle em {
+    color: #8b5a2a;
+    font-style: normal;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 20px;
+    pointer-events: all;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-links a {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 12px 28px;
+    border: 1px solid #3a1a00;
+    color: #7a4a18;
+    background: rgba(0,0,0,0.6);
+    transition: all 0.3s;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+
+  .nav-links a:hover {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: rgba(80,30,0,0.3);
+    text-shadow: 0 0 12px var(--amber);
+    box-shadow: 0 0 20px rgba(255,149,0,0.15), inset 0 0 20px rgba(255,149,0,0.05);
+  }
+
+  /* ── JUMPSCARE FLASH ── */
+  #flash {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 300;
+    animation: flashAnim 15s ease-in-out infinite;
+  }
+
+  @keyframes flashAnim {
+    0%,89%,100% { opacity: 0; }
+    90%          { opacity: 0.06; }
+    90.1%        { opacity: 0; }
+    90.5%        { opacity: 0.03; }
+    91%          { opacity: 0; }
+  }
+
+  /* ── BLOOD DRIPS ── */
+  .drip {
+    position: absolute;
+    top: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, var(--blood), transparent);
+    border-radius: 0 0 50% 50%;
+    opacity: 0;
+    animation: dripFall linear infinite;
+  }
+
+  @keyframes dripFall {
+    0%   { opacity: 0; height: 0; transform: translateY(0); }
+    10%  { opacity: 0.6; }
+    100% { opacity: 0; height: 120px; transform: translateY(40px); }
+  }
+
+  /* ── BREATHING VIGNETTE ── */
+  #vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 30;
+    background: radial-gradient(ellipse 70% 70% at 50% 50%, transparent 40%, rgba(0,0,0,0.7) 100%);
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.6; }
+  }
+
+  /* ── WHISPER TEXT ── */
+  #whisper {
+    position: fixed;
+    font-family: 'Special Elite', serif;
+    font-size: 11px;
+    color: #2a1200;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0;
+    animation: whisperAnim 18s ease-in-out infinite;
+  }
+
+  @keyframes whisperAnim {
+    0%,40%,100% { opacity: 0; }
+    45%,55%     { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="flash"></div>
+<div id="noise"></div>
+<div id="scanlines"></div>
+<div id="vignette"></div>
+
+<!-- SCENE -->
+<div id="scene">
+
+  <!-- Blood drips along top -->
+  <div class="drip" style="left:5%;animation-duration:3.2s;animation-delay:0.5s;width:2px"></div>
+  <div class="drip" style="left:15%;animation-duration:4.1s;animation-delay:2.1s;width:4px"></div>
+  <div class="drip" style="left:28%;animation-duration:2.8s;animation-delay:1.3s;width:2px"></div>
+  <div class="drip" style="left:42%;animation-duration:5.0s;animation-delay:0.8s;width:3px"></div>
+  <div class="drip" style="left:58%;animation-duration:3.6s;animation-delay:3.2s;width:2px"></div>
+  <div class="drip" style="left:71%;animation-duration:4.4s;animation-delay:1.7s;width:4px"></div>
+  <div class="drip" style="left:83%;animation-duration:2.9s;animation-delay:0.3s;width:2px"></div>
+  <div class="drip" style="left:92%;animation-duration:3.8s;animation-delay:2.6s;width:3px"></div>
+
+  <!-- Eyes in darkness -->
+  <div class="eyes" id="eyes1"><span class="eye"></span><span class="eye"></span></div>
+  <div class="eyes" id="eyes2"><span class="eye"></span><span class="eye"></span></div>
+  <div class="eyes" id="eyes3"><span class="eye"></span><span class="eye"></span></div>
+
+  <!-- Town silhouette -->
+  <div id="town">
+    <svg viewBox="0 0 1440 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Background hills/fog -->
+      <path d="M0,280 Q200,200 400,240 Q600,200 800,220 Q1000,180 1200,210 Q1350,200 1440,220 L1440,320 L0,320 Z"
+            fill="#0a0400" opacity="0.8"/>
+
+      <!-- Far buildings row -->
+      <path d="M-20,320 L-20,180 L40,180 L40,160 L80,160 L80,140 L120,140 L120,160 L160,160 L160,320 Z" fill="#0d0500"/>
+      <path d="M150,320 L150,150 L200,150 L200,130 L240,130 L240,110 L260,110 L260,90 L280,90 L280,110 L300,110 L300,150 L330,150 L330,320 Z" fill="#100600"/>
+      <path d="M320,320 L320,170 L370,170 L370,150 L420,150 L420,170 L450,170 L450,320 Z" fill="#0d0500"/>
+
+      <!-- Clock tower (center horror piece) -->
+      <path d="M660,320 L660,80 L680,80 L680,60 L700,60 L700,40 L710,40 L710,20 L720,10 L730,20 L730,40 L740,40 L740,60 L760,60 L760,80 L780,80 L780,320 Z" fill="#150800"/>
+      <!-- Clock face -->
+      <circle cx="720" cy="65" r="16" fill="#1a0a00" stroke="#3a1a00" stroke-width="1.5"/>
+      <circle cx="720" cy="65" r="12" fill="#120700"/>
+      <!-- Clock hands -->
+      <line x1="720" y1="65" x2="720" y2="55" stroke="#ff4400" stroke-width="1.5" opacity="0.7"/>
+      <line x1="720" y1="65" x2="728" y2="68" stroke="#cc2200" stroke-width="1" opacity="0.6"/>
+
+      <!-- Mid buildings -->
+      <path d="M460,320 L460,140 L500,140 L500,120 L540,120 L540,100 L560,100 L560,120 L600,120 L600,320 Z" fill="#180900"/>
+      <path d="M590,320 L590,160 L640,160 L640,140 L660,140 L660,320 Z" fill="#120600"/>
+      <path d="M780,320 L780,150 L820,150 L820,130 L860,130 L860,150 L900,150 L900,320 Z" fill="#150800"/>
+
+      <!-- Right side buildings -->
+      <path d="M890,320 L890,120 L930,120 L930,100 L960,100 L960,80 L990,80 L990,100 L1020,100 L1020,120 L1060,120 L1060,320 Z" fill="#110600"/>
+      <path d="M1050,320 L1050,160 L1100,160 L1100,140 L1150,140 L1150,320 Z" fill="#0d0500"/>
+      <path d="M1140,320 L1140,100 L1180,100 L1180,80 L1220,80 L1220,60 L1240,60 L1240,80 L1280,80 L1280,100 L1300,100 L1300,320 Z" fill="#150800"/>
+      <path d="M1290,320 L1290,150 L1360,150 L1360,320 Z" fill="#0d0500"/>
+      <path d="M1360,320 L1360,130 L1400,130 L1400,110 L1460,110 L1460,320 Z" fill="#100600"/>
+
+      <!-- Hanging sign (swings with town) -->
+      <line x1="540" y1="100" x2="540" y2="120" stroke="#2a1000" stroke-width="1"/>
+      <line x1="560" y1="100" x2="560" y2="118" stroke="#2a1000" stroke-width="1"/>
+      <rect x="528" y="120" width="44" height="20" rx="2" fill="#1a0800" stroke="#2a1000" stroke-width="1"/>
+      <text x="550" y="133" text-anchor="middle" font-family="Special Elite, serif" font-size="6" fill="#5a2a00">GONE</text>
+
+      <!-- Windows — flickering amber -->
+      <!-- Left buildings -->
+      <rect class="win win1" x="50" y="170" width="12" height="14" fill="#ff8c00" opacity="0.6" filter="url(#glow)"/>
+      <rect class="win win2" x="170" y="140" width="10" height="12" fill="#ff7700" opacity="0.5" filter="url(#glow)"/>
+      <rect class="win win3" x="195" y="165" width="10" height="12" fill="#ff8c00" opacity="0.4" filter="url(#glow)"/>
+      <rect class="win win4" x="250" y="120" width="14" height="16" fill="#cc5500" opacity="0.5" filter="url(#glow)"/>
+
+      <!-- Center buildings -->
+      <rect class="win win5" x="478" y="130" width="12" height="14" fill="#ff8c00" opacity="0.5" filter="url(#glow)"/>
+      <rect class="win win1" x="510" y="155" width="10" height="12" fill="#dd6600" opacity="0.4" filter="url(#glow)"/>
+      <rect class="win win6" x="610" y="135" width="10" height="12" fill="#ff8c00" opacity="0.6" filter="url(#glow)"/>
+      <rect class="win win2" x="800" y="160" width="12" height="14" fill="#cc5500" opacity="0.5" filter="url(#glow)"/>
+
+      <!-- Right buildings -->
+      <rect class="win win3" x="910" y="110" width="14" height="16" fill="#ff8c00" opacity="0.5" filter="url(#glow)"/>
+      <rect class="win win4" x="940" y="135" width="10" height="12" fill="#dd6600" opacity="0.4" filter="url(#glow)"/>
+      <rect class="win win5" x="1160" y="95" width="12" height="14" fill="#ff8c00" opacity="0.6" filter="url(#glow)"/>
+      <rect class="win win1" x="1200" y="120" width="10" height="12" fill="#cc5500" opacity="0.4" filter="url(#glow)"/>
+
+      <!-- Ground / street -->
+      <rect x="0" y="310" width="1440" height="10" fill="#0a0300"/>
+
+      <!-- Street lamp glow pools -->
+      <ellipse cx="300" cy="315" rx="40" ry="6" fill="#ff8c00" opacity="0.04"/>
+      <ellipse cx="900" cy="315" rx="40" ry="6" fill="#ff8c00" opacity="0.04"/>
+      <ellipse cx="1200" cy="315" rx="40" ry="6" fill="#ff8c00" opacity="0.03"/>
+    </svg>
+  </div>
+
+  <div id="fog"></div>
+</div>
+
+<!-- FLASHLIGHT -->
+<div id="flashlight"></div>
+
+<!-- WHISPER -->
+<div id="whisper">it's been watching you</div>
+
+<!-- UI -->
+<div id="ui">
+  <div class="error-code">404</div>
+  <div class="tagline">You Shouldn't Be Here</div>
+  <div class="subtitle">
+    The page you're looking for<br>
+    <em>doesn't exist anymore.</em><br>
+    Or maybe it never did.
+  </div>
+  <div class="nav-links">
+    <a href="/home">← Back to Safety</a>
+    <a href="/forge">Island Forge</a>
+    <a href="/dashboard">Dashboard</a>
+  </div>
+</div>
+
+<script>
+  const cursor    = document.getElementById('cursor');
+  const flashlight= document.getElementById('flashlight');
+  const whisper   = document.getElementById('whisper');
+  const eyes      = document.querySelectorAll('.eyes');
+
+  let mx = window.innerWidth / 2;
+  let my = window.innerHeight / 2;
+  let cx = mx, cy = my;
+
+  // ── Smooth cursor follow ──
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX;
+    my = e.clientY;
+  });
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function update() {
+    cx = lerp(cx, mx, 0.12);
+    cy = lerp(cy, my, 0.12);
+
+    cursor.style.left = cx + 'px';
+    cursor.style.top  = cy + 'px';
+
+    // Flashlight follows smoothed cursor
+    const r = 180;
+    flashlight.style.background = `radial-gradient(
+      circle ${r}px at ${cx}px ${cy}px,
+      transparent 0%,
+      transparent 38%,
+      rgba(0,0,0,0.5) 60%,
+      rgba(0,0,0,0.92) 82%,
+      rgba(0,0,0,0.99) 100%
+    )`;
+    flashlight.style.setProperty('--fx', cx + 'px');
+    flashlight.style.setProperty('--fy', cy + 'px');
+
+    // Amber inner glow
+    flashlight.style.boxShadow = 'none';
+
+    requestAnimationFrame(update);
+  }
+  update();
+
+  // ── Eyes appear when cursor is far from them ──
+  function checkEyes() {
+    eyes.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      const ex = rect.left + rect.width / 2;
+      const ey = rect.top + rect.height / 2;
+      const dist = Math.hypot(cx - ex, cy - ey);
+      if (dist > 280) {
+        el.classList.add('show');
+      } else {
+        el.classList.remove('show');
+      }
+    });
+  }
+  setInterval(checkEyes, 500);
+
+  // ── Whisper appears randomly, follows cursor offset ──
+  function moveWhisper() {
+    const wx = Math.random() * (window.innerWidth - 300);
+    const wy = Math.random() * (window.innerHeight - 40);
+    whisper.style.left = wx + 'px';
+    whisper.style.top  = wy + 'px';
+    const phrases = [
+      "it's been watching you",
+      "do not look behind you",
+      "you were never alone",
+      "the 404th visitor",
+      "turn back",
+      "still here",
+    ];
+    whisper.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+  }
+  setInterval(moveWhisper, 9000);
+  moveWhisper();
+
+  // ── Occasional screen glitch ──
+  function glitch() {
+    document.body.style.transform = `translate(${(Math.random()-0.5)*4}px, ${(Math.random()-0.5)*2}px)`;
+    setTimeout(() => {
+      document.body.style.transform = '';
+    }, 80);
+  }
+  setInterval(() => {
+    if (Math.random() < 0.3) glitch();
+  }, 8000);
+
+  // ── Footstep sound simulation via subtle visual pulse ──
+  let step = false;
+  setInterval(() => {
+    if (Math.random() < 0.15) {
+      document.getElementById('vignette').style.opacity = '1.5';
+      setTimeout(() => {
+        document.getElementById('vignette').style.opacity = '';
+      }, 100);
+    }
+  }, 3000);
+</script>
+</body>
+</html>
