@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{{ name }} — My Room · TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#04060a;
+  --teal:#00e5a0;
+  --teal-dim:rgba(0,229,160,.12);
+  --blue:#0091ff;
+  --blue-dim:rgba(0,145,255,.1);
+  --amber:#ffaa00;
+  --border:#1a2535;
+  --border2:#243040;
+  --panel:#0d1018;
+  --text:#c8d8e8;
+  --mid:#7a8aa8;
+  --dim:#3a4a60;
+  --room-floor:#050a12;
+  --room-wall:#060c16;
+  --room-ceil:#04080f;
+  --neon1:rgba(0,229,160,.6);
+  --neon2:rgba(0,145,255,.5);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:300;height:56px;display:flex;align-items:center;padding:0 32px;background:rgba(4,6,10,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:var(--teal);letter-spacing:3px;text-decoration:none}
+.nav-logo em{color:var(--blue);font-style:normal}
+.nav-tabs{display:flex;gap:2px;margin-left:32px}
+.ntab{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:3px;cursor:pointer;color:var(--mid);text-decoration:none;transition:all .15s;border:1px solid transparent}
+.ntab.active,.ntab:hover{color:var(--teal);border-color:var(--border2);background:rgba(0,229,160,.05)}
+.nav-r{margin-left:auto;display:flex;gap:16px;align-items:center}
+.nav-r a{color:var(--dim);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;transition:color .15s}
+.nav-r a:hover{color:var(--teal)}
+.logout{color:var(--blue)!important}
+
+/* ROOM SCENE */
+.room-scene{position:relative;width:100%;min-height:100vh;padding-top:56px;overflow:hidden;background:var(--room-floor)}
+
+/* Scanlines */
+.room-scene::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,229,160,.008) 3px,rgba(0,229,160,.008) 4px);pointer-events:none;z-index:2}
+
+/* 3D perspective room using CSS transforms */
+.room-3d{
+  position:relative;
+  width:100%;
+  min-height:calc(100vh - 56px);
+  perspective:1200px;
+  perspective-origin:50% 38%;
+}
+
+/* CEILING */
+.room-ceiling{
+  position:absolute;
+  top:0;left:0;right:0;
+  height:180px;
+  background:linear-gradient(180deg,#020508 0%,#060c18 100%);
+  transform-origin:top center;
+  transform:rotateX(35deg);
+  border-bottom:1px solid rgba(0,145,255,.15);
+}
+.ceiling-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(0,145,255,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,145,255,.06) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+.ceiling-light{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:300px;height:4px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,160,.6),transparent);
+  box-shadow:0 0 30px rgba(0,229,160,.4),0 0 80px rgba(0,229,160,.15);
+}
+.ceiling-light::after{
+  content:'';
+  position:absolute;
+  top:0;left:50%;
+  transform:translateX(-50%);
+  width:1px;height:120px;
+  background:linear-gradient(180deg,rgba(0,229,160,.3),transparent);
+}
+
+/* BACK WALL */
+.room-wall{
+  position:relative;
+  margin-top:100px;
+  min-height:600px;
+  background:linear-gradient(180deg,#060c18 0%,#04080f 100%);
+  border-top:1px solid rgba(0,229,160,.08);
+  border-bottom:2px solid rgba(0,145,255,.2);
+  overflow:hidden;
+}
+.wall-texture{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,160,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,160,.018) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+
+/* Neon wall strips */
+.wall-strip-top{
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent 5%,var(--teal) 30%,var(--teal) 70%,transparent 95%);
+  box-shadow:0 0 20px var(--teal),0 2px 40px rgba(0,229,160,.3);
+}
+.wall-strip-l,.wall-strip-r{
+  position:absolute;top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg,var(--blue),transparent 80%);
+  box-shadow:0 0 16px var(--blue);
+}
+.wall-strip-l{left:40px}
+.wall-strip-r{right:40px}
+
+/* CARD WALL GRID */
+.card-wall{
+  position:relative;z-index:5;
+  padding:40px 80px 60px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:16px;
+}
+
+.card-slot{
+  aspect-ratio:2.5/3.5;
+  border:1px solid var(--border2);
+  border-radius:8px;
+  background:rgba(13,16,24,.8);
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s,border-color .25s;
+  transform-style:preserve-3d;
+}
+.card-slot:hover{
+  transform:translateY(-6px) scale(1.04);
+  border-color:var(--teal);
+  box-shadow:0 0 20px rgba(0,229,160,.2),0 8px 32px rgba(0,0,0,.6);
+}
+.card-slot.empty{
+  border-style:dashed;
+  border-color:var(--dim);
+  cursor:default;
+  opacity:.4;
+}
+.card-slot.empty:hover{transform:none;box-shadow:none;border-color:var(--dim)}
+
+/* Card art area */
+.card-art{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.card-art img{
+  width:100%;height:100%;
+  object-fit:cover;
+  filter:saturate(1.2);
+  transition:transform .4s;
+}
+.card-slot:hover .card-art img{transform:scale(1.08)}
+
+/* Card overlay */
+.card-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 40%,rgba(4,6,10,.95) 100%);
+}
+.card-info{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:10px 10px 8px;
+  z-index:2;
+}
+.card-name{
+  font-family:'Orbitron',monospace;
+  font-size:.6rem;font-weight:700;
+  letter-spacing:1px;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-bottom:3px;
+}
+.card-sub{
+  font-family:'Share Tech Mono',monospace;
+  font-size:.52rem;color:var(--teal);
+  letter-spacing:2px;text-transform:uppercase;
+}
+
+/* Sticker on card */
+.card-sticker{
+  position:absolute;top:6px;right:6px;
+  z-index:3;
+  width:28px;height:28px;
+  border-radius:50%;
+  border:1.5px solid var(--amber);
+  background:rgba(255,170,0,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Share Tech Mono',monospace;
+  font-size:.5rem;color:var(--amber);
+  font-weight:700;
+  box-shadow:0 0 8px rgba(255,170,0,.3);
+}
+
+/* Card glow corners */
+.card-corner{
+  position:absolute;width:8px;height:8px;
+  z-index:3;
+}
+.card-corner.tl{top:4px;left:4px;border-top:1px solid var(--teal);border-left:1px solid var(--teal)}
+.card-corner.br{bottom:4px;right:4px;border-bottom:1px solid var(--teal);border-right:1px solid var(--teal)}
+
+/* Holo shimmer on card hover */
+.card-slot::after{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(0,229,160,.12) 0%,transparent 40%,rgba(0,145,255,.08) 70%,transparent 100%);
+  opacity:0;
+  transition:opacity .3s;
+  z-index:4;
+  pointer-events:none;
+}
+.card-slot:hover::after{opacity:1}
+
+/* FLOOR */
+.room-floor-vis{
+  height:120px;
+  background:linear-gradient(180deg,#04080f 0%,#020408 100%);
+  position:relative;
+  overflow:hidden;
+}
+.floor-reflection{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,229,160,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.03) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+.floor-glow{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:80%;height:60px;
+  background:radial-gradient(ellipse,rgba(0,229,160,.06) 0%,transparent 70%);
+}
+
+/* ROOM CONTROLS */
+.room-controls{
+  position:fixed;bottom:24px;right:24px;
+  z-index:100;
+  display:flex;flex-direction:column;gap:8px;
+  align-items:flex-end;
+}
+.theme-btn{
+  font-family:'Share Tech Mono',monospace;
+  font-size:.58rem;letter-spacing:2px;text-transform:uppercase;
+  padding:7px 14px;
+  background:rgba(13,16,24,.9);
+  border:1px solid var(--border2);
+  color:var(--mid);
+  cursor:pointer;
+  transition:all .15s;
+  backdrop-filter:blur(12px);
+}
+.theme-btn:hover,.theme-btn.active{
+  border-color:var(--teal);
+  color:var(--teal);
+  background:rgba(0,229,160,.05);
+}
+.theme-label{
+  font-family:'Share Tech Mono',monospace;
+  font-size:.52rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--dim);
+  margin-bottom:4px;
+}
+
+/* TICKER DISPLAY */
+.ticket-hud{
+  position:fixed;top:72px;right:24px;
+  z-index:100;
+  background:rgba(13,16,24,.92);
+  border:1px solid var(--border2);
+  backdrop-filter:blur(12px);
+  padding:10px 16px;
+  display:flex;align-items:center;gap:10px;
+}
+.ticket-icon{
+  width:20px;height:20px;
+  border:1.5px solid var(--amber);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Share Tech Mono',monospace;
+  font-size:.5rem;color:var(--amber);
+  font-weight:700;
+  box-shadow:0 0 8px rgba(255,170,0,.2);
+}
+.ticket-count{
+  font-family:'Orbitron',monospace;
+  font-size:.85rem;font-weight:700;
+  color:var(--amber);
+}
+.ticket-label{
+  font-family:'Share Tech Mono',monospace;
+  font-size:.5rem;letter-spacing:2px;text-transform:uppercase;
+  color:var(--dim);
+}
+
+/* CARD MODAL */
+.modal-bg{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(2,4,8,.88);
+  backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s;
+}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal-card{
+  width:340px;
+  background:var(--panel);
+  border:1px solid var(--border2);
+  position:relative;
+  overflow:hidden;
+  transform:scale(.9) translateY(20px);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.modal-bg.open .modal-card{transform:scale(1) translateY(0)}
+.modal-art{
+  height:200px;
+  background:#060c18;
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-art img{width:100%;height:100%;object-fit:cover;filter:saturate(1.3)}
+.modal-art-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 50%,var(--panel) 100%);
+}
+.modal-art-strip{
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+  box-shadow:0 0 12px var(--teal);
+}
+.modal-body{padding:20px 24px 24px}
+.modal-tag{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:3px;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+.modal-name{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;color:#fff;margin-bottom:4px}
+.modal-type{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;color:var(--blue);text-transform:uppercase;margin-bottom:16px}
+.modal-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.mstat{background:rgba(0,229,160,.04);border:1px solid var(--border);padding:10px;text-align:center}
+.mstat-v{font-family:'Orbitron',monospace;font-size:.9rem;font-weight:700;color:var(--teal);display:block}
+.mstat-l{font-family:'Share Tech Mono',monospace;font-size:.48rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.modal-stickers{margin-top:14px}
+.sticker-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.sticker-chip{
+  font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:1px;
+  padding:4px 10px;
+  border:1px solid var(--amber);
+  color:var(--amber);
+  background:rgba(255,170,0,.06);
+  border-radius:2px;
+}
+.modal-close{
+  position:absolute;top:12px;right:12px;z-index:10;
+  width:28px;height:28px;
+  background:rgba(13,16,24,.8);
+  border:1px solid var(--border2);
+  color:var(--mid);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;
+  transition:all .15s;
+}
+.modal-close:hover{color:var(--teal);border-color:var(--teal)}
+
+/* ROOM THEME CLASSES */
+body.theme-tokyo{
+  --neon1:rgba(255,0,128,.7);
+  --neon2:rgba(0,200,255,.6);
+}
+body.theme-tokyo .wall-strip-top{background:linear-gradient(90deg,transparent 5%,#ff0080 30%,#ff0080 70%,transparent 95%);box-shadow:0 0 20px #ff0080,0 2px 40px rgba(255,0,128,.3)}
+body.theme-tokyo .card-corner{border-color:#ff0080}
+body.theme-tokyo .wall-strip-top{filter:hue-rotate(150deg)}
+body.theme-tokyo .card-sub,.body.theme-tokyo .modal-tag{color:#ff0080}
+
+body.theme-miami{
+  --teal:#ff6ec7;
+  --blue:#40e0ff;
+  --amber:#ffe44d;
+}
+body.theme-marble{
+  --room-wall:#1a1510;
+  --room-floor:#131008;
+}
+body.theme-marble .wall-texture{background-image:linear-gradient(rgba(200,180,140,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(200,180,140,.015) 1px,transparent 1px)}
+body.theme-marble .wall-strip-top{background:linear-gradient(90deg,transparent 5%,rgba(200,180,120,.5) 30%,rgba(200,180,120,.5) 70%,transparent 95%)}
+
+/* ROOM NAME PLATE */
+.room-nameplate{
+  position:absolute;
+  bottom:8px;left:50%;transform:translateX(-50%);
+  font-family:'Share Tech Mono',monospace;
+  font-size:.55rem;letter-spacing:4px;text-transform:uppercase;
+  color:var(--dim);
+  white-space:nowrap;
+}
+
+/* ADD CARD btn */
+.add-card-btn{
+  aspect-ratio:2.5/3.5;
+  border:1px dashed var(--dim);
+  border-radius:8px;
+  background:transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;
+  cursor:pointer;
+  color:var(--dim);
+  font-family:'Share Tech Mono',monospace;
+  font-size:.55rem;letter-spacing:2px;text-transform:uppercase;
+  transition:all .2s;
+  opacity:.5;
+}
+.add-card-btn:hover{
+  border-color:var(--teal);
+  color:var(--teal);
+  opacity:1;
+  background:rgba(0,229,160,.03);
+}
+.add-icon{font-size:1.4rem;line-height:1}
+
+/* Floating ambient particles */
+.particle{
+  position:absolute;
+  width:2px;height:2px;
+  border-radius:50%;
+  background:var(--teal);
+  opacity:0;
+  animation:float-up 8s ease-in infinite;
+}
+@keyframes float-up{
+  0%{opacity:0;transform:translateY(0) translateX(0)}
+  10%{opacity:.4}
+  90%{opacity:.1}
+  100%{opacity:0;transform:translateY(-400px) translateX(20px)}
+}
+
+/* Responsive */
+@media(max-width:768px){
+  nav{padding:0 16px}
+  .card-wall{padding:20px 24px 40px;gap:10px}
+  .room-controls{bottom:16px;right:16px}
+}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
+  <div class="nav-tabs">
+    <a href="/dashboard" class="ntab">Dashboard</a>
+    <a href="/room" class="ntab active">My Room</a>
+    <a href="/forge" class="ntab">Island Forge</a>
+  </div>
+  <div class="nav-r">
+    <a href="/auth/logout" class="logout">Logout</a>
+  </div>
+</nav>
+
+<!-- Ticket HUD -->
+<div class="ticket-hud">
+  <div class="ticket-icon">TK</div>
+  <span class="ticket-count" id="ticketCount">{{ tickets or 0 }}</span>
+  <span class="ticket-label">Tickets</span>
+</div>
+
+<!-- Room -->
+<div class="room-scene" id="roomScene">
+  <!-- Particles -->
+  <div class="particle" style="left:15%;animation-delay:0s"></div>
+  <div class="particle" style="left:35%;animation-delay:2s"></div>
+  <div class="particle" style="left:55%;animation-delay:4.5s"></div>
+  <div class="particle" style="left:75%;animation-delay:1.5s"></div>
+  <div class="particle" style="left:85%;animation-delay:6s"></div>
+
+  <div class="room-3d">
+    <!-- Ceiling -->
+    <div class="room-ceiling">
+      <div class="ceiling-grid"></div>
+      <div class="ceiling-light"></div>
+    </div>
+
+    <!-- Back wall with card grid -->
+    <div class="room-wall">
+      <div class="wall-texture"></div>
+      <div class="wall-strip-top"></div>
+      <div class="wall-strip-l"></div>
+      <div class="wall-strip-r"></div>
+
+      <div class="card-wall" id="cardWall">
+        <!-- Cards injected by JS -->
+      </div>
+
+      <div class="room-nameplate">{{ name }}'s Collection Room</div>
+    </div>
+
+    <!-- Floor -->
+    <div class="room-floor-vis">
+      <div class="floor-reflection"></div>
+      <div class="floor-glow"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Room theme controls -->
+<div class="room-controls">
+  <div class="theme-label">Room Theme</div>
+  <button class="theme-btn active" onclick="setTheme('','this')">Cyberpunk</button>
+  <button class="theme-btn" onclick="setTheme('tokyo',this)">Tokyo Neon</button>
+  <button class="theme-btn" onclick="setTheme('miami',this)">Miami Vice</button>
+  <button class="theme-btn" onclick="setTheme('marble',this)">Gilded Marble</button>
+</div>
+
+<!-- Card detail modal -->
+<div class="modal-bg" id="cardModal" onclick="closeModal(event)">
+  <div class="modal-card" id="modalCard">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-art"><img id="modalImg" src="" alt=""/><div class="modal-art-overlay"></div><div class="modal-art-strip"></div></div>
+    <div class="modal-body">
+      <div class="modal-tag" id="modalTag"></div>
+      <div class="modal-name" id="modalName"></div>
+      <div class="modal-type" id="modalType"></div>
+      <div class="modal-stats">
+        <div class="mstat"><span class="mstat-v" id="mstatA">—</span><span class="mstat-l">Attack</span></div>
+        <div class="mstat"><span class="mstat-v" id="mstatD">—</span><span class="mstat-l">Defense</span></div>
+        <div class="mstat"><span class="mstat-v" id="mstatP">—</span><span class="mstat-l">Power</span></div>
+      </div>
+      <div class="modal-stickers">
+        <div class="theme-label">Stickers applied</div>
+        <div class="sticker-row" id="modalStickers"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DISPLAY_NAME = {{ name|tojson }};
+const PLAYER_WINS  = {{ wins|default(0) }};
+const PLAYER_KD    = {{ kd|default(0) }};
+const ISLANDS      = {{ islands|tojson|default('[]') }};
+
+/* ── Generate player card data ────────────────────────── */
+function statToPower(wins, kd) {
+  return Math.min(20, Math.floor(wins / 10) + Math.floor(kd * 2));
+}
+function makePlayerCard() {
+  const power = statToPower(PLAYER_WINS, PLAYER_KD);
+  return {
+    id: 'player-card',
+    name: DISPLAY_NAME,
+    type: 'Legendary Player',
+    tag: 'Epic Member',
+    img: {{ skin_img|tojson|default('""') }},
+    attack: Math.min(20, Math.floor(PLAYER_KD * 4) + 1),
+    defense: Math.min(20, Math.floor(PLAYER_WINS / 5) + 2),
+    power: power,
+    stickers: [],
+    isPlayer: true,
+  };
+}
+
+/* ── Island cards ─────────────────────────────────────── */
+function makeIslandCard(island, idx) {
+  return {
+    id: 'island-' + idx,
+    name: island.name || ('Island #' + (island.seed || idx)),
+    type: island.dominant_biome || 'UEFN Island',
+    tag: 'Forge',
+    img: island.preview_url || '',
+    attack: Math.floor(Math.random() * 10) + 5,
+    defense: Math.floor(Math.random() * 10) + 5,
+    power: Math.floor(Math.random() * 8) + 3,
+    stickers: island.stickers || [],
+  };
+}
+
+/* ── Render wall ──────────────────────────────────────── */
+function renderCards() {
+  const wall = document.getElementById('cardWall');
+  wall.innerHTML = '';
+
+  const cards = [makePlayerCard(), ...ISLANDS.map(makeIslandCard)];
+  const totalSlots = Math.max(12, Math.ceil(cards.length / 6) * 6 + 6);
+
+  cards.forEach((card, i) => {
+    wall.appendChild(buildCardEl(card, i));
+  });
+
+  // Empty slots
+  const empties = totalSlots - cards.length - 1;
+  for (let i = 0; i < empties; i++) {
+    const el = document.createElement('div');
+    el.className = 'card-slot empty';
+    wall.appendChild(el);
+  }
+
+  // Add card button
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-card-btn';
+  addBtn.innerHTML = '<span class="add-icon">⊕</span><span>Forge Island</span>';
+  addBtn.onclick = () => { window.location.href = '/forge'; };
+  wall.appendChild(addBtn);
+
+  // Stagger reveal
+  document.querySelectorAll('.card-slot').forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      el.style.transition = 'opacity .4s, transform .4s';
+      el.style.opacity = '';
+      el.style.transform = '';
+    }, 80 + i * 40);
+  });
+}
+
+function buildCardEl(card, idx) {
+  const el = document.createElement('div');
+  el.className = 'card-slot';
+  el.dataset.idx = idx;
+
+  let artHtml = '';
+  if (card.img) {
+    artHtml = `<div class="card-art"><img src="${card.img}" loading="lazy" alt="${card.name}"/></div>`;
+  } else {
+    artHtml = `<div class="card-art" style="background:linear-gradient(135deg,#060c18,#0a1428);display:flex;align-items:center;justify-content:center;">
+      <span style="font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;color:rgba(0,229,160,.18)">${card.name.charAt(0)}</span>
+    </div>`;
+  }
+
+  const stickerHtml = card.stickers && card.stickers.length
+    ? `<div class="card-sticker">${card.stickers.length}</div>` : '';
+
+  el.innerHTML = `
+    ${artHtml}
+    <div class="card-overlay"></div>
+    ${stickerHtml}
+    <div class="card-corner tl"></div>
+    <div class="card-corner br"></div>
+    <div class="card-info">
+      <div class="card-name">${card.name}</div>
+      <div class="card-sub">${card.type}</div>
+    </div>
+  `;
+
+  el.addEventListener('click', () => openModal(card));
+  return el;
+}
+
+/* ── Modal ────────────────────────────────────────────── */
+function openModal(card) {
+  document.getElementById('modalImg').src = card.img || '';
+  document.getElementById('modalImg').style.display = card.img ? '' : 'none';
+  document.getElementById('modalTag').textContent = card.tag || '';
+  document.getElementById('modalName').textContent = card.name;
+  document.getElementById('modalType').textContent = card.type;
+  document.getElementById('mstatA').textContent = card.attack || '—';
+  document.getElementById('mstatD').textContent = card.defense || '—';
+  document.getElementById('mstatP').textContent = card.power || '—';
+
+  const sr = document.getElementById('modalStickers');
+  if (card.stickers && card.stickers.length) {
+    sr.innerHTML = card.stickers.map(s => `<span class="sticker-chip">${s}</span>`).join('');
+  } else {
+    sr.innerHTML = '<span style="font-family:\'Share Tech Mono\',monospace;font-size:.52rem;color:var(--dim)">No stickers yet — earn tickets to unlock</span>';
+  }
+
+  document.getElementById('cardModal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('cardModal')) {
+    document.getElementById('cardModal').classList.remove('open');
+  }
+}
+
+/* ── Theme ────────────────────────────────────────────── */
+function setTheme(theme, btn) {
+  document.body.className = theme ? 'theme-' + theme : '';
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+  if (btn && btn !== 'this') btn.classList.add('active');
+  // Persist
+  fetch('/api/set_room_theme', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({theme})
+  }).catch(() => {});
+}
+
+// Init saved theme
+const savedTheme = {{ room_theme|tojson|default('""') }};
+if (savedTheme) {
+  setTheme(savedTheme);
+  document.querySelectorAll('.theme-btn').forEach(b => {
+    if (b.textContent.toLowerCase().replace(' ','') === savedTheme) b.classList.add('active');
+  });
+}
+
+renderCards();
+</script>
+</body>
+</html>
