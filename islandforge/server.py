@@ -1401,7 +1401,7 @@ def gallery():
               {f'<p style="color:var(--dim);font-size:12px;margin-bottom:10px">{meta}</p>' if meta else ''}
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <a href="{isl['preview_src']}" download class="btn btn-o" style="font-size:9px;padding:7px 14px">&#11015; Preview</a>
-                {f'<a href="{isl['layout_href']}" download class="btn btn-o" style="font-size:9px;padding:7px 14px">&#11015; Layout</a>' if isl.get("layout_href") else ''}
+                {'<a href="' + isl.get("layout_href","") + '" download class="btn btn-o" style="font-size:9px;padding:7px 14px">&#11015; Layout</a>' if isl.get("layout_href") else ''}
               </div>
             </div>"""
     else:
