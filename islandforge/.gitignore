@@ -32,3 +32,10 @@ Thumbs.db
 # Secrets — NEVER commit these
 .env.local
 secrets.txt
+
+# Sensitive files
+files/*.key
+files/*.pub
+files/*.pem
+files/*.zip
+server_old.py
