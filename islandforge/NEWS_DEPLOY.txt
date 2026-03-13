@@ -1,0 +1,133 @@
+# NEWS FEED SYSTEM - Deploy Guide
+
+## What You Get:
+
+✅ **Legitimate RSS Feeds** from 20+ official sources:
+- Rhode Island: WPRI, NBC 10, Uprise RI
+- Japan: NHK World, Kyodo News, Japan News
+- New York: NY Times, Daily News, Gothamist
+- California: LA Times, SF Chronicle, SD Union-Tribune
+- Hawaii: Star-Advertiser, KHON2
+- Mexico: Proceso, El Universal
+- World: BBC, Reuters, AP News
+- Pokemon: Serebii.net (manual)
+
+✅ **Live News Ticker** (Breaking headlines scroll)
+✅ **Regional Tabs** (Filter by location)
+✅ **Auto-refresh** (Every 5 minutes)
+✅ **RSS Caching** (Fast loading)
+
+---
+
+## Files (4 total):
+
+1. news_feed_backend.py  → islandforge/routes/news.py
+2. news.html             → islandforge/templates/news.html
+3. news.css              → islandforge/static/css/news.css
+4. news.js               → islandforge/static/js/news.js
+
+---
+
+## Step 1: Install feedparser
+
+SSH to Oracle VM:
+```bash
+pip3 install feedparser --break-system-packages
+```
+
+---
+
+## Step 2: Add to server.py
+
+```python
+# Import
+from routes.news import news_bp
+
+# Register
+app.register_blueprint(news_bp)
+
+# Route
+@app.route('/news')
+def news_page():
+    return render_template('news.html')
+```
+
+---
+
+## Step 3: Deploy
+
+**On PC:**
+```powershell
+git add -A
+git commit -m "Add news feed system"
+git push origin main
+```
+
+**SSH to Oracle:**
+```bash
+ssh -i "C:\Users\xinc\Downloads\ssh-key-2.key" ubuntu@129.80.222.152
+cd ~/ver-perlinforge
+git pull origin main
+sudo systemctl restart islandforge
+```
+
+---
+
+## Step 4: Test
+
+Visit: https://triptokforge.org/news
+
+Test API directly:
+```bash
+curl http://localhost:5000/api/news/latest
+curl http://localhost:5000/api/news/region/rhode_island
+```
+
+---
+
+## API Endpoints:
+
+- `/api/news/feeds` - List all feeds
+- `/api/news/regions` - Feeds grouped by region
+- `/api/news/feed/<feed_id>` - Specific feed
+- `/api/news/latest` - Top 50 headlines (all regions)
+- `/api/news/region/<region_name>` - Region-specific news
+
+---
+
+## Add More Feeds:
+
+Edit `islandforge/routes/news.py`, find `NEWS_FEEDS` dict:
+
+```python
+"your_feed": {
+    "name": "Feed Name",
+    "url": "https://example.com/rss.xml",
+    "region": "rhode_island",  # or japan, california, etc.
+    "type": "rss",
+    "category": "local"
+}
+```
+
+Restart service to apply changes.
+
+---
+
+## Troubleshooting:
+
+**News not loading:**
+- Check feedparser installed: `pip3 list | grep feedparser`
+- Test RSS URL manually: `curl <feed_url>`
+- Check logs: `sudo journalctl -u islandforge -n 50`
+
+**Some feeds fail:**
+- Normal! Some RSS feeds go down temporarily
+- The system skips failed feeds and shows working ones
+
+**Ticker not scrolling:**
+- Check browser console for JavaScript errors
+- Verify news.js is loaded
+
+---
+
+DONE! 🌐 Live news from 20+ legitimate sources!

@@ -21,6 +21,8 @@ from routes.leaderboard import leaderboard_bp
 from routes.forge_upgrades import forge_upgrades_bp
 from routes.forge_routes import forge_bp 
 from routes.channels import channels_bp
+from routes.news import news_bp
+app.register_blueprint(news_bp)
 
 app.register_blueprint(platform_bp)
 app.register_blueprint(channels_bp)
@@ -60,6 +62,10 @@ def manifest():
 @app.route('/channels')
 def channels_page():
     return render_template('channels.html')
+
+@app.route('/news')
+def news_page():
+    return render_template('news.html')
 
 @app.route('/sitemap.xml')
 def sitemap():

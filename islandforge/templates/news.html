@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TriptokForge News - Live Updates</title>
+    <link rel="stylesheet" href="/static/css/news.css">
+</head>
+<body>
+    
+    <div class="news-header">
+        <h1>🌐 TriptokForge News</h1>
+        <div class="live-badge">● LIVE</div>
+    </div>
+    
+    <div class="news-ticker-bar">
+        <div class="ticker-label">BREAKING</div>
+        <div class="ticker-content" id="tickerContent">
+            Loading latest headlines...
+        </div>
+    </div>
+    
+    <div class="news-container">
+        
+        <div class="region-tabs">
+            <button class="tab-btn active" data-region="all">All News</button>
+            <button class="tab-btn" data-region="rhode_island">Rhode Island</button>
+            <button class="tab-btn" data-region="japan">Japan</button>
+            <button class="tab-btn" data-region="new_york">New York</button>
+            <button class="tab-btn" data-region="california">California</button>
+            <button class="tab-btn" data-region="hawaii">Hawaii</button>
+            <button class="tab-btn" data-region="mexico">Mexico</button>
+            <button class="tab-btn" data-region="global">World</button>
+        </div>
+        
+        <div class="news-grid" id="newsGrid">
+            <!-- News cards loaded here -->
+        </div>
+        
+    </div>
+    
+    <script src="/static/js/news.js"></script>
+    
+</body>
+</html>
