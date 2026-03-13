@@ -1,41 +1,70 @@
-# Generated outputs — never commit
-outputs/
-saved_audio/
-*.png
-*.wav
-*.mp3
-*.flac
-*.ogg
-*.aac
-*.m4a
-*.aiff
-*.opus
-
 # Python
 __pycache__/
 *.py[cod]
 *.pyo
-.env
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
 venv/
+env/
 .venv/
 
-# Editor
+# Flask / runtime
+instance/
+.webassets-cache
+
+# Oracle wallet — NEVER commit
+wallet/
+*.pem
+*.sso
+*.p12
+*.jks
+cwallet.sso
+ewallet.p12
+keystore.jks
+ojdbc.properties
+sqlnet.ora
+tnsnames.ora
+truststore.jks
+
+# OCI credentials — NEVER commit
+.oci/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Generated outputs — use OCI storage, not git
+outputs/
+static/outputs/
+saved_audio/
+
+# Media uploads
+uploads/
+
+# VS Code
 .vscode/
-.idea/
-*.swp
-*.swo
 
-# OS
+# macOS
 .DS_Store
-Thumbs.db
 
-# Secrets — NEVER commit these
-.env.local
-secrets.txt
+# Zip artifacts
+*.zip
 
-# Sensitive files
-files/*.key
-files/*.pub
-files/*.pem
-files/*.zip
-server_old.py
+# Logs
+*.log
+gunicorn.pid
+gunicorn.ctl
+
+# Old / duplicate folders (cleaned up)
+"Island Forge 2"/
+files/
+
+# Node (if ever added)
+node_modules/
