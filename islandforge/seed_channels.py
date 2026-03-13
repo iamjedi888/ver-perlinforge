@@ -238,72 +238,54 @@ CHANNELS = [
 ]
 
 def main():
-    try:
-        import oracledb
-    except ImportError:
-        print("oracledb not installed — run: pip install oracledb --break-system-packages")
+    # Use the app's own oracle_db pool — same connection that the running app uses
+    os.environ.setdefault("ORACLE_DSN",      "tiktokdb_high")
+    os.environ.setdefault("ORACLE_USER",     "ADMIN")
+    os.environ.setdefault("ORACLE_WALLET",   "/home/ubuntu/wallet")
+
+    pw = os.environ.get("ORACLE_PASSWORD", "")
+    if not pw:
+        print("ERROR: set ORACLE_PASSWORD env var")
         sys.exit(1)
 
-    wallet  = os.environ.get("ORACLE_WALLET", "/home/ubuntu/wallet")
-    dsn     = os.environ.get("ORACLE_DSN",    "tiktokdb_high")
-    user    = os.environ.get("ORACLE_USER",   "ADMIN")
-    pw      = os.environ.get("ORACLE_PASSWORD","")
-
-    print(f"Connecting to {dsn} as {user} (thin mode) ...")
-    conn = oracledb.connect(user=user, password=pw, dsn=dsn,
-                            config_dir=wallet, wallet_location=wallet,
-                            wallet_password="")
-
-    cur = conn.cursor()
-
-    # Ensure table exists
     try:
-        cur.execute("""
-            CREATE TABLE channels (
-                id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                name         VARCHAR2(128) NOT NULL,
-                category     VARCHAR2(64),
-                embed_url    VARCHAR2(1024) NOT NULL,
-                description  VARCHAR2(512),
-                approved     NUMBER(1)     DEFAULT 0,
-                suggested_by VARCHAR2(64),
-                sort_order   NUMBER        DEFAULT 0,
-                created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        conn.commit()
-        print("Created channels table.")
-    except Exception as e:
-        if "ORA-00955" in str(e):
-            print("channels table already exists.")
-        else:
-            print(f"Table create warning: {e}")
+        from oracle_db import _get_pool, init_schema
+    except ImportError as e:
+        print(f"Cannot import oracle_db: {e}")
+        print("Run this script from the islandforge/ directory.")
+        sys.exit(1)
+
+    print("Initialising schema ...")
+    init_schema()
+
+    print("Getting connection pool ...")
+    pool = _get_pool()
 
     inserted = 0
     skipped  = 0
-    for i, ch in enumerate(CHANNELS):
-        # Check if already exists
-        cur.execute("SELECT COUNT(*) FROM channels WHERE name = :n", {"n": ch["name"]})
-        if cur.fetchone()[0] > 0:
-            print(f"  SKIP  [{ch['category']}] {ch['name']}")
-            skipped += 1
-            continue
-        cur.execute("""
-            INSERT INTO channels (name, category, embed_url, description, approved, suggested_by, sort_order)
-            VALUES (:name, :category, :embed_url, :description, 1, 'admin', :sort_order)
-        """, {
-            "name":        ch["name"],
-            "category":    ch["category"],
-            "embed_url":   ch["embed_url"],
-            "description": ch.get("description",""),
-            "sort_order":  i,
-        })
-        print(f"  INSERT [{ch['category']}] {ch['name']}")
-        inserted += 1
 
-    conn.commit()
-    cur.close()
-    conn.close()
+    with pool.acquire() as conn:
+        with conn.cursor() as cur:
+            for i, ch in enumerate(CHANNELS):
+                cur.execute("SELECT COUNT(*) FROM channels WHERE name = :n", {"n": ch["name"]})
+                if cur.fetchone()[0] > 0:
+                    print(f"  SKIP  [{ch['category']}] {ch['name']}")
+                    skipped += 1
+                    continue
+                cur.execute("""
+                    INSERT INTO channels (name, category, embed_url, description, approved, suggested_by, sort_order)
+                    VALUES (:name, :category, :embed_url, :description, 1, 'admin', :sort_order)
+                """, {
+                    "name":        ch["name"],
+                    "category":    ch["category"],
+                    "embed_url":   ch["embed_url"],
+                    "description": ch.get("description",""),
+                    "sort_order":  i,
+                })
+                print(f"  INSERT [{ch['category']}] {ch['name']}")
+                inserted += 1
+        conn.commit()
+
     print(f"\nDone. {inserted} inserted, {skipped} skipped.")
 
 if __name__ == "__main__":
