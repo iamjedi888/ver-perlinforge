@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TriptokForge TV - Live Channels</title>
+    <link rel="stylesheet" href="/static/css/channels.css">
+</head>
+<body>
+    
+    <div class="tv-header">
+        <h1>
+            <span class="live-indicator"></span>
+            TriptokForge TV
+        </h1>
+    </div>
+    
+    <div class="tv-container">
+        
+        <div class="channel-list">
+            <div class="channel-list-header">Channels</div>
+            <div id="channelList"></div>
+        </div>
+        
+        <div class="main-content">
+            
+            <div class="video-player">
+                <div class="player-wrapper" id="playerWrapper"></div>
+            </div>
+            
+            <div class="tv-guide">
+                <div class="guide-header">
+                    <div class="guide-title">📺 TV Guide</div>
+                    <div class="time-controls">
+                        <button class="time-btn" id="btn6h">6 Hours</button>
+                        <button class="time-btn" id="btn12h">12 Hours</button>
+                        <button class="time-btn" id="btn24h">24 Hours</button>
+                    </div>
+                </div>
+                <div class="guide-grid" id="guideGrid"></div>
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <script src="/static/js/channels.js"></script>
+    
+</body>
+</html>

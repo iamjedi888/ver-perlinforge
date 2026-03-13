@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TriptokForge TV - Live Channels</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #141419;
+            --border: #252530;
+            --accent: #00e5a0;
+            --red: #ff4060;
+            --text: #e8e8ea;
+            --dim: #8a8a95;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        /* ═══════════════════════════════════════════════════════ */
+        /* HEADER */
+        /* ═══════════════════════════════════════════════════════ */
+        
+        .tv-header {
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .tv-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--red);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        /* ═══════════════════════════════════════════════════════ */
+        /* MAIN LAYOUT */
+        /* ═══════════════════════════════════════════════════════ */
+        
+        .tv-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        /* ═══════════════════════════════════════════════════════ */
+        /* CHANNEL LIST (LEFT SIDEBAR) */
+        /* ═══════════════════════════════════════════════════════ */
+        
+        .channel-list {
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .channel-list-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--dim);
+        }
+        
+        .channel-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .channel-item:hover {
+            background: rgba(0, 229, 160, 0.08);
+        }
+        
+        .channel-item.active {
+            background: rgba(0, 229, 160, 0.15);
+            border-left: 3px solid var(--accent);
+        }
+        
+        .channel-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--dim);
+            min-width: 30px;
+        }
+        
+        .channel-info {
+            flex: 1;
+        }
+        
+        .channel-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .channel-status {
+            font-size: 11px;
+            color: var(--dim);
+            margin-top: 2px;
+        }
+        
+        .live-badge {
+            background: var(--red);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* ═══════════════════════════════════════════════════════ */
+        /* MAIN CONTENT AREA */
+        /* ═══════════════════════════════════════════════════════ */
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        /* ═══════════════════════════════════════════════════════ */
+        /* VIDEO PLAYER */
+        /* ═══════════════════════════════════════════════════════ */
+        
+        .video-player {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        
+        .player-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+        }
+        
+        .player-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .player-info {
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            color: white;
+        }
+        
+        .now-playing {
+            font-size: 12px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        
+        .program-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        /* ═══════════════════════════════════════════════════════ */
+        /* TV GUIDE (EPG) */
+        /* ═══════════════════════════════════════════════════════ */
+        
+        .tv-guide {
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        
+        .guide-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .guide-title {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--dim);
+        }
+        
+        .time-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .time-btn {
+            background: rgba(0, 229, 160, 0.1);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .time-btn:hover {
+            background: rgba(0, 229, 160, 0.2);
+        }
+        
+        .guide-grid {
+            overflow-x: auto;
+            padding: 16px;
+        }
+        
+        .timeline {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            padding-left: 100px;
+        }
+        
+        .time-slot {
+            min-width: 200px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--dim);
+            padding: 8px;
+            border-left: 1px solid var(--border);
+        }
+        
+        .guide-row {
+            display: flex;
+            gap: 0;
+            margin-bottom: 8px;
+            align-items: stretch;
+        }
+        
+        .guide-channel-label {
+            min-width: 100px;
+            max-width: 100px;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .guide-programs {
+            display: flex;
+            flex: 1;
+            gap: 2px;
+        }
+        
+        .guide-program {
+            background: rgba(0, 229, 160, 0.1);
+            border: 1px solid rgba(0, 229, 160, 0.2);
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .guide-program:hover {
+            background: rgba(0, 229, 160, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .guide-program.live {
+            background: rgba(255, 64, 96, 0.15);
+            border-color: var(--red);
+        }
+        
+        .program-time {
+            font-size: 10px;
+            color: var(--dim);
+            margin-bottom: 2px;
+        }
+        
+        .program-name {
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* ═══════════════════════════════════════════════════════ */
+        /* RESPONSIVE */
+        /* ═══════════════════════════════════════════════════════ */
+        
+        @media (max-width: 768px) {
+            .tv-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .channel-list {
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="tv-header">
+        <h1>
+            <span class="live-indicator"></span>
+            TriptokForge TV
+        </h1>
+    </div>
+    
+    <div class="tv-container">
+        
+        <!-- CHANNEL LIST -->
+        <div class="channel-list">
+            <div class="channel-list-header">Channels</div>
+            <div id="channelList"></div>
+        </div>
+        
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            
+            <!-- VIDEO PLAYER -->
+            <div class="video-player">
+                <div class="player-wrapper" id="playerWrapper">
+                    <!-- Player loads here -->
+                </div>
+            </div>
+            
+            <!-- TV GUIDE -->
+            <div class="tv-guide">
+                <div class="guide-header">
+                    <div class="guide-title">📺 TV Guide</div>
+                    <div class="time-controls">
+                        <button class="time-btn" onclick="loadGuide(6)">6 Hours</button>
+                        <button class="time-btn" onclick="loadGuide(12)">12 Hours</button>
+                        <button class="time-btn" onclick="loadGuide(24)">24 Hours</button>
+                    </div>
+                </div>
+                <div class="guide-grid" id="guideGrid"></div>
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <script>
+        let currentChannel = null;
+        let channels = [];
+        let epgData = null;
+        
+        // ═══════════════════════════════════════════════════════
+        // LOAD CHANNELS
+        // ═══════════════════════════════════════════════════════
+        
+        async function loadChannels() {
+            const response = await fetch('/api/channels');
+            const data = await response.json();
+            channels = data.channels.sort((a, b) => a.number - b.number);
+            
+            renderChannelList();
+            
+            if (channels.length > 0) {
+                switchChannel(channels[0].id);
+            }
+        }
+        
+        function renderChannelList() {
+            const list = document.getElementById('channelList');
+            
+            list.innerHTML = channels.map(ch => `
+                <div class="channel-item${currentChannel === ch.id ? ' active' : ''}" 
+                     onclick="switchChannel('${ch.id}')">
+                    <div class="channel-number">${ch.number}</div>
+                    <div class="channel-info">
+                        <div class="channel-name">${ch.name}</div>
+                        <div class="channel-status">
+                            ${ch.live ? '<span class="live-badge">● LIVE</span>' : 'VOD'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // ═══════════════════════════════════════════════════════
+        // CHANNEL SWITCHER
+        // ═══════════════════════════════════════════════════════
+        
+        function switchChannel(channelId) {
+            currentChannel = channelId;
+            const channel = channels.find(c => c.id === channelId);
+            
+            if (!channel) return;
+            
+            // Update channel list highlighting
+            renderChannelList();
+            
+            // Load player
+            loadPlayer(channel);
+            
+            // Update now playing
+            updateNowPlaying(channelId);
+        }
+        
+        function loadPlayer(channel) {
+            const wrapper = document.getElementById('playerWrapper');
+            
+            let embedUrl = '';
+            
+            if (channel.type === 'twitch') {
+                embedUrl = `https://player.twitch.tv/?channel=${channel.stream_id}&parent=${window.location.hostname}&muted=false`;
+            } else if (channel.type === 'youtube') {
+                embedUrl = `https://www.youtube.com/embed/live_stream?channel=${channel.stream_id}&autoplay=1`;
+            }
+            
+            wrapper.innerHTML = `
+                <iframe 
+                    src="${embedUrl}"
+                    frameborder="0"
+                    allow="autoplay; fullscreen"
+                    allowfullscreen>
+                </iframe>
+                <div class="player-info">
+                    <div class="now-playing">NOW PLAYING</div>
+                    <div class="program-title" id="currentProgram">Loading...</div>
+                </div>
+            `;
+        }
+        
+        async function updateNowPlaying(channelId) {
+            const response = await fetch(`/api/channels/${channelId}/schedule?days=1`);
+            const data = await response.json();
+            
+            const now = new Date();
+            const current = data.schedule.find(p => {
+                const start = new Date(p.start);
+                const end = new Date(p.end);
+                return start <= now && now <= end;
+            });
+            
+            const el = document.getElementById('currentProgram');
+            if (current && el) {
+                el.textContent = current.title;
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════
+        // TV GUIDE (EPG)
+        // ═══════════════════════════════════════════════════════
+        
+        async function loadGuide(hours = 12) {
+            const response = await fetch(`/api/channels/epg?hours=${hours}`);
+            epgData = await response.json();
+            
+            renderGuide();
+        }
+        
+        function renderGuide() {
+            if (!epgData) return;
+            
+            const grid = document.getElementById('guideGrid');
+            const startTime = new Date(epgData.start_time);
+            
+            // Generate timeline
+            const timeline = [];
+            for (let i = 0; i < epgData.hours; i++) {
+                const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+                timeline.push(time.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }));
+            }
+            
+            let html = `
+                <div class="timeline">
+                    ${timeline.map(t => `<div class="time-slot">${t}</div>`).join('')}
+                </div>
+            `;
+            
+            // Render each channel row
+            epgData.channels.forEach(channelData => {
+                const channel = channelData.channel;
+                
+                html += `
+                    <div class="guide-row">
+                        <div class="guide-channel-label">
+                            <div>
+                                <div style="font-weight:700">${channel.number}</div>
+                                <div style="font-size:10px;color:var(--dim)">${channel.name}</div>
+                            </div>
+                        </div>
+                        <div class="guide-programs">
+                            ${channelData.programs.map(prog => {
+                                const now = new Date();
+                                const start = new Date(prog.start);
+                                const end = new Date(prog.end);
+                                const isLive = start <= now && now <= end;
+                                const width = (prog.duration / 60) * 200; // 200px per hour
+                                
+                                return `
+                                    <div class="guide-program${isLive ? ' live' : ''}" 
+                                         style="min-width:${width}px"
+                                         onclick="switchChannel('${channel.id}')">
+                                        <div class="program-time">${start.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true})}</div>
+                                        <div class="program-name">${prog.title}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = html;
+        }
+        
+        // ═══════════════════════════════════════════════════════
+        // INIT
+        // ═══════════════════════════════════════════════════════
+        
+        loadChannels();
+        loadGuide(12);
+        
+        // Auto-refresh now playing every 60 seconds
+        setInterval(() => {
+            if (currentChannel) {
+                updateNowPlaying(currentChannel);
+            }
+        }, 60000);
+        
+    </script>
+    
+</body>
+</html>

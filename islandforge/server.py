@@ -6,6 +6,7 @@ All route logic lives in routes/ as Blueprints.
 import os
 from flask import Flask, render_template
 
+
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "triptokforge2026epicstudio")
 
@@ -18,6 +19,8 @@ from routes.whitepages import whitepages_bp
 from routes.forge      import forge_bp
 from routes.leaderboard import leaderboard_bp
 from routes.forge_upgrades import forge_upgrades_bp
+from routes.forge_routes import forge_bp 
+from routes.channels import channels_bp
 
 app.register_blueprint(platform_bp)
 app.register_blueprint(channels_bp)
@@ -27,6 +30,8 @@ app.register_blueprint(whitepages_bp)
 app.register_blueprint(forge_bp)
 app.register_blueprint(leaderboard_bp)
 app.register_blueprint(forge_upgrades_bp)
+app.register_blueprint(forge_bp)
+app.register_blueprint(channels_bp)    
 
 # ── STATIC ASSETS ───────────────────────────────────────────────
 from flask import send_from_directory, jsonify
@@ -51,6 +56,10 @@ def manifest():
             {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png"},
         ]
     })
+
+@app.route('/channels')
+def channels_page():
+    return render_template('channels.html')
 
 @app.route('/sitemap.xml')
 def sitemap():

@@ -1,0 +1,313 @@
+/* TriptokForge TV Guide Styles */
+
+:root {
+    --bg: #0a0a0f;
+    --surface: #141419;
+    --border: #252530;
+    --accent: #00e5a0;
+    --red: #ff4060;
+    --text: #e8e8ea;
+    --dim: #8a8a95;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+}
+
+.tv-header {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.tv-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.live-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.tv-container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+.channel-list {
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+}
+
+.channel-list-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--dim);
+}
+
+.channel-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.channel-item:hover {
+    background: rgba(0, 229, 160, 0.08);
+}
+
+.channel-item.active {
+    background: rgba(0, 229, 160, 0.15);
+    border-left: 3px solid var(--accent);
+}
+
+.channel-number {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--dim);
+    min-width: 30px;
+}
+
+.channel-info {
+    flex: 1;
+}
+
+.channel-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.channel-status {
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 2px;
+}
+
+.live-badge {
+    background: var(--red);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.video-player {
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    position: relative;
+}
+
+.player-wrapper {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+}
+
+.player-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.player-info {
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    color: white;
+}
+
+.now-playing {
+    font-size: 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.program-title {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.tv-guide {
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.guide-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.guide-title {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--dim);
+}
+
+.time-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.time-btn {
+    background: rgba(0, 229, 160, 0.1);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.time-btn:hover {
+    background: rgba(0, 229, 160, 0.2);
+}
+
+.guide-grid {
+    overflow-x: auto;
+    padding: 16px;
+}
+
+.timeline {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    padding-left: 100px;
+}
+
+.time-slot {
+    min-width: 200px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dim);
+    padding: 8px;
+    border-left: 1px solid var(--border);
+}
+
+.guide-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 8px;
+    align-items: stretch;
+}
+
+.guide-channel-label {
+    min-width: 100px;
+    max-width: 100px;
+    padding: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.guide-programs {
+    display: flex;
+    flex: 1;
+    gap: 2px;
+}
+
+.guide-program {
+    background: rgba(0, 229, 160, 0.1);
+    border: 1px solid rgba(0, 229, 160, 0.2);
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guide-program:hover {
+    background: rgba(0, 229, 160, 0.2);
+    transform: translateY(-2px);
+}
+
+.guide-program.live {
+    background: rgba(255, 64, 96, 0.15);
+    border-color: var(--red);
+}
+
+.program-time {
+    font-size: 10px;
+    color: var(--dim);
+    margin-bottom: 2px;
+}
+
+.program-name {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+    .tv-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .channel-list {
+        position: relative;
+        top: 0;
+    }
+}
