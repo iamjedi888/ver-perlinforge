@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Community Feed — TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/triptokforge.css"/>
+<style>
+:root{
+  --bg:#07090d;--deep:#04060a;--panel:#0d1018;
+  --border:#1a2535;--border2:#243040;
+  --teal:#00e5a0;--teal-dim:rgba(0,229,160,.1);
+  --blue:#0091ff;--amber:#ffaa00;
+  --text:#c8d8e8;--mid:#7a8aa8;--dim:#3a4a60;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;
+    padding:0 32px;background:rgba(7,9,13,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:var(--teal);letter-spacing:3px;text-decoration:none}
+.nav-logo em{color:var(--blue);font-style:normal}
+.nav-links{display:flex;gap:4px;margin-left:24px}
+.nav-links a{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;
+             padding:5px 10px;border-radius:3px;color:var(--dim);text-decoration:none;transition:all .15s}
+.nav-links a:hover{color:var(--teal);background:var(--teal-dim)}
+.nav-links a.active{color:var(--teal);border:1px solid var(--border2)}
+.nav-r{margin-left:auto;display:flex;gap:16px;align-items:center}
+.nav-r a{color:var(--dim);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;transition:color .15s}
+.nav-r a:hover{color:var(--teal)}
+
+/* LAYOUT */
+.feed-shell{
+  display:grid;
+  grid-template-columns:280px 1fr 280px;
+  gap:24px;
+  max-width:1200px;
+  margin:0 auto;
+  padding:80px 24px 40px;
+}
+@media(max-width:1100px){.feed-shell{grid-template-columns:1fr;max-width:680px}}
+@media(max-width:768px){nav{padding:0 14px}.nav-links{display:none}.feed-shell{padding:70px 12px 40px}}
+
+/* LEFT SIDEBAR */
+.feed-left{position:sticky;top:80px;height:fit-content}
+.sidebar-card{background:var(--panel);border:1px solid var(--border);padding:20px;margin-bottom:16px}
+.sc-title{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;letter-spacing:3px;
+          text-transform:uppercase;color:var(--teal);margin-bottom:14px}
+.sc-stat{display:flex;justify-content:space-between;align-items:center;
+         padding:8px 0;border-bottom:1px solid var(--border)}
+.sc-stat:last-child{border-bottom:none}
+.sc-label{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.sc-val{font-family:'Orbitron',monospace;font-size:.8rem;font-weight:700;color:var(--text)}
+.post-btn{
+  display:block;width:100%;padding:10px;
+  background:var(--teal);color:#000;border:none;
+  font-family:'Orbitron',monospace;font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;transition:background .15s;margin-top:14px;
+}
+.post-btn:hover{background:#fff}
+
+/* POST COMPOSER */
+.composer{background:var(--panel);border:1px solid var(--border);padding:20px;margin-bottom:20px}
+.composer-title{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:3px;
+                text-transform:uppercase;color:var(--mid);margin-bottom:14px}
+.composer input,.composer textarea{
+  width:100%;background:rgba(0,229,160,.04);border:1px solid var(--border2);
+  color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.65rem;
+  padding:10px 12px;outline:none;border-radius:2px;letter-spacing:1px;margin-bottom:8px;
+  resize:vertical;
+}
+.composer input:focus,.composer textarea:focus{border-color:var(--teal)}
+.composer input::placeholder,.composer textarea::placeholder{color:var(--dim)}
+.composer-actions{display:flex;gap:8px;align-items:center;margin-top:4px}
+.submit-btn{
+  font-family:'Orbitron',monospace;font-size:.58rem;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;padding:8px 20px;
+  background:var(--teal);color:#000;border:none;cursor:pointer;transition:background .15s;
+}
+.submit-btn:hover{background:#fff}
+.composer-msg{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--teal);
+              letter-spacing:2px;display:none;margin-left:8px}
+
+/* FEED */
+.feed-main{}
+.feed-empty{
+  text-align:center;padding:80px 20px;
+  font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:3px;
+  text-transform:uppercase;color:var(--dim);
+}
+.feed-empty .fe-icon{font-family:'Orbitron',monospace;font-size:3rem;font-weight:900;
+                     color:rgba(0,229,160,.06);display:block;margin-bottom:16px}
+
+/* POST CARD */
+.post-card{
+  background:var(--panel);border:1px solid var(--border);
+  margin-bottom:16px;
+  transition:border-color .2s;
+  position:relative;overflow:hidden;
+}
+.post-card:hover{border-color:var(--border2)}
+.post-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,160,.15),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.post-card:hover::before{opacity:1}
+
+/* Embed preview */
+.post-embed{
+  width:100%;aspect-ratio:16/9;background:#000;position:relative;overflow:hidden;
+}
+.post-embed iframe{width:100%;height:100%;border:none;display:block}
+.post-embed-placeholder{
+  width:100%;aspect-ratio:16/9;background:var(--deep);
+  display:flex;align-items:center;justify-content:center;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  transition:background .15s;
+}
+.post-embed-placeholder:hover{background:rgba(0,229,160,.04)}
+.pep-icon{font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;color:rgba(0,229,160,.12)}
+.pep-label{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:3px;
+           text-transform:uppercase;color:var(--dim);margin-top:8px}
+
+/* Post body */
+.post-body{padding:16px}
+.post-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.post-avatar{
+  width:32px;height:32px;border-radius:2px;
+  background:var(--border2);overflow:hidden;flex-shrink:0;
+  border:1px solid var(--border);
+}
+.post-avatar img{width:100%;height:100%;object-fit:cover}
+.post-avatar-placeholder{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-size:.65rem;font-weight:900;color:var(--teal);
+}
+.post-author-wrap{}
+.post-author{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;color:var(--text);display:block}
+.post-time{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;color:var(--dim)}
+.post-caption{font-size:.95rem;font-weight:400;color:var(--text);line-height:1.5;margin-bottom:12px}
+.post-actions{display:flex;align-items:center;gap:12px;padding-top:12px;border-top:1px solid var(--border)}
+.like-btn{
+  font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;
+  padding:5px 14px;background:rgba(0,229,160,.06);border:1px solid var(--border2);
+  color:var(--mid);cursor:pointer;transition:all .15s;border-radius:2px;display:flex;align-items:center;gap:6px;
+}
+.like-btn:hover,.like-btn.liked{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.like-count{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700}
+.post-tag{
+  font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;
+  padding:4px 10px;border:1px solid var(--border);color:var(--dim);margin-left:auto;border-radius:2px;
+}
+
+/* RIGHT SIDEBAR */
+.feed-right{position:sticky;top:80px;height:fit-content}
+.announcement-card{background:var(--panel);border:1px solid var(--border);padding:20px;margin-bottom:16px}
+.ann-item{padding:10px 0;border-bottom:1px solid var(--border)}
+.ann-item:last-child{border-bottom:none}
+.ann-pinned{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:2px;
+            text-transform:uppercase;color:var(--amber);margin-bottom:4px}
+.ann-title{font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:3px}
+.ann-body{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--mid);letter-spacing:1px;line-height:1.5}
+.ann-empty{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim);letter-spacing:2px}
+
+@media(max-width:1100px){.feed-left,.feed-right{display:none}}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
+  <div class="nav-links">
+    <a href="/home">Home</a>
+    <a href="/forge">Forge</a>
+    <a href="/channels">Channels</a>
+    <a href="/feed" class="active">Feed</a>
+    <a href="/community">Community</a>
+  </div>
+  <div class="nav-r">
+    <a href="/dashboard">Dashboard</a>
+  </div>
+</nav>
+
+<div class="feed-shell">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="feed-left">
+    <div class="sidebar-card">
+      <div class="sc-title">Platform Stats</div>
+      <div class="sc-stat"><span class="sc-label">Members</span><span class="sc-val" id="memberCount">—</span></div>
+      <div class="sc-stat"><span class="sc-label">Islands</span><span class="sc-val" id="islandCount">—</span></div>
+      <div class="sc-stat"><span class="sc-label">Posts</span><span class="sc-val">{{ posts|length }}</span></div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sc-title">Quick Links</div>
+      <div class="sc-stat"><a href="/forge" style="color:var(--teal);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px">Forge an Island ↗</a></div>
+      <div class="sc-stat"><a href="/channels" style="color:var(--blue);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px">Live Channels ↗</a></div>
+      <div class="sc-stat"><a href="/room" style="color:var(--mid);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px">My Room ↗</a></div>
+    </div>
+  </aside>
+
+  <!-- MAIN FEED -->
+  <main class="feed-main">
+
+    <!-- Composer -->
+    <div class="composer">
+      <div class="composer-title">⊕ Share to Feed</div>
+      <input type="text" id="postUrl" placeholder="Paste a YouTube / Twitch / Kick / Streamable URL"/>
+      <textarea id="postCaption" rows="2" placeholder="Caption — what's happening?"></textarea>
+      <div class="composer-actions">
+        <button class="submit-btn" onclick="submitPost()">Post</button>
+        <span class="composer-msg" id="postMsg"></span>
+      </div>
+    </div>
+
+    <!-- Posts -->
+    {% if posts %}
+      {% for post in posts %}
+      <div class="post-card" id="post-{{ post.id }}">
+
+        {% if post.embed_url %}
+        <div class="post-embed-placeholder" onclick="loadEmbed(this,'{{ post.embed_url }}')" data-url="{{ post.embed_url }}">
+          <div style="text-align:center">
+            <div class="pep-icon">▶</div>
+            <div class="pep-label">Click to load stream</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="post-body">
+          <div class="post-meta">
+            <div class="post-avatar">
+              {% if post.skin_img %}
+                <img src="{{ post.skin_img }}" alt="avatar"/>
+              {% else %}
+                <div class="post-avatar-placeholder">{{ (post.display_name or 'A')[0] }}</div>
+              {% endif %}
+            </div>
+            <div class="post-author-wrap">
+              <span class="post-author">{{ post.display_name or 'Anonymous' }}</span>
+              <span class="post-time">{{ post.created_at.strftime('%b %d · %H:%M') if post.created_at else '' }}</span>
+            </div>
+          </div>
+          {% if post.caption %}
+          <div class="post-caption">{{ post.caption }}</div>
+          {% endif %}
+          <div class="post-actions">
+            <button class="like-btn" id="like-{{ post.id }}" onclick="likePost({{ post.id }}, this)">
+              ♥ <span class="like-count">{{ post.likes or 0 }}</span>
+            </button>
+            <span class="post-tag">{{ post.platform or 'Post' }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="feed-empty">
+        <span class="fe-icon">TF</span>
+        No posts yet — be the first to share something
+      </div>
+    {% endif %}
+  </main>
+
+  <!-- RIGHT SIDEBAR -->
+  <aside class="feed-right">
+    <div class="announcement-card">
+      <div class="sc-title">Announcements</div>
+      {% if announcements %}
+        {% for ann in announcements %}
+        <div class="ann-item">
+          {% if ann.pinned %}<div class="ann-pinned">📌 Pinned</div>{% endif %}
+          <div class="ann-title">{{ ann.title }}</div>
+          <div class="ann-body">{{ ann.body }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="ann-empty">No announcements yet</div>
+      {% endif %}
+    </div>
+  </aside>
+
+</div>
+
+<script>
+// Load member/island counts
+fetch('/api/members').then(r=>r.json()).then(d=>{
+  document.getElementById('memberCount').textContent = d.count ?? d.length ?? '—';
+}).catch(()=>{});
+
+// Lazy-load embed on click
+function loadEmbed(placeholder, url) {
+  const embed = detectEmbed(url);
+  if (!embed) { window.open(url,'_blank'); return; }
+  const wrap = document.createElement('div');
+  wrap.className = 'post-embed';
+  wrap.innerHTML = `<iframe src="${embed}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  placeholder.replaceWith(wrap);
+}
+
+function detectEmbed(url) {
+  if (!url) return '';
+  if (url.includes('twitch.tv/') && !url.includes('/videos/')) {
+    const ch = url.split('twitch.tv/')[1].split('?')[0].split('/')[0];
+    return `https://player.twitch.tv/?channel=${ch}&parent=${location.hostname}&autoplay=true`;
+  }
+  if (url.includes('twitch.tv/videos/')) {
+    const v = url.split('/videos/')[1].split('?')[0];
+    return `https://player.twitch.tv/?video=${v}&parent=${location.hostname}&autoplay=true`;
+  }
+  if (url.includes('youtube.com/watch')) {
+    const v = new URLSearchParams(url.split('?')[1]).get('v');
+    return v ? `https://www.youtube.com/embed/${v}?autoplay=1` : '';
+  }
+  if (url.includes('youtu.be/')) {
+    const v = url.split('youtu.be/')[1].split('?')[0];
+    return `https://www.youtube.com/embed/${v}?autoplay=1`;
+  }
+  if (url.includes('kick.com/')) {
+    const ch = url.split('kick.com/')[1].split('?')[0].split('/')[0];
+    return `https://player.kick.com/${ch}?autoplay=true`;
+  }
+  if (url.includes('streamable.com/')) {
+    const v = url.split('streamable.com/')[1].split('?')[0];
+    return `https://streamable.com/e/${v}`;
+  }
+  return url;
+}
+
+// Like
+async function likePost(id, btn) {
+  if (btn.classList.contains('liked')) return;
+  try {
+    const r = await fetch(`/api/like/${id}`, {method:'POST'});
+    const d = await r.json();
+    if (d.ok || d.likes != null) {
+      btn.classList.add('liked');
+      btn.querySelector('.like-count').textContent = d.likes ?? (parseInt(btn.querySelector('.like-count').textContent)+1);
+    }
+  } catch(e) {}
+}
+
+// Post composer
+async function submitPost() {
+  const url     = document.getElementById('postUrl').value.trim();
+  const caption = document.getElementById('postCaption').value.trim();
+  const msg     = document.getElementById('postMsg');
+  if (!caption && !url) { showMsg('Add a URL or caption first.', false); return; }
+  try {
+    const r = await fetch('/api/post', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({embed_url: url, caption})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      showMsg('Posted!', true);
+      document.getElementById('postUrl').value = '';
+      document.getElementById('postCaption').value = '';
+      setTimeout(() => location.reload(), 800);
+    } else {
+      showMsg(d.error || 'Error posting.', false);
+    }
+  } catch(e) { showMsg('Network error.', false); }
+}
+
+function showMsg(text, ok) {
+  const msg = document.getElementById('postMsg');
+  msg.textContent = text;
+  msg.style.display = 'block';
+  msg.style.color = ok ? 'var(--teal)' : 'var(--amber)';
+  setTimeout(() => msg.style.display='none', 3000);
+}
+</script>
+</body>
+</html>
