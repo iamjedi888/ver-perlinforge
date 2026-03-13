@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{{ name }} — TriptokForge Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#07090d;--deep:#04060a;--panel:#0d1018;--border:#1a2535;--border2:#243040;--teal:#00e5a0;--blue:#0091ff;--text:#c8d8e8;--dim:#4a5a70;--mid:#7a8aa8}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:58px;display:flex;align-items:center;padding:0 40px;background:rgba(7,9,13,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:var(--teal);letter-spacing:3px;text-decoration:none}
+.nav-logo em{color:var(--blue);font-style:normal}
+.nav-r{margin-left:auto;display:flex;gap:20px;align-items:center}
+.nav-r a{color:var(--dim);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;transition:color .2s}
+.nav-r a:hover{color:var(--teal)}.logout{color:var(--blue)!important}
+.dash{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:90px 48px 80px}
+.dash-grid{display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start}
+/* HOLO CARD */
+.card-wrap{perspective:1200px}
+.holo-card{width:340px;height:520px;border-radius:14px;background:linear-gradient(135deg,var(--panel) 0%,#0d2040 50%,var(--panel) 100%);border:1px solid var(--border);position:relative;overflow:hidden;transform-style:preserve-3d;transition:transform .1s ease;cursor:pointer;box-shadow:0 0 40px rgba(0,229,160,.08),inset 0 0 60px rgba(0,229,160,.02)}
+.holo-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,229,160,.12) 0%,transparent 30%,rgba(0,145,255,.07) 60%,transparent 80%,rgba(0,229,160,.08) 100%);z-index:2;pointer-events:none;animation:holo 4s ease-in-out infinite}
+@keyframes holo{0%,100%{opacity:.6}50%{opacity:1}}
+.holo-card::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,160,.02) 2px,rgba(0,229,160,.02) 4px);z-index:3;pointer-events:none}
+.ch{position:relative;z-index:4;padding:18px 22px 0;display:flex;justify-content:space-between;align-items:center}
+.ch-s{font-family:'Orbitron',monospace;font-size:.6rem;letter-spacing:3px;color:var(--teal);text-transform:uppercase}
+.ch-id{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--dim);letter-spacing:1px}
+.cskin{position:relative;z-index:4;height:280px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cskin img{max-height:280px;max-width:100%;object-fit:contain;filter:drop-shadow(0 0 18px rgba(0,229,160,.35));animation:float 3s ease-in-out infinite}
+.no-skin{font-family:'Orbitron',monospace;font-size:46px;font-weight:900;color:transparent;-webkit-text-stroke:1px rgba(0,229,160,.18)}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.cinfo{position:relative;z-index:4;padding:0 22px 18px}
+.cname{font-family:'Orbitron',monospace;font-size:17px;font-weight:900;color:#fff;letter-spacing:1px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.csname{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--teal);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.cstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.csv{background:rgba(0,229,160,.04);border:1px solid rgba(0,229,160,.1);padding:7px;text-align:center}
+.csv-v{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--teal);display:block}
+.csv-l{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.cglow{position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:200px;height:80px;background:radial-gradient(ellipse,rgba(0,229,160,.18) 0%,transparent 70%);z-index:1;animation:glow 3s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:.5}50%{opacity:1}}
+/* RIGHT PANEL */
+.rp{display:flex;flex-direction:column;gap:20px}
+.pb{background:var(--panel);border:1px solid var(--border);padding:28px}
+.pt{font-family:'Orbitron',monospace;font-size:.7rem;font-weight:700;letter-spacing:2px;color:var(--teal);text-transform:uppercase;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.welcome{font-family:'Orbitron',monospace;font-size:clamp(15px,2vw,24px);font-weight:900;color:#fff;margin-bottom:6px}
+.welcome span{color:var(--teal)}
+.wsub{color:var(--mid);font-size:14px;line-height:1.6;margin-bottom:20px;font-weight:300}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tbtn{display:flex;align-items:center;gap:10px;background:rgba(0,229,160,.04);border:1px solid var(--border);padding:14px 18px;text-decoration:none;color:var(--text);transition:all .2s;font-size:14px;font-weight:500}
+.tbtn:hover{border-color:var(--teal);background:rgba(0,229,160,.07);color:var(--teal)}
+/* STATS GRID */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sbox{background:rgba(0,229,160,.03);border:1px solid var(--border);padding:18px;text-align:center}
+.sv{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--teal);display:block}
+.sl2{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-top:3px;display:block}
+#statsMsg{color:var(--mid);font-size:13px;margin-top:10px;letter-spacing:1px}
+/* SKIN SELECTOR */
+.skin-search{width:100%;background:rgba(0,229,160,.04);border:1px solid var(--border);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:15px;padding:10px 14px;margin-bottom:14px;outline:none;border-radius:2px}
+.skin-search:focus{border-color:var(--teal)}
+.skin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;max-height:280px;overflow-y:auto;scrollbar-width:thin}
+.si{background:rgba(0,229,160,.03);border:1px solid var(--border);padding:7px;cursor:pointer;transition:all .15s;text-align:center;border-radius:2px}
+.si:hover,.si.active{border-color:var(--teal);background:rgba(0,229,160,.08)}
+.si img{width:100%;aspect-ratio:1;object-fit:cover}
+.si-n{font-size:9px;color:var(--dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loading{color:var(--dim);font-size:13px;letter-spacing:2px;text-align:center;padding:20px;font-family:'Share Tech Mono',monospace}
+@media(max-width:900px){.dash-grid{grid-template-columns:1fr}.holo-card{width:100%;height:auto}.cskin{height:220px}.tgrid{grid-template-columns:1fr}nav{padding:0 16px}}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
+  <div class="nav-r">
+    <a href="/forge">Island Forge</a>
+    <a href="/channels">Channels</a>
+    <a href="/feed">Feed</a>
+    <a href="/auth/logout" class="logout">Logout</a>
+  </div>
+</nav>
+<div class="dash">
+  <div class="dash-grid">
+    <div class="card-wrap">
+      <div class="holo-card" id="holoCard">
+        <div class="ch"><span class="ch-s">EuphoriÆ Studios</span><span class="ch-id">MEMBER</span></div>
+        <div class="cskin" id="cardSkin">
+          {% if skin_img %}
+            <img src="{{ skin_img }}" id="skinImg"/>
+          {% else %}
+            <div class="no-skin">FN</div>
+          {% endif %}
+        </div>
+        <div class="cinfo">
+          <div class="cname">{{ name }}</div>
+          <div class="csname" id="cardSkinName">{{ skin_name or 'Default' }}</div>
+          <div class="cstats">
+            <div class="csv"><span class="csv-v" id="cWins">—</span><span class="csv-l">Wins</span></div>
+            <div class="csv"><span class="csv-v" id="cKD">—</span><span class="csv-l">K/D</span></div>
+            <div class="csv"><span class="csv-v" id="cMatches">—</span><span class="csv-l">Matches</span></div>
+          </div>
+        </div>
+        <div class="cglow"></div>
+      </div>
+    </div>
+    <div class="rp">
+      <div class="pb">
+        <div class="welcome">Welcome, <span>{{ name }}</span></div>
+        <div class="wsub">Your TriptokForge member dashboard. Access all platform tools and manage your profile.</div>
+        <div class="tgrid">
+          <a href="/forge" class="tbtn">🏝️ Island Forge</a>
+          <a href="#skins" class="tbtn">🎨 Change Skin</a>
+          <a href="#stats" class="tbtn" onclick="loadStats()">📊 Refresh Stats</a>
+          <a href="/auth/logout" class="tbtn">🚪 Logout</a>
+        </div>
+      </div>
+      <div class="pb" id="stats">
+        <div class="pt">// Fortnite Stats</div>
+        <div class="sgrid">
+          <div class="sbox"><span class="sv" id="s-wins">—</span><span class="sl2">Total Wins</span></div>
+          <div class="sbox"><span class="sv" id="s-kd">—</span><span class="sl2">K/D Ratio</span></div>
+          <div class="sbox"><span class="sv" id="s-matches">—</span><span class="sl2">Matches</span></div>
+          <div class="sbox"><span class="sv" id="s-kills">—</span><span class="sl2">Total Kills</span></div>
+          <div class="sbox"><span class="sv" id="s-winpct">—</span><span class="sl2">Win Rate</span></div>
+          <div class="sbox"><span class="sv" id="s-score">—</span><span class="sl2">Score/Match</span></div>
+        </div>
+        <div id="statsMsg"></div>
+      </div>
+      <div class="pb" id="skins">
+        <div class="pt">// Choose Your Skin</div>
+        <input class="skin-search" type="text" placeholder="Search skins..." id="skinSearch" oninput="filterSkins()"/>
+        <div class="skin-grid" id="skinGrid"><div class="loading">Loading cosmetics...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const DISPLAY_NAME = {{ name|tojson }};
+const card = document.getElementById('holoCard');
+card.addEventListener('mousemove', e => {
+  const r = card.getBoundingClientRect(), x = (e.clientX-r.left)/r.width-.5, y = (e.clientY-r.top)/r.height-.5;
+  card.style.transform = `rotateY(${x*18}deg) rotateX(${-y*14}deg) scale(1.02)`;
+});
+card.addEventListener('mouseleave', () => { card.style.transform = 'rotateY(0) rotateX(0) scale(1)'; });
+
+async function loadStats() {
+  document.getElementById('statsMsg').textContent = 'Loading stats...';
+  try {
+    const r = await fetch(`/api/stats?name=${encodeURIComponent(DISPLAY_NAME)}`), d = await r.json();
+    if (d.ok) {
+      const s = d.stats;
+      ['wins','kd','matches','kills','winPct','score'].forEach((k,i) => {
+        const ids = ['s-wins','s-kd','s-matches','s-kills','s-winpct','s-score'];
+        document.getElementById(ids[i]).textContent = s[k] || '—';
+      });
+      document.getElementById('cWins').textContent = s.wins || '—';
+      document.getElementById('cKD').textContent = s.kd || '—';
+      document.getElementById('cMatches').textContent = s.matches || '—';
+      document.getElementById('statsMsg').textContent = '';
+    } else {
+      document.getElementById('statsMsg').textContent = 'Stats not found — make sure your Fortnite account is public.';
+    }
+  } catch(e) { document.getElementById('statsMsg').textContent = 'Could not load stats.'; }
+}
+
+let allSkins = [];
+async function loadSkins() {
+  try {
+    const r = await fetch('/api/cosmetics'), d = await r.json();
+    if (d.ok) { allSkins = d.skins; renderSkins(allSkins); }
+  } catch(e) { document.getElementById('skinGrid').innerHTML = '<div class="loading">Could not load cosmetics.</div>'; }
+}
+function renderSkins(skins) {
+  const g = document.getElementById('skinGrid');
+  if (!skins.length) { g.innerHTML = '<div class="loading">No results.</div>'; return; }
+  g.innerHTML = skins.slice(0,120).map(s =>
+    `<div class="si" onclick="selectSkin('${s.id}','${s.name.replace(/'/g,"\'")}','${s.img}')" title="${s.name}">
+      <img src="${s.img}" loading="lazy"/><div class="si-n">${s.name}</div></div>`
+  ).join('');
+}
+function filterSkins() {
+  const q = document.getElementById('skinSearch').value.toLowerCase();
+  renderSkins(q ? allSkins.filter(s => s.name.toLowerCase().includes(q)) : allSkins);
+}
+async function selectSkin(id, name, img) {
+  document.querySelectorAll('.si').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('cardSkin').innerHTML = `<img src="${img}" style="max-height:280px;max-width:100%;object-fit:contain;filter:drop-shadow(0 0 18px rgba(0,229,160,.35));animation:float 3s ease-in-out infinite"/>`;
+  document.getElementById('cardSkinName').textContent = name;
+  await fetch('/api/set_skin', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id, name, img})});
+}
+loadStats(); loadSkins();
+</script>
+</body></html>

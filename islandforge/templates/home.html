@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TriptokForge — Fortnite Esports Platform</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#07090d"/>
+<meta name="description" content="Fortnite esports community platform — island generator, live channels, social feed, player profiles."/>
+<meta property="og:title" content="TriptokForge — Fortnite Esports Platform"/>
+<meta property="og:description" content="Build islands, share clips, watch live channels."/>
+<meta property="og:image" content="https://triptokforge.org/static/og.png"/>
+<meta property="og:url" content="https://triptokforge.org"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#07090d;--deep:#04060a;--panel:#0d1018;--border:#1a2535;--border2:#243040;--teal:#00e5a0;--teal-dim:#00b07a;--blue:#0091ff;--text:#c8d8e8;--dim:#4a5a70;--mid:#7a8aa8}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:17px;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:-100%;left:0;right:0;height:200%;background:linear-gradient(transparent 50%,rgba(0,229,160,.012) 50%);background-size:100% 4px;pointer-events:none;z-index:0;animation:scan 10s linear infinite}
+@keyframes scan{to{transform:translateY(50%)}}
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:58px;display:flex;align-items:center;padding:0 40px;background:rgba(7,9,13,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:var(--teal);letter-spacing:3px;text-decoration:none;flex-shrink:0}
+.nav-logo em{color:var(--blue);font-style:normal}
+.nav-links{display:flex;gap:4px;margin-left:28px;overflow-x:auto;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;color:var(--dim);text-decoration:none;padding:5px 10px;border-radius:3px;transition:all .15s;white-space:nowrap;text-transform:uppercase}
+.nav-links a:hover{color:var(--teal);background:rgba(0,229,160,.08)}
+.nav-r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:10px 22px;text-decoration:none;transition:all .2s;border:none;cursor:pointer;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.btn-p{background:var(--teal);color:#000}.btn-p:hover{background:#fff;box-shadow:0 0 32px var(--teal);transform:translateY(-2px)}
+.btn-o{background:transparent;color:var(--text);border:1px solid var(--border2)}.btn-o:hover{border-color:var(--teal);color:var(--teal)}
+/* HERO */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;z-index:1}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(0,229,160,.07) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 20% 80%,rgba(0,145,255,.05) 0%,transparent 60%);z-index:-1}
+.hero-tag{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:4px;text-transform:uppercase;color:var(--blue);border:1px solid rgba(0,145,255,.3);padding:6px 18px;margin-bottom:32px}
+h1{font-family:'Orbitron',monospace;font-size:clamp(34px,7vw,86px);font-weight:900;line-height:1;margin-bottom:24px}
+.l1{color:#fff;display:block}
+.l2{color:transparent;-webkit-text-stroke:1px var(--teal);display:block}
+.hero p{max-width:520px;margin:0 auto 48px;font-size:18px;font-weight:300;line-height:1.7;color:var(--mid)}
+.hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+/* STATS BAR */
+.stats-bar{position:relative;z-index:1;display:flex;justify-content:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(13,16,24,.7);flex-wrap:wrap}
+.stat{flex:1;min-width:120px;max-width:220px;padding:26px 24px;text-align:center;border-right:1px solid var(--border)}
+.stat:last-child{border-right:none}
+.stat-n{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:var(--teal);display:block}
+.stat-l{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-top:4px;display:block}
+/* SECTIONS */
+.sec{position:relative;z-index:1;padding:90px 48px;max-width:1200px;margin:0 auto}
+.s-tag{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:4px;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+h2{font-family:'Orbitron',monospace;font-size:clamp(20px,3vw,38px);font-weight:900;color:#fff;margin-bottom:14px;line-height:1.1}
+.s-sub{color:var(--mid);font-size:17px;max-width:500px;line-height:1.7;margin-bottom:52px;font-weight:300}
+/* FEATURE GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:2px;background:var(--border);border:1px solid var(--border)}
+.card{background:var(--panel);padding:38px 30px;position:relative;overflow:hidden;transition:background .3s}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--teal),transparent);opacity:0;transition:opacity .3s}
+.card:hover{background:#0d1520}.card:hover::before{opacity:1}
+.ci{font-size:26px;margin-bottom:18px;display:block}
+.ct{font-family:'Orbitron',monospace;font-size:.75rem;font-weight:700;letter-spacing:1px;color:#fff;margin-bottom:10px}
+.card p{font-size:14px;color:var(--dim);line-height:1.6;font-weight:300}
+/* FORGE BLOCK */
+.forge-block{position:relative;z-index:1;margin:0 48px 90px;border:1px solid var(--border);background:var(--panel);display:grid;grid-template-columns:1fr 1fr;min-height:300px;overflow:hidden}
+.forge-block::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 0% 50%,rgba(0,229,160,.05) 0%,transparent 70%);pointer-events:none}
+.fc{padding:52px;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:1}
+.fl{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:4px;text-transform:uppercase;color:var(--blue);margin-bottom:14px}
+.fc h2{margin-bottom:14px}.fc p{color:var(--mid);font-size:15px;line-height:1.7;margin-bottom:28px;font-weight:300}
+.fv{position:relative;overflow:hidden;background:var(--deep);display:flex;align-items:center;justify-content:center}
+.fg{position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,160,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.05) 1px,transparent 1px);background-size:30px 30px;animation:gm 5s linear infinite}
+@keyframes gm{to{background-position:30px 30px}}
+.fh{position:relative;z-index:1;font-family:'Orbitron',monospace;font-size:68px;font-weight:900;color:transparent;-webkit-text-stroke:1px rgba(0,229,160,.25);animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{-webkit-text-stroke-color:rgba(0,229,160,.25)}50%{-webkit-text-stroke-color:rgba(0,229,160,.7);text-shadow:0 0 50px rgba(0,229,160,.2)}}
+/* PLATFORM LINKS */
+.platform-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:32px}
+.plink{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);padding:18px 20px;text-decoration:none;color:var(--text);transition:all .15s;font-weight:500;font-size:15px}
+.plink:hover{border-color:var(--teal);color:var(--teal);background:rgba(0,229,160,.04)}
+.plink-icon{font-size:1.1rem;flex-shrink:0}
+/* FOOTER */
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;background:var(--deep);flex-wrap:wrap;gap:16px}
+.f-logo{font-family:'Orbitron',monospace;font-size:.75rem;font-weight:900;color:var(--dim);letter-spacing:3px}
+.f-logo em{color:var(--blue);font-style:normal}
+.flinks{display:flex;gap:28px;list-style:none;flex-wrap:wrap}
+.flinks a{color:var(--dim);text-decoration:none;font-size:13px;transition:color .2s}.flinks a:hover{color:var(--teal)}
+.fcopy{font-size:12px;color:var(--dim);opacity:.5}
+@media(max-width:768px){nav{padding:0 16px}.nav-links{display:none}.sec{padding:52px 20px}.forge-block{grid-template-columns:1fr;margin:0 16px 52px}.fv{min-height:160px}.fc{padding:32px 24px}footer{flex-direction:column;text-align:center}}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="/forge">Island Forge</a>
+    <a href="/feed">Feed</a>
+    <a href="/channels">Channels</a>
+    <a href="/community">Community</a>
+    <a href="/whitepages">Docs</a>
+    <a href="/privacy">Privacy</a>
+  </div>
+  <div class="nav-r">
+    {% if user %}
+      <a href="/dashboard" class="btn btn-p" style="padding:7px 18px">Dashboard →</a>
+    {% else %}
+      <a href="/auth/epic" class="btn btn-p" style="padding:7px 18px">⚡ Connect Epic</a>
+    {% endif %}
+  </div>
+</nav>
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div>
+    <div class="hero-tag">⚡ Esports Platform — Members Only</div>
+    <h1><span class="l1">FORGE YOUR</span><span class="l2">LEGACY</span></h1>
+    <p>Connect your Epic Games account. Build your member profile. Access tools built for serious Fortnite players and creators.</p>
+    <div class="hero-btns">
+      {% if user %}
+        <a href="/dashboard" class="btn btn-p">Go to Dashboard →</a>
+      {% else %}
+        <a href="/auth/epic" class="btn btn-p">⚡ Connect Epic Account</a>
+      {% endif %}
+      <a href="#features" class="btn btn-o">Explore Platform →</a>
+    </div>
+  </div>
+</section>
+<div class="stats-bar">
+  <div class="stat"><span class="stat-n">{{ n_members or 0 }}</span><span class="stat-l">Members</span></div>
+  <div class="stat"><span class="stat-n">{{ n_islands or 0 }}</span><span class="stat-l">Islands</span></div>
+  <div class="stat"><span class="stat-n">65</span><span class="stat-l">Live Channels</span></div>
+  <div class="stat"><span class="stat-n">EPIC</span><span class="stat-l">OAuth Login</span></div>
+  <div class="stat"><span class="stat-n">FREE</span><span class="stat-l">Always</span></div>
+</div>
+<section class="sec" id="features">
+  <div class="s-tag">// Platform Features</div>
+  <h2>Everything You Need</h2>
+  <p class="s-sub">Built for Fortnite creators and competitive players. Login once with Epic, unlock everything.</p>
+  <div class="grid">
+    <div class="card"><span class="ci">🎮</span><div class="ct">Epic Account Login</div><p>Secure OAuth2 authentication directly through Epic Games. Your real account, your real identity.</p></div>
+    <div class="card"><span class="ci">🃏</span><div class="ct">3D Member Card</div><p>Holographic player ID card with your stats, chosen skin, and rank. Shareable and always live.</p></div>
+    <div class="card"><span class="ci">📊</span><div class="ct">Live Stats</div><p>K/D ratio, win rate, season performance pulled live from Fortnite and displayed on your profile.</p></div>
+    <div class="card"><span class="ci">🏝️</span><div class="ct">Island Forge</div><p>Generate UEFN-ready island heightmaps from audio files. Export directly to Fortnite Creative.</p></div>
+    <div class="card"><span class="ci">📺</span><div class="ct">Live Channels</div><p>65 live channels — Fortnite esports, creative, gaming, music, news. Roku-style TV guide.</p></div>
+    <div class="card"><span class="ci">🎨</span><div class="ct">Skin Avatar</div><p>Browse the full Fortnite cosmetics library and pick any skin as your profile avatar.</p></div>
+  </div>
+</section>
+<div class="forge-block">
+  <div class="fc">
+    <div class="fl">// Tool — Island Forge</div>
+    <h2>Generate Islands<br>From Sound</h2>
+    <p>Upload any audio file. Island Forge analyzes frequency bands and generates a unique UEFN-ready heightmap — mountains from bass, rivers from rhythm, biomes from tone.</p>
+    <a href="/forge" class="btn btn-p">Open Island Forge →</a>
+  </div>
+  <div class="fv"><div class="fg"></div><div class="fh">IF</div></div>
+</div>
+<section class="sec" id="platform">
+  <div class="s-tag">// Explore</div>
+  <h2>The Platform</h2>
+  <p class="s-sub">Everything TriptokForge has to offer.</p>
+  <div class="platform-grid">
+    <a href="/forge" class="plink"><span class="plink-icon">▲</span>Island Forge</a>
+    <a href="/feed" class="plink"><span class="plink-icon">◈</span>Social Feed</a>
+    <a href="/channels" class="plink"><span class="plink-icon">▶</span>Live Channels</a>
+    <a href="/gallery" class="plink"><span class="plink-icon">⬡</span>Gallery</a>
+    <a href="/community" class="plink"><span class="plink-icon">◉</span>Community</a>
+    <a href="/dashboard" class="plink"><span class="plink-icon">◐</span>Dashboard</a>
+    <a href="/whitepages" class="plink"><span class="plink-icon">◇</span>Dev Docs</a>
+    <a href="/admin" class="plink"><span class="plink-icon">⚙</span>Admin</a>
+  </div>
+</section>
+<footer>
+  <div class="f-logo">Triptok<em>Forge</em></div>
+  <ul class="flinks">
+    <li><a href="#features">Features</a></li>
+    <li><a href="/forge">Island Forge</a></li>
+    <li><a href="/channels">Channels</a></li>
+    <li><a href="/privacy">Privacy</a></li>
+  </ul>
+  <div class="fcopy">© 2026 EuphoriÆ Studios</div>
+</footer>
+</body></html>

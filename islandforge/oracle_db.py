@@ -949,3 +949,93 @@ def delete_channel(channel_id):
         print(f"[oracle_db] delete_channel error: {e}")
         return False
 
+
+# ── ROOM / TICKETS ───────────────────────────────────────────
+
+def get_member_room(epic_id: str) -> dict:
+    """Return room settings (theme, tickets) for a member."""
+    if not db_available():
+        return {"theme": "", "tickets": 0}
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT room_theme, tickets FROM members WHERE epic_id = :1",
+                [epic_id]
+            )
+            row = cur.fetchone()
+            if row:
+                return {"theme": row[0] or "", "tickets": row[1] or 0}
+            return {"theme": "", "tickets": 0}
+    except Exception as e:
+        _log(f"get_member_room error: {e}")
+        return {"theme": "", "tickets": 0}
+
+def set_room_theme(epic_id: str, theme: str) -> bool:
+    """Persist chosen room theme for a member."""
+    if not db_available():
+        return False
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE members SET room_theme = :1 WHERE epic_id = :2",
+                [theme, epic_id]
+            )
+            conn.commit()
+        return True
+    except Exception as e:
+        _log(f"set_room_theme error: {e}")
+        return False
+
+def get_member_tickets(epic_id: str) -> int:
+    """Return current ticket balance for a member."""
+    if not db_available():
+        return 0
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT tickets FROM members WHERE epic_id = :1", [epic_id])
+            row = cur.fetchone()
+            return int(row[0] or 0) if row else 0
+    except Exception as e:
+        _log(f"get_member_tickets error: {e}")
+        return 0
+
+def get_member_islands(epic_id: str, limit: int = 50) -> list:
+    """Return islands saved by a specific member."""
+    if not db_available():
+        return []
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT seed, name, dominant_biome, preview_url, stickers
+                   FROM island_saves
+                   WHERE epic_id = :1
+                   ORDER BY created_at DESC
+                   FETCH FIRST :2 ROWS ONLY""",
+                [epic_id, limit]
+            )
+            cols = [c[0].lower() for c in cur.description]
+            return [dict(zip(cols, row)) for row in cur.fetchall()]
+    except Exception as e:
+        _log(f"get_member_islands error: {e}")
+        return []
+
+def award_tickets(epic_id: str, amount: int) -> bool:
+    """Award tickets to a member (for wins, uploads, etc.)."""
+    if not db_available():
+        return False
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE members SET tickets = COALESCE(tickets, 0) + :1 WHERE epic_id = :2",
+                [amount, epic_id]
+            )
+            conn.commit()
+        return True
+    except Exception as e:
+        _log(f"award_tickets error: {e}")
+        return False

@@ -12,11 +12,13 @@ def serve_index():
 @platform_bp.route("/")
 @platform_bp.route("/home")
 def home():
-    return serve_index()
-
-@platform_bp.route("/forge")
-def forge():
-    return serve_index()
+    user = session.get("user")
+    members = get_all_members() or []
+    islands = get_recent_islands(limit=999) or []
+    return render_template("home.html",
+        user=user,
+        n_members=len(members),
+        n_islands=len(islands))
 
 @platform_bp.route("/gallery")
 def gallery():
@@ -25,6 +27,7 @@ def gallery():
 @platform_bp.route("/feed")
 def feed():
     posts = get_posts(limit=50)
+    from flask import current_app
     t = os.path.join(ROOT, "templates", "feed.html")
     if os.path.exists(t):
         return render_template("feed.html", posts=posts)
@@ -39,13 +42,23 @@ def community():
 
 @platform_bp.route("/dashboard")
 def dashboard():
-    epic_id = session.get("epic_id")
-    if not epic_id:
-        return redirect("/auth/epic")
-    t = os.path.join(ROOT, "templates", "dashboard.html")
-    if os.path.exists(t):
-        return render_template("dashboard.html", member={"epic_id":epic_id,"display_name":session.get("display_name")}, islands=get_recent_islands(limit=20))
-    return serve_index()
+    user = session.get("user")
+    if not user:
+        epic_id = session.get("epic_id")
+        if not epic_id:
+            return redirect("/home")
+        user = {"display_name": session.get("display_name", epic_id),
+                "account_id": epic_id,
+                "skin_img": session.get("skin_img",""),
+                "skin_name": session.get("skin_name","Default")}
+    return render_template("dashboard.html",
+        name=user.get("display_name","Player"),
+        skin_img=user.get("skin_img",""),
+        skin_name=user.get("skin_name","Default"))
+
+@platform_bp.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
 
 @platform_bp.route("/admin", methods=["GET","POST"])
 def admin():
@@ -70,4 +83,4 @@ def health():
     members = get_all_members() or []
     islands = get_recent_islands(limit=999) or []
     audio = get_audio_tracks() or []
-    return jsonify({**st, "service":"triptokforge","version":"4.0","members":len(members),"islands":len(islands),"audio":len(audio)})
+    return jsonify({**st, "service":"triptokforge","version":"4.1","members":len(members),"islands":len(islands),"audio":len(audio)})

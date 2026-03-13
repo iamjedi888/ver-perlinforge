@@ -15,12 +15,16 @@ from routes.channels   import channels_bp
 from routes.auth       import auth_bp
 from routes.api        import api_bp
 from routes.whitepages import whitepages_bp
+from routes.forge      import forge_bp
+from routes.leaderboard import leaderboard_bp
 
 app.register_blueprint(platform_bp)
 app.register_blueprint(channels_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(whitepages_bp)
+app.register_blueprint(forge_bp)
+app.register_blueprint(leaderboard_bp)
 
 # ── STATIC ASSETS ───────────────────────────────────────────────
 from flask import send_from_directory, jsonify

@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Leaderboard — TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/triptokforge.css"/>
+<style>
+:root{
+  --bg:#07090d;--deep:#04060a;--panel:#0d1018;
+  --border:#1a2535;--border2:#243040;
+  --teal:#00e5a0;--teal-dim:rgba(0,229,160,.1);
+  --blue:#0091ff;--blue-dim:rgba(0,145,255,.08);
+  --amber:#ffaa00;--amber-dim:rgba(255,170,0,.08);
+  --red:#ff4060;--red-dim:rgba(255,64,96,.08);
+  --text:#c8d8e8;--mid:#7a8aa8;--dim:#3a4a60;
+  --gold:#ffd700;--silver:#b8c0cc;--bronze:#cd7f32;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;
+    padding:0 32px;background:rgba(7,9,13,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:var(--teal);letter-spacing:3px;text-decoration:none}
+.nav-logo em{color:var(--blue);font-style:normal}
+.nav-links{display:flex;gap:4px;margin-left:24px}
+.nav-links a{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;
+             padding:5px 10px;border-radius:3px;color:var(--dim);text-decoration:none;transition:all .15s}
+.nav-links a:hover{color:var(--teal);background:var(--teal-dim)}
+.nav-links a.active{color:var(--teal);border:1px solid var(--border2)}
+.nav-r{margin-left:auto;display:flex;gap:16px}
+.nav-r a{color:var(--dim);text-decoration:none;font-family:'Share Tech Mono',monospace;
+         font-size:.58rem;letter-spacing:2px;text-transform:uppercase;transition:color .15s}
+.nav-r a:hover{color:var(--teal)}
+
+/* PAGE SHELL */
+.lb-page{max-width:1060px;margin:0 auto;padding:80px 24px 60px}
+
+/* HERO HEADER */
+.lb-hero{
+  position:relative;text-align:center;padding:40px 0 36px;margin-bottom:8px;
+  overflow:hidden;
+}
+.lb-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 80% at 50% 0%,rgba(0,229,160,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.lb-hero-line{
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:200px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+}
+.lb-eyebrow{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:5px;
+            text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+.lb-title{font-family:'Orbitron',monospace;font-size:2.4rem;font-weight:900;
+          color:#fff;letter-spacing:2px;line-height:1;margin-bottom:8px}
+.lb-title span{color:var(--teal)}
+.lb-sub{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:3px;
+        text-transform:uppercase;color:var(--dim)}
+
+/* TABS */
+.lb-tabs{
+  display:flex;gap:0;margin-bottom:28px;
+  border:1px solid var(--border);background:var(--panel);
+}
+.lb-tab{
+  flex:1;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;
+  text-transform:uppercase;padding:12px 8px;cursor:pointer;color:var(--dim);
+  border-right:1px solid var(--border);border-bottom:2px solid transparent;
+  transition:all .15s;text-align:center;background:none;
+}
+.lb-tab:last-child{border-right:none}
+.lb-tab:hover{color:var(--mid);background:rgba(0,229,160,.03)}
+.lb-tab.active{color:var(--teal);border-bottom-color:var(--teal);background:var(--teal-dim)}
+
+/* TAB PANELS */
+.lb-panel{display:none}
+.lb-panel.active{display:block}
+
+/* SEARCH BAR */
+.lb-search{
+  display:flex;gap:8px;margin-bottom:24px;
+}
+.lb-search input{
+  flex:1;background:rgba(0,229,160,.04);border:1px solid var(--border2);
+  color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.65rem;
+  padding:11px 16px;outline:none;border-radius:2px;letter-spacing:1px;
+  transition:border-color .15s;
+}
+.lb-search input:focus{border-color:var(--teal)}
+.lb-search input::placeholder{color:var(--dim)}
+.lb-search button{
+  font-family:'Orbitron',monospace;font-size:.6rem;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;padding:11px 24px;
+  background:var(--teal);color:#000;border:none;cursor:pointer;transition:background .15s;
+}
+.lb-search button:hover{background:#fff}
+.lb-search-msg{
+  font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;
+  color:var(--dim);padding:10px 0;
+}
+
+/* MODE SWITCHER */
+.mode-row{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.mode-btn{
+  font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:2px;
+  text-transform:uppercase;padding:6px 14px;
+  background:rgba(0,229,160,.04);border:1px solid var(--border2);
+  color:var(--dim);cursor:pointer;transition:all .15s;border-radius:2px;
+}
+.mode-btn:hover{border-color:var(--mid);color:var(--mid)}
+.mode-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+
+/* PODIUM — top 3 */
+.podium{
+  display:grid;grid-template-columns:1fr 1.15fr 1fr;
+  gap:12px;margin-bottom:28px;align-items:end;
+}
+.podium-card{
+  background:var(--panel);border:1px solid var(--border);
+  padding:20px 16px;text-align:center;position:relative;overflow:hidden;
+  transition:border-color .2s;
+}
+.podium-card:hover{border-color:var(--border2)}
+.podium-card.p1{border-color:rgba(255,215,0,.25);background:linear-gradient(180deg,rgba(255,215,0,.04) 0%,var(--panel) 60%)}
+.podium-card.p2{border-color:rgba(184,192,204,.15)}
+.podium-card.p3{border-color:rgba(205,127,50,.15)}
+.podium-crown{
+  font-size:1.4rem;margin-bottom:6px;display:block;
+  filter:drop-shadow(0 0 8px rgba(255,215,0,.5));
+}
+.podium-rank{
+  font-family:'Orbitron',monospace;font-size:.55rem;font-weight:900;letter-spacing:3px;
+  text-transform:uppercase;margin-bottom:10px;
+}
+.p1 .podium-rank{color:var(--gold)}
+.p2 .podium-rank{color:var(--silver)}
+.p3 .podium-rank{color:var(--bronze)}
+.podium-avatar{
+  width:56px;height:56px;margin:0 auto 10px;
+  border-radius:4px;overflow:hidden;border:2px solid var(--border2);
+  background:var(--deep);display:flex;align-items:center;justify-content:center;
+}
+.p1 .podium-avatar{border-color:rgba(255,215,0,.4)}
+.podium-avatar img{width:100%;height:100%;object-fit:cover}
+.podium-initial{font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:900;color:var(--teal)}
+.podium-name{
+  font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;
+  color:#fff;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.podium-stat{
+  font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;
+  text-transform:uppercase;
+}
+.p1 .podium-stat{color:var(--teal)}
+.p2 .podium-stat{color:var(--silver)}
+.p3 .podium-stat{color:var(--bronze)}
+.podium-glow{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:80%;height:1px;
+}
+.p1 .podium-glow{background:linear-gradient(90deg,transparent,var(--gold),transparent);box-shadow:0 0 12px var(--gold)}
+.p2 .podium-glow{background:linear-gradient(90deg,transparent,var(--silver),transparent)}
+.p3 .podium-glow{background:linear-gradient(90deg,transparent,var(--bronze),transparent)}
+
+/* LEADERBOARD TABLE */
+.lb-table{width:100%;border-collapse:collapse}
+.lb-table th{
+  font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:3px;
+  text-transform:uppercase;color:var(--dim);padding:8px 14px;
+  border-bottom:1px solid var(--border);text-align:left;background:var(--panel);
+}
+.lb-table th.num{text-align:right}
+.lb-row{
+  border-bottom:1px solid rgba(26,37,53,.6);
+  transition:background .1s;cursor:default;
+}
+.lb-row:hover{background:rgba(0,229,160,.03)}
+.lb-row.me{background:rgba(0,229,160,.05);border-left:3px solid var(--teal)}
+.lb-row td{padding:10px 14px;vertical-align:middle}
+.td-rank{
+  font-family:'Orbitron',monospace;font-size:.7rem;font-weight:700;
+  color:var(--dim);width:48px;
+}
+.lb-row:nth-child(1) .td-rank{color:var(--gold)}
+.lb-row:nth-child(2) .td-rank{color:var(--silver)}
+.lb-row:nth-child(3) .td-rank{color:var(--bronze)}
+.td-player{display:flex;align-items:center;gap:10px}
+.td-avatar{
+  width:32px;height:32px;border-radius:3px;overflow:hidden;
+  background:var(--deep);flex-shrink:0;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+}
+.td-avatar img{width:100%;height:100%;object-fit:cover}
+.td-avatar-init{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:900;color:var(--teal)}
+.td-name{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;color:var(--text)}
+.td-badge{
+  font-family:'Share Tech Mono',monospace;font-size:.45rem;letter-spacing:2px;
+  text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-left:6px;
+}
+.badge-member{border:1px solid var(--teal);color:var(--teal);background:var(--teal-dim)}
+.badge-top{border:1px solid var(--amber);color:var(--amber);background:var(--amber-dim)}
+.td-num{
+  font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:1px;
+  color:var(--text);text-align:right;
+}
+.td-num.hi{color:var(--teal)}
+.td-rank-badge{
+  font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:2px;
+  text-transform:uppercase;padding:3px 8px;border-radius:2px;text-align:center;
+}
+.rank-unreal{background:rgba(0,229,160,.12);border:1px solid var(--teal);color:var(--teal)}
+.rank-diamond{background:rgba(0,145,255,.12);border:1px solid var(--blue);color:var(--blue)}
+.rank-platinum{background:rgba(120,80,200,.12);border:1px solid #7850c8;color:#9870e8}
+.rank-gold{background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber)}
+.rank-silver{background:rgba(184,192,204,.08);border:1px solid var(--silver);color:var(--silver)}
+.rank-bronze{background:rgba(205,127,50,.08);border:1px solid var(--bronze);color:var(--bronze)}
+.rank-unknown{background:rgba(58,74,96,.2);border:1px solid var(--dim);color:var(--dim)}
+
+/* PLAYER STATS CARD */
+.stats-card{
+  background:var(--panel);border:1px solid var(--border);
+  padding:28px;margin-top:8px;display:none;
+  position:relative;overflow:hidden;
+}
+.stats-card.show{display:block}
+.stats-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+}
+.sc-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.sc-avatar{
+  width:64px;height:64px;border-radius:4px;overflow:hidden;
+  border:2px solid var(--border2);background:var(--deep);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.sc-avatar img{width:100%;height:100%;object-fit:cover}
+.sc-avatar-init{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:900;color:var(--teal)}
+.sc-name{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;color:#fff;margin-bottom:4px}
+.sc-meta{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:3px;color:var(--dim);text-transform:uppercase}
+.sc-close{
+  margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:2px;
+  text-transform:uppercase;padding:6px 14px;
+  background:rgba(255,64,96,.06);border:1px solid var(--border2);
+  color:var(--mid);cursor:pointer;transition:all .15s;border-radius:2px;
+}
+.sc-close:hover{border-color:var(--red);color:var(--red)}
+.sc-modes{display:flex;gap:6px;margin-bottom:20px}
+.sc-mode-btn{
+  font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:2px;
+  text-transform:uppercase;padding:5px 12px;
+  background:rgba(0,229,160,.04);border:1px solid var(--border2);
+  color:var(--dim);cursor:pointer;transition:all .15s;border-radius:2px;
+}
+.sc-mode-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.sc-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:10px;margin-bottom:20px;
+}
+.sc-stat{
+  background:rgba(0,229,160,.03);border:1px solid var(--border);
+  padding:12px;text-align:center;
+}
+.sc-stat-v{
+  font-family:'Orbitron',monospace;font-size:1rem;font-weight:700;
+  color:var(--teal);display:block;margin-bottom:3px;
+}
+.sc-stat-l{
+  font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:2px;
+  text-transform:uppercase;color:var(--dim);
+}
+.sc-ranked{
+  background:rgba(0,145,255,.04);border:1px solid var(--border2);
+  padding:14px 16px;display:flex;align-items:center;gap:14px;
+}
+.sc-ranked-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim);flex:1}
+.sc-ranked-val{font-family:'Orbitron',monospace;font-size:.8rem;font-weight:700;color:var(--blue)}
+
+/* LOADING / EMPTY */
+.lb-loading{
+  text-align:center;padding:60px 20px;
+  font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:4px;
+  text-transform:uppercase;color:var(--dim);
+}
+.lb-loading::after{content:'...';animation:dots 1.2s infinite}
+@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+.lb-empty{
+  text-align:center;padding:60px 20px;
+  font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:3px;
+  text-transform:uppercase;color:var(--dim);
+}
+
+/* REFRESH */
+.lb-meta-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;flex-wrap:wrap;gap:8px;
+}
+.lb-updated{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.lb-refresh{
+  font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;
+  padding:4px 12px;background:rgba(0,229,160,.04);border:1px solid var(--border2);
+  color:var(--mid);cursor:pointer;transition:all .15s;border-radius:2px;
+}
+.lb-refresh:hover{border-color:var(--teal);color:var(--teal)}
+
+@media(max-width:768px){
+  nav{padding:0 14px}.nav-links{display:none}
+  .lb-page{padding:70px 12px 40px}
+  .podium{grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .podium-card{padding:12px 8px}
+  .lb-title{font-size:1.6rem}
+  .sc-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
+  <div class="nav-links">
+    <a href="/home">Home</a>
+    <a href="/forge">Forge</a>
+    <a href="/channels">Channels</a>
+    <a href="/feed">Feed</a>
+    <a href="/leaderboard" class="active">Leaderboard</a>
+  </div>
+  <div class="nav-r">
+    <a href="/dashboard">Dashboard</a>
+  </div>
+</nav>
+
+<div class="lb-page">
+
+  <!-- HERO -->
+  <div class="lb-hero">
+    <div class="lb-eyebrow">Season Rankings</div>
+    <h1 class="lb-title">Forge <span>Leaderboard</span></h1>
+    <div class="lb-sub">TriptokForge members · Fortnite BR stats · Global search</div>
+    <div class="lb-hero-line"></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="lb-tabs">
+    <button class="lb-tab active" onclick="switchTab('members',this)">⬡ TF Members</button>
+    <button class="lb-tab" onclick="switchTab('search',this)">◎ Player Search</button>
+    <button class="lb-tab" onclick="switchTab('global',this)">◈ Global Top</button>
+  </div>
+
+  <!-- TAB: MEMBERS -->
+  <div class="lb-panel active" id="tab-members">
+    <div class="mode-row" id="membersModeRow">
+      <button class="mode-btn active" onclick="setMembersSort('wins',this)">Wins</button>
+      <button class="mode-btn" onclick="setMembersSort('kd',this)">K/D Ratio</button>
+      <button class="mode-btn" onclick="setMembersSort('tickets',this)">Tickets</button>
+    </div>
+    <div class="lb-meta-row">
+      <span class="lb-updated" id="membersUpdated">Loading members...</span>
+      <button class="lb-refresh" onclick="loadMembers()">↺ Refresh</button>
+    </div>
+    <div id="membersPodium" class="podium" style="display:none"></div>
+    <div id="membersTable"><div class="lb-loading">Loading</div></div>
+  </div>
+
+  <!-- TAB: SEARCH -->
+  <div class="lb-panel" id="tab-search">
+    <div class="lb-search">
+      <input type="text" id="searchInput" placeholder="Enter Epic display name..." 
+             onkeydown="if(event.key==='Enter')searchPlayer()"/>
+      <button onclick="searchPlayer()">Search</button>
+    </div>
+    <div id="searchMsg" class="lb-search-msg"></div>
+    <div id="searchResult"></div>
+  </div>
+
+  <!-- TAB: GLOBAL -->
+  <div class="lb-panel" id="tab-global">
+    <div class="mode-row" id="globalModeRow">
+      <button class="mode-btn active" onclick="setGlobalMode('wins',this)">Wins</button>
+      <button class="mode-btn" onclick="setGlobalMode('kd',this)">K/D</button>
+      <button class="mode-btn" onclick="setGlobalMode('kills',this)">Kills</button>
+    </div>
+    <div class="lb-meta-row">
+      <span class="lb-updated" id="globalUpdated">Loading global rankings...</span>
+      <button class="lb-refresh" onclick="loadGlobal()">↺ Refresh</button>
+    </div>
+    <div id="globalPodium" class="podium" style="display:none"></div>
+    <div id="globalTable"><div class="lb-loading">Loading</div></div>
+  </div>
+
+</div>
+
+<script>
+const ME = {{ current_user|tojson }};
+let membersData = [];
+let globalData   = [];
+let membersSort  = 'wins';
+let globalMode   = 'wins';
+
+/* ── TAB SWITCHING ─────────────────────────────────────── */
+function switchTab(id, btn) {
+  document.querySelectorAll('.lb-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.lb-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'members' && membersData.length === 0) loadMembers();
+  if (id === 'global'  && globalData.length  === 0) loadGlobal();
+}
+
+/* ── MEMBERS TAB ───────────────────────────────────────── */
+async function loadMembers() {
+  document.getElementById('membersTable').innerHTML = '<div class="lb-loading">Loading</div>';
+  document.getElementById('membersPodium').style.display = 'none';
+  try {
+    const r = await fetch('/api/leaderboard/members');
+    const d = await r.json();
+    membersData = d.members || [];
+    renderMembers();
+    document.getElementById('membersUpdated').textContent =
+      membersData.length + ' members · updated just now';
+  } catch(e) {
+    document.getElementById('membersTable').innerHTML =
+      '<div class="lb-empty">Could not load members</div>';
+  }
+}
+
+function setMembersSort(key, btn) {
+  membersSort = key;
+  document.querySelectorAll('#membersModeRow .mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMembers();
+}
+
+function renderMembers() {
+  const sorted = [...membersData].sort((a,b) => (b[membersSort]||0) - (a[membersSort]||0));
+  renderPodium(sorted.slice(0,3), 'membersPodium', membersSort);
+  renderTable(sorted, 'membersTable', membersSort, true);
+}
+
+/* ── GLOBAL TAB ────────────────────────────────────────── */
+async function loadGlobal() {
+  document.getElementById('globalTable').innerHTML = '<div class="lb-loading">Loading</div>';
+  document.getElementById('globalPodium').style.display = 'none';
+  try {
+    const r = await fetch('/api/leaderboard/global?stat=' + globalMode);
+    const d = await r.json();
+    globalData = d.players || [];
+    renderGlobal();
+    document.getElementById('globalUpdated').textContent =
+      'Top ' + globalData.length + ' globally · ' + globalMode;
+  } catch(e) {
+    document.getElementById('globalTable').innerHTML =
+      '<div class="lb-empty">Could not load global rankings — API key may be missing</div>';
+  }
+}
+
+function setGlobalMode(mode, btn) {
+  globalMode = mode;
+  document.querySelectorAll('#globalModeRow .mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadGlobal();
+}
+
+function renderGlobal() {
+  renderPodium(globalData.slice(0,3), 'globalPodium', globalMode);
+  renderTable(globalData, 'globalTable', globalMode, false);
+}
+
+/* ── PODIUM ────────────────────────────────────────────── */
+function renderPodium(top3, elId, statKey) {
+  const el = document.getElementById(elId);
+  if (!top3 || top3.length < 1) { el.style.display='none'; return; }
+  const order = [1,0,2]; // 2nd, 1st, 3rd display order
+  const labels = ['2nd','1st','3rd'];
+  const crowns = ['🥈','👑','🥉'];
+  const cls    = ['p2','p1','p3'];
+  el.innerHTML = '';
+  el.style.display = 'grid';
+  order.forEach((idx,pos) => {
+    const p = top3[idx];
+    if (!p) return;
+    const card = document.createElement('div');
+    card.className = 'podium-card ' + cls[pos];
+    const initials = (p.display_name||p.name||'?')[0].toUpperCase();
+    const val = formatStat(p[statKey] ?? p.value, statKey);
+    card.innerHTML = `
+      <div class="podium-glow"></div>
+      <span class="podium-crown">${crowns[pos]}</span>
+      <div class="podium-rank">${labels[pos]}</div>
+      <div class="podium-avatar">
+        ${(p.skin_img||p.avatar) ? `<img src="${p.skin_img||p.avatar}" loading="lazy" alt=""/>` : `<div class="podium-initial">${initials}</div>`}
+      </div>
+      <div class="podium-name">${p.display_name||p.name||'Unknown'}</div>
+      <div class="podium-stat">${val}</div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+/* ── TABLE ─────────────────────────────────────────────── */
+function renderTable(players, elId, statKey, showBadge) {
+  const el = document.getElementById(elId);
+  if (!players || players.length === 0) {
+    el.innerHTML = '<div class="lb-empty">No data available</div>';
+    return;
+  }
+  const statLabel = {wins:'Wins',kd:'K/D',kills:'Kills',tickets:'Tickets'}[statKey] || statKey;
+  let html = `
+    <table class="lb-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th class="num">${statLabel}</th>
+          <th class="num" style="display:none" id="${elId}-col2">—</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  players.forEach((p,i) => {
+    const name = p.display_name || p.name || 'Unknown';
+    const init = name[0].toUpperCase();
+    const val  = formatStat(p[statKey] ?? p.value, statKey);
+    const isMe = ME && (p.epic_id === ME.account_id || p.display_name === ME.display_name);
+    const badge = showBadge ? '<span class="td-badge badge-member">Member</span>' : '';
+    const crownBadge = i < 3 ? '<span class="td-badge badge-top">Top ' + (i+1) + '</span>' : '';
+    const rankDiv = p.ranked_division ? `<span class="td-rank-badge ${rankClass(p.ranked_division)}">${p.ranked_division}</span>` : '';
+    html += `
+      <tr class="lb-row${isMe?' me':''}">
+        <td class="td-rank">${i+1}</td>
+        <td>
+          <div class="td-player">
+            <div class="td-avatar">
+              ${(p.skin_img||p.avatar) ? `<img src="${p.skin_img||p.avatar}" loading="lazy" alt=""/>` : `<div class="td-avatar-init">${init}</div>`}
+            </div>
+            <span class="td-name">${name}</span>
+            ${crownBadge}${badge}
+            ${rankDiv}
+          </div>
+        </td>
+        <td class="td-num hi">${val}</td>
+      </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function formatStat(val, key) {
+  if (val == null) return '—';
+  if (key === 'kd') return parseFloat(val).toFixed(2);
+  return parseInt(val).toLocaleString();
+}
+
+function rankClass(div) {
+  if (!div) return 'rank-unknown';
+  const d = div.toLowerCase();
+  if (d.includes('unreal'))   return 'rank-unreal';
+  if (d.includes('diamond'))  return 'rank-diamond';
+  if (d.includes('platinum')) return 'rank-platinum';
+  if (d.includes('gold'))     return 'rank-gold';
+  if (d.includes('silver'))   return 'rank-silver';
+  if (d.includes('bronze'))   return 'rank-bronze';
+  return 'rank-unknown';
+}
+
+/* ── PLAYER SEARCH ─────────────────────────────────────── */
+async function searchPlayer() {
+  const name = document.getElementById('searchInput').value.trim();
+  if (!name) return;
+  const msg = document.getElementById('searchMsg');
+  const res = document.getElementById('searchResult');
+  msg.textContent = 'Searching for ' + name + '...';
+  res.innerHTML = '';
+  try {
+    const r = await fetch('/api/stats?name=' + encodeURIComponent(name));
+    const d = await r.json();
+    if (d.error || !d.data) {
+      msg.textContent = d.error || 'Player not found or stats are private.';
+      return;
+    }
+    msg.textContent = '';
+    renderStatsCard(d.data, res);
+  } catch(e) {
+    msg.textContent = 'Error fetching stats.';
+  }
+}
+
+function renderStatsCard(data, container) {
+  const name   = data.account?.name || data.name || 'Unknown';
+  const init   = name[0].toUpperCase();
+  const all    = data.stats?.all;
+  const solo   = data.stats?.all?.solo   || {};
+  const duo    = data.stats?.all?.duo    || {};
+  const squad  = data.stats?.all?.squad  || {};
+  const overall = data.stats?.all?.overall || {};
+
+  function modeStats(m) {
+    if (!m || !m.wins) return '<div class="lb-empty">No data for this mode</div>';
+    const rows = [
+      ['Wins',      m.wins?.value],
+      ['K/D',       m.kd?.value],
+      ['Kills',     m.kills?.value],
+      ['Matches',   m.matches?.value],
+      ['Win Rate',  m.winRate?.value ? (m.winRate.value+'%') : null],
+      ['Score/Min', m.scorePerMin?.value],
+      ['Top 10',    m.top10?.value],
+      ['Top 25',    m.top25?.value],
+    ];
+    return rows.filter(r=>r[1]!=null)
+      .map(r=>`<div class="sc-stat"><span class="sc-stat-v">${r[1]}</span><span class="sc-stat-l">${r[0]}</span></div>`)
+      .join('');
+  }
+
+  const card = document.createElement('div');
+  card.className = 'stats-card show';
+  card.innerHTML = `
+    <div class="sc-header">
+      <div class="sc-avatar"><div class="sc-avatar-init">${init}</div></div>
+      <div>
+        <div class="sc-name">${name}</div>
+        <div class="sc-meta">Fortnite BR · All Time</div>
+      </div>
+      <button class="sc-close" onclick="this.closest('.stats-card').remove()">✕ Close</button>
+    </div>
+    <div class="sc-modes">
+      <button class="sc-mode-btn active" onclick="switchCardMode(this,'overall-stats')">Overall</button>
+      <button class="sc-mode-btn" onclick="switchCardMode(this,'solo-stats')">Solo</button>
+      <button class="sc-mode-btn" onclick="switchCardMode(this,'duo-stats')">Duo</button>
+      <button class="sc-mode-btn" onclick="switchCardMode(this,'squad-stats')">Squad</button>
+    </div>
+    <div id="overall-stats" class="sc-grid">${modeStats(overall)}</div>
+    <div id="solo-stats"    class="sc-grid" style="display:none">${modeStats(solo)}</div>
+    <div id="duo-stats"     class="sc-grid" style="display:none">${modeStats(duo)}</div>
+    <div id="squad-stats"   class="sc-grid" style="display:none">${modeStats(squad)}</div>
+  `;
+  container.innerHTML = '';
+  container.appendChild(card);
+}
+
+function switchCardMode(btn, panelId) {
+  const card = btn.closest('.stats-card');
+  card.querySelectorAll('.sc-mode-btn').forEach(b=>b.classList.remove('active'));
+  card.querySelectorAll('.sc-grid').forEach(p=>p.style.display='none');
+  btn.classList.add('active');
+  document.getElementById(panelId).style.display='grid';
+}
+
+/* ── INIT ──────────────────────────────────────────────── */
+loadMembers();
+</script>
+</body>
+</html>
