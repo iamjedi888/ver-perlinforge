@@ -249,9 +249,7 @@ def main():
     user    = os.environ.get("ORACLE_USER",   "ADMIN")
     pw      = os.environ.get("ORACLE_PASSWORD","")
 
-    oracledb.init_oracle_client()
-
-    print(f"Connecting to {dsn} as {user} ...")
+    print(f"Connecting to {dsn} as {user} (thin mode) ...")
     conn = oracledb.connect(user=user, password=pw, dsn=dsn,
                             config_dir=wallet, wallet_location=wallet,
                             wallet_password="")
