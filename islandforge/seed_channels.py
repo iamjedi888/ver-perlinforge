@@ -255,11 +255,47 @@ def main():
         print("Run this script from the islandforge/ directory.")
         sys.exit(1)
 
-    print("Initialising schema ...")
-    init_schema()
-
     print("Getting connection pool ...")
     pool = _get_pool()
+
+    # Create tables if missing (Oracle doesn't support IF NOT EXISTS)
+    with pool.acquire() as conn:
+        with conn.cursor() as cur:
+            for ddl in [
+                """CREATE TABLE posts (
+                    id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    epic_id      VARCHAR2(64),
+                    display_name VARCHAR2(128),
+                    skin_img     VARCHAR2(512),
+                    caption      VARCHAR2(1000),
+                    embed_url    VARCHAR2(1024) NOT NULL,
+                    likes        NUMBER        DEFAULT 0,
+                    approved     NUMBER(1)     DEFAULT 1,
+                    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+                )""",
+                """CREATE TABLE channels (
+                    id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    name         VARCHAR2(128) NOT NULL,
+                    category     VARCHAR2(64),
+                    embed_url    VARCHAR2(1024) NOT NULL,
+                    description  VARCHAR2(512),
+                    approved     NUMBER(1)     DEFAULT 0,
+                    suggested_by VARCHAR2(64),
+                    sort_order   NUMBER        DEFAULT 0,
+                    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+                )"""
+            ]:
+                try:
+                    cur.execute(ddl)
+                    conn.commit()
+                    tname = ddl.split()[2]
+                    print(f"Created table: {tname}")
+                except Exception as e:
+                    if "ORA-00955" in str(e):
+                        tname = ddl.split()[2]
+                        print(f"Table already exists: {tname}")
+                    else:
+                        print(f"DDL warning: {e}")
 
     inserted = 0
     skipped  = 0
