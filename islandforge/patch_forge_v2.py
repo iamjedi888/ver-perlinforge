@@ -191,8 +191,8 @@ UEFN_THEMES = {
         "weights": {"sub_bass":0.3,"bass":0.3,"midrange":0.7,"presence":0.3,"brilliance":0.8},
     },
     "desert": {
-        "label":        "Desert Storm",
-        "description":  "Arid wasteland. Sand seas, scorched rock, zero snow. Oasis patches only.",
+        "label":        "Sahara Paradise",
+        "description":  "Golden dunes, warm oasis pools, sandstone arches. Peaceful desert at sunset.",
         "water_level":  0.14,
         "moisture_jungle":  0.85,
         "moisture_forest":  0.72,
@@ -332,35 +332,49 @@ else:
     print("→ audio_to_heightmap.py — themes already present")
 
 # ══════════════════════════════════════════════════════════════════
-# 3. server_old.py — wire biome_theme into /generate
+# 3. Auto-find whichever file has the /generate route and patch it
 # ══════════════════════════════════════════════════════════════════
-sv_path = os.path.join(ROOT, "server_old.py")
-sv = open(sv_path).read()
+import glob as _glob
 
-OLD_CLASSIFY = "biome    = classify_biomes(height, moisture, water_level)"
-NEW_CLASSIFY = """biome_theme = data.get("biome_theme", "chapter1")
+sv_path = None
+for _candidate in _glob.glob(os.path.join(ROOT, "**/*.py"), recursive=True):
+    try:
+        _txt = open(_candidate).read()
+        if '"/generate"' in _txt and "def generate" in _txt:
+            sv_path = _candidate
+            break
+    except Exception:
+        pass
+
+if not sv_path:
+    print("⚠ Could not find /generate route file — skipping biome_theme wire")
+    print("  (theme selector will still appear in UI, server defaults to chapter1)")
+else:
+    print(f"✓ Found generate route in: {sv_path}")
+    sv = open(sv_path).read()
+
+    OLD_CLASSIFY = "biome    = classify_biomes(height, moisture, water_level)"
+    NEW_CLASSIFY = """biome_theme = data.get("biome_theme", "chapter1")
         try:
-            from audio_to_heightmap import classify_biomes_themed, UEFN_THEMES, BIOME_NAMES as _BN, BIOME_COLOURS as _BC
+            from audio_to_heightmap import classify_biomes_themed, BIOME_NAMES as _BN, BIOME_COLOURS as _BC
             biome, _themed_colours, _themed_names = classify_biomes_themed(
                 height, moisture, water_level, biome_theme
             )
-            # Update module-level dicts so build_preview + stats use theme colours
             _BC.clear(); _BC.update(_themed_colours)
             _BN.clear(); _BN.update(_themed_names)
         except Exception as _te:
             biome = classify_biomes(height, moisture, water_level)"""
 
-if "biome_theme" not in sv:
-    sv = sv.replace(OLD_CLASSIFY, NEW_CLASSIFY)
-    # Also add theme info to the response
-    sv = sv.replace(
-        '"saved_to":        OUTPUT_DIR,',
-        '"saved_to":        OUTPUT_DIR,\n            "biome_theme":     data.get("biome_theme","chapter1"),'
-    )
-    open(sv_path, "w").write(sv)
-    print("✓ server_old.py — biome_theme wired into /generate")
-else:
-    print("→ server_old.py — biome_theme already wired")
+    if "biome_theme" not in sv:
+        sv = sv.replace(OLD_CLASSIFY, NEW_CLASSIFY)
+        sv = sv.replace(
+            '"saved_to":        OUTPUT_DIR,',
+            '"saved_to":        OUTPUT_DIR,\n            "biome_theme":     data.get("biome_theme","chapter1"),'
+        )
+        open(sv_path, "w").write(sv)
+        print(f"✓ {os.path.basename(sv_path)} — biome_theme wired into /generate")
+    else:
+        print(f"→ {os.path.basename(sv_path)} — biome_theme already wired")
 
 # ══════════════════════════════════════════════════════════════════
 # 4. index.html — Theme selector UI + fix preset apply logic
@@ -439,7 +453,7 @@ const UEFN_THEMES = {
     water_level:0.15,
   },
   desert: {
-    label:"Desert",icon:"🏜️",
+    label:"Sahara",icon:"🌅",
     swatches:["#3c5a82","#e1d2a0","#d2b978","#aa9158","#ebdaaf","#d7af5f"],
     weights:{sub_bass:80,bass:70,midrange:30,presence:20,brilliance:10},
     water_level:0.14,
