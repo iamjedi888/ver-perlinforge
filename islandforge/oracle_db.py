@@ -1039,3 +1039,160 @@ def award_tickets(epic_id: str, amount: int) -> bool:
     except Exception as e:
         _log(f"award_tickets error: {e}")
         return False
+
+
+# ── PRESETS ──────────────────────────────────────────────────
+
+def get_presets(limit: int = 100) -> list:
+    """Return all public island presets."""
+    if not db_available():
+        return []
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT id, epic_id, display_name, name, config, created_at
+                   FROM island_presets
+                   WHERE is_public = 1
+                   ORDER BY created_at DESC
+                   FETCH FIRST :1 ROWS ONLY""",
+                [limit]
+            )
+            rows = []
+            for row in cur.fetchall():
+                try:
+                    cfg = json.loads(row[4]) if row[4] else {}
+                except Exception:
+                    cfg = {}
+                rows.append({
+                    "id":           row[0],
+                    "epic_id":      row[1],
+                    "display_name": row[2],
+                    "name":         row[3],
+                    "config":       cfg,
+                    "created_at":   str(row[5]) if row[5] else "",
+                })
+            return rows
+    except Exception as e:
+        _log(f"get_presets error: {e}")
+        return []
+
+def get_preset_by_id(preset_id: int) -> dict:
+    """Return a single preset by ID."""
+    if not db_available():
+        return None
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT id, epic_id, display_name, name, config, created_at
+                   FROM island_presets WHERE id = :1""",
+                [preset_id]
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            try:
+                cfg = json.loads(row[4]) if row[4] else {}
+            except Exception:
+                cfg = {}
+            return {
+                "id":           row[0],
+                "epic_id":      row[1],
+                "display_name": row[2],
+                "name":         row[3],
+                "config":       cfg,
+                "created_at":   str(row[5]) if row[5] else "",
+            }
+    except Exception as e:
+        _log(f"get_preset_by_id error: {e}")
+        return None
+
+def save_preset(epic_id: str, display_name: str, name: str,
+                config: dict, is_public: bool = True):
+    """Save an island preset. Returns new ID."""
+    if not db_available():
+        return None
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            new_id = cur.var(__import__("oracledb").NUMBER)
+            cur.execute(
+                """INSERT INTO island_presets
+                   (epic_id, display_name, name, config, is_public, created_at)
+                   VALUES (:1, :2, :3, :4, :5, CURRENT_TIMESTAMP)
+                   RETURNING id INTO :6""",
+                [epic_id, display_name, name, json.dumps(config),
+                 1 if is_public else 0, new_id]
+            )
+            conn.commit()
+            return int(new_id.getvalue()[0])
+    except Exception as e:
+        _log(f"save_preset error: {e}")
+        return None
+
+def delete_preset(preset_id: int, epic_id: str) -> bool:
+    """Delete a preset — only owner can delete."""
+    if not db_available():
+        return False
+    try:
+        with _conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "DELETE FROM island_presets WHERE id = :1 AND epic_id = :2",
+                [preset_id, epic_id]
+            )
+            conn.commit()
+            return cur.rowcount > 0
+    except Exception as e:
+        _log(f"delete_preset error: {e}")
+        return False
+
+def save_island_to_gallery(epic_id: str, display_name: str, name: str,
+                            seed, dominant_biome: str, preview_b64: str,
+                            config: dict, verse_data: dict,
+                            stickers: list, is_public: bool = True):
+    """Save a generated island to the gallery + room wall."""
+    if not db_available():
+        return None
+    try:
+        # Upload preview to OCI if available, else store truncated b64
+        preview_url = ""
+        if preview_b64:
+            try:
+                import base64, oci.object_storage, os as _os
+                client = _oci_client()
+                img_bytes = base64.b64decode(preview_b64)
+                obj_name  = f"previews/{epic_id or 'anon'}_{seed}_{int(__import__('time').time())}.png"
+                ns        = _os.environ.get("OCI_NAMESPACE","")
+                bucket    = _os.environ.get("OCI_BUCKET","triptokforge")
+                client.put_object(ns, bucket, obj_name,
+                                  img_bytes,
+                                  content_type="image/png")
+                region = _os.environ.get("OCI_REGION","us-ashburn-1")
+                preview_url = f"https://objectstorage.{region}.oraclecloud.com/n/{ns}/b/{bucket}/o/{obj_name}"
+            except Exception as oci_e:
+                _log(f"OCI preview upload skipped: {oci_e}")
+
+        with _conn() as conn:
+            cur = conn.cursor()
+            new_id = cur.var(__import__("oracledb").NUMBER)
+            cur.execute(
+                """INSERT INTO island_saves
+                   (epic_id, display_name, seed, name, dominant_biome,
+                    preview_url, config, verse_data, stickers, is_public, created_at)
+                   VALUES (:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,CURRENT_TIMESTAMP)
+                   RETURNING id INTO :11""",
+                [epic_id, display_name, seed, name, dominant_biome,
+                 preview_url,
+                 json.dumps(config),
+                 json.dumps(verse_data),
+                 json.dumps(stickers),
+                 1 if is_public else 0,
+                 new_id]
+            )
+            conn.commit()
+            return int(new_id.getvalue()[0])
+    except Exception as e:
+        _log(f"save_island_to_gallery error: {e}")
+        return None

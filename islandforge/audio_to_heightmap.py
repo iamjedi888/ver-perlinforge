@@ -578,6 +578,274 @@ BIOME_COLOURS = {
     9: (160,190, 80),    # farm (bright green)
 }
 
+
+# ─────────────────────────────────────────────────────────────
+# UEFN BIOME THEMES
+# Each theme overrides classify_biomes thresholds + colour palette
+# ─────────────────────────────────────────────────────────────
+
+UEFN_THEMES = {
+    "chapter1": {
+        "label":        "Chapter 1 — Classic",
+        "description":  "Original BR map. Tilted Towers biome. Balanced grass, forest, snow peaks.",
+        "water_level":  0.20,
+        "moisture_jungle":  0.62,
+        "moisture_forest":  0.44,
+        "moisture_desert":  0.30,
+        "moisture_snow":    0.34,
+        "zone_desert":      0.55,
+        "zone_snow":        0.45,
+        "highland_min":     0.65,
+        "peak_min":         0.82,
+        "colours": {
+            0: (20,  60, 120),   # water
+            1: (210,190,140),    # beach
+            2: (130,170, 80),    # plains
+            3: ( 60,110, 55),    # forest
+            4: ( 30, 90, 40),    # jungle
+            5: (220,235,245),    # snow
+            6: (195,165, 90),    # desert
+            7: ( 90,110, 75),    # highland
+            8: (200,200,210),    # peak
+            9: (160,190, 80),    # farm
+        },
+        "weights": {"sub_bass":0.6,"bass":0.5,"midrange":0.5,"presence":0.4,"brilliance":0.3},
+    },
+    "chapter2": {
+        "label":        "Chapter 2 — Swampy Island",
+        "description":  "Holly Hedges era. More water, swamp lowlands, lush jungle quadrant.",
+        "water_level":  0.26,
+        "moisture_jungle":  0.52,
+        "moisture_forest":  0.38,
+        "moisture_desert":  0.22,
+        "moisture_snow":    0.28,
+        "zone_desert":      0.60,
+        "zone_snow":        0.40,
+        "highland_min":     0.68,
+        "peak_min":         0.84,
+        "colours": {
+            0: (15,  50, 105),
+            1: (200,180,130),
+            2: (110,155, 65),
+            3: ( 50,100, 45),
+            4: ( 25, 80, 35),    # dense jungle
+            5: (215,230,240),
+            6: (180,155, 80),
+            7: ( 80,100, 65),
+            8: (190,195,205),
+            9: (150,180, 70),
+        },
+        "weights": {"sub_bass":0.7,"bass":0.6,"midrange":0.4,"presence":0.5,"brilliance":0.2},
+    },
+    "chapter3": {
+        "label":        "Chapter 3 — Flipped Island",
+        "description":  "Snow biome dominant. Rocky highlands, spider-web rivers, open plains.",
+        "water_level":  0.18,
+        "moisture_jungle":  0.70,
+        "moisture_forest":  0.52,
+        "moisture_desert":  0.25,
+        "moisture_snow":    0.45,
+        "zone_desert":      0.65,
+        "zone_snow":        0.35,
+        "highland_min":     0.60,
+        "peak_min":         0.78,
+        "colours": {
+            0: (25,  65, 130),
+            1: (215,200,155),
+            2: (140,178, 90),
+            3: ( 65,115, 60),
+            4: ( 35, 95, 45),
+            5: (230,240,250),    # bright snow dominant
+            6: (190,160, 85),
+            7: ( 95,118, 82),
+            8: (210,215,225),
+            9: (165,195, 85),
+        },
+        "weights": {"sub_bass":0.4,"bass":0.3,"midrange":0.6,"presence":0.6,"brilliance":0.5},
+    },
+    "chapter4": {
+        "label":        "Chapter 4 — Shattered Slabs",
+        "description":  "Rocky desert dominant. Massive mountain range, sparse jungle corner.",
+        "water_level":  0.17,
+        "moisture_jungle":  0.70,
+        "moisture_forest":  0.55,
+        "moisture_desert":  0.38,
+        "moisture_snow":    0.25,
+        "zone_desert":      0.45,
+        "zone_snow":        0.55,
+        "highland_min":     0.58,
+        "peak_min":         0.75,
+        "colours": {
+            0: (18,  55, 110),
+            1: (205,185,135),
+            2: (120,160, 72),
+            3: ( 55,105, 50),
+            4: ( 28, 85, 38),
+            5: (225,232,242),
+            6: (200,172, 98),    # warm sandstone desert
+            7: (105,120, 85),    # rocky highland
+            8: (205,198,188),    # pale stone peak
+            9: (155,185, 75),
+        },
+        "weights": {"sub_bass":0.5,"bass":0.4,"midrange":0.5,"presence":0.7,"brilliance":0.4},
+    },
+    "arctic": {
+        "label":        "Arctic Wasteland",
+        "description":  "Permafrost island. 70% snow cover, frozen tundra, icy peaks. Zero desert.",
+        "water_level":  0.15,
+        "moisture_jungle":  0.90,   # jungle almost impossible
+        "moisture_forest":  0.72,
+        "moisture_desert":  0.05,   # no desert
+        "moisture_snow":    0.22,   # snow everywhere
+        "zone_desert":      0.95,
+        "zone_snow":        0.05,
+        "highland_min":     0.52,
+        "peak_min":         0.68,
+        "colours": {
+            0: ( 10,  40, 100),   # near-black arctic water
+            1: (230,220,205),     # pale frost beach
+            2: (175,200,190),     # frozen tundra
+            3: (120,155,140),     # spruce forest
+            4: ( 80,120, 95),     # boreal
+            5: (240,248,255),     # crisp white snow
+            6: (200,195,185),     # frozen wasteland (no real desert)
+            7: (150,165,175),     # ice-rock highland
+            8: (225,232,242),     # glacier peak
+            9: (160,185,170),
+        },
+        "weights": {"sub_bass":0.3,"bass":0.3,"midrange":0.7,"presence":0.3,"brilliance":0.8},
+    },
+    "desert": {
+        "label":        "Desert Storm",
+        "description":  "Arid wasteland. Sand seas, scorched rock, zero snow. Oasis patches only.",
+        "water_level":  0.14,
+        "moisture_jungle":  0.85,
+        "moisture_forest":  0.72,
+        "moisture_desert":  0.50,   # desert everywhere
+        "moisture_snow":    0.02,
+        "zone_desert":      0.25,   # desert wins zone battle
+        "zone_snow":        0.98,
+        "highland_min":     0.63,
+        "peak_min":         0.80,
+        "colours": {
+            0: ( 60,  90, 130),   # muddy oasis water
+            1: (225,210,160),     # pale sand beach
+            2: (210,185,120),     # sand plains
+            3: (170,145, 90),     # scrub brush
+            4: (140,115, 65),     # dried jungle
+            5: (235,215,175),     # salt flat (was snow)
+            6: (215,175, 95),     # golden sand desert
+            7: (165,138, 88),     # sandstone highland
+            8: (190,160,110),     # mesa peak
+            9: (180,165,105),
+        },
+        "weights": {"sub_bass":0.8,"bass":0.7,"midrange":0.3,"presence":0.2,"brilliance":0.1},
+    },
+    "jungle": {
+        "label":        "Primal Jungle",
+        "description":  "Dense canopy everywhere. Rivers, wetlands, no desert or snow.",
+        "water_level":  0.25,
+        "moisture_jungle":  0.38,   # jungle threshold very low = jungle everywhere
+        "moisture_forest":  0.28,
+        "moisture_desert":  0.05,
+        "moisture_snow":    0.02,
+        "zone_desert":      0.98,
+        "zone_snow":        0.98,
+        "highland_min":     0.70,
+        "peak_min":         0.85,
+        "colours": {
+            0: ( 15,  65, 100),   # murky jungle water
+            1: (180,190,130),     # muddy shore
+            2: ( 90,140, 55),     # jungle floor plains
+            3: ( 45, 95, 38),     # medium forest
+            4: ( 20, 75, 28),     # deep jungle canopy
+            5: (160,185,110),     # high altitude jungle (was snow)
+            6: (130,160, 80),     # dry plateau
+            7: ( 70,105, 55),     # highland jungle
+            8: (100,130, 70),     # mossy peak
+            9: (120,155, 65),
+        },
+        "weights": {"sub_bass":0.5,"bass":0.6,"midrange":0.7,"presence":0.6,"brilliance":0.4},
+    },
+    "volcanic": {
+        "label":        "Volcanic Inferno",
+        "description":  "Active caldera. Lava flows, ash plains, scorched rock. Extreme terrain.",
+        "water_level":  0.12,
+        "moisture_jungle":  0.75,
+        "moisture_forest":  0.60,
+        "moisture_desert":  0.35,
+        "moisture_snow":    0.02,
+        "zone_desert":      0.40,
+        "zone_snow":        0.95,
+        "highland_min":     0.50,
+        "peak_min":         0.68,
+        "colours": {
+            0: ( 80,  20,  10),   # lava lake
+            1: (120,  55,  30),   # scorched shore
+            2: ( 80,  70,  60),   # ash plains
+            3: ( 55,  80,  45),   # struggling forest
+            4: ( 35,  65,  30),   # dense scrub
+            5: (200, 175, 155),   # ash snow
+            6: ( 90,  60,  40),   # volcanic desert
+            7: ( 70,  55,  45),   # magma rock highland
+            8: (110,  80,  60),   # crater rim peak
+            9: ( 95,  90,  55),
+        },
+        "weights": {"sub_bass":0.9,"bass":0.8,"midrange":0.2,"presence":0.3,"brilliance":0.2},
+    },
+}
+
+def get_theme(name: str) -> dict:
+    return UEFN_THEMES.get(name, UEFN_THEMES["chapter1"])
+
+
+def classify_biomes_themed(height, moisture, water_level=0.20, theme_name="chapter1"):
+    """
+    classify_biomes with per-theme thresholds and colour overrides.
+    Returns (biome_array, biome_colours_dict, biome_names_dict)
+    """
+    import numpy as np
+    from scipy.ndimage import gaussian_filter
+
+    th = get_theme(theme_name)
+    wl = th.get("water_level", water_level)
+
+    size  = height.shape[0]
+    biome = np.zeros((size, size), dtype=np.uint8)
+
+    zone = nn(size, 2, 0.5, 2.0, 1.0, 42)
+    moisture_smooth = gaussian_filter(moisture, sigma=size * 0.08)
+
+    PLAINS = 2
+    biome[:] = PLAINS
+
+    biome[height < wl]                                             = 0  # water
+    biome[(height >= wl) & (height < wl + 0.05)]                  = 1  # beach
+
+    land = height >= wl + 0.05
+
+    mj = th["moisture_jungle"]
+    mf = th["moisture_forest"]
+    md = th["moisture_desert"]
+    ms = th["moisture_snow"]
+    zd = th["zone_desert"]
+    zs = th["zone_snow"]
+    hm = th["highland_min"]
+    pm = th["peak_min"]
+
+    biome[land & (moisture_smooth > mj)]                           = 4  # jungle
+    biome[land & (moisture_smooth > mf) & (moisture_smooth <= mj)] = 3  # forest
+    biome[land & (moisture_smooth < md) & (zone > zd)]             = 6  # desert
+    biome[land & (moisture_smooth < ms) & (zone <= zs)]            = 5  # snow
+    biome[land & (height > hm) & (height <= pm)]                   = 7  # highland
+    biome[land & (height > pm)]                                     = 8  # peak
+
+    colours = th["colours"]
+    names   = {0:"Water",1:"Beach",2:"Plains",3:"Forest",
+               4:"Jungle",5:"Snow",6:"Desert",7:"Highland",8:"Peak",9:"Farm"}
+
+    return biome, colours, names
+
 def classify_biomes(height, moisture, water_level=0.20):
     """
     Fortnite-style biome classification:

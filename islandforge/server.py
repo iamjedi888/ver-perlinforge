@@ -17,6 +17,7 @@ from routes.api        import api_bp
 from routes.whitepages import whitepages_bp
 from routes.forge      import forge_bp
 from routes.leaderboard import leaderboard_bp
+from routes.forge_upgrades import forge_upgrades_bp
 
 app.register_blueprint(platform_bp)
 app.register_blueprint(channels_bp)
@@ -25,6 +26,7 @@ app.register_blueprint(api_bp)
 app.register_blueprint(whitepages_bp)
 app.register_blueprint(forge_bp)
 app.register_blueprint(leaderboard_bp)
+app.register_blueprint(forge_upgrades_bp)
 
 # ── STATIC ASSETS ───────────────────────────────────────────────
 from flask import send_from_directory, jsonify
