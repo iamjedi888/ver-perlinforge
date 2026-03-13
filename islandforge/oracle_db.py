@@ -97,6 +97,7 @@ def _get_pool():
             user=ORACLE_USER,
             password=ORACLE_PASSWORD,
             dsn=ORACLE_DSN,
+            config_dir=ORACLE_WALLET,
             wallet_location=ORACLE_WALLET,
             wallet_password=ORACLE_PASSWORD,  # same as DB password by default
             min=1, max=4, increment=1,
@@ -193,6 +194,30 @@ CREATE TABLE IF NOT EXISTS island_saves (
     layout_url   VARCHAR2(512),
     weights_json VARCHAR2(1024),
     biome_stats  VARCHAR2(2048),
+    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+    id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    epic_id      VARCHAR2(64),
+    display_name VARCHAR2(128),
+    skin_img     VARCHAR2(512),
+    caption      VARCHAR2(1000),
+    embed_url    VARCHAR2(1024) NOT NULL,
+    likes        NUMBER        DEFAULT 0,
+    approved     NUMBER(1)     DEFAULT 1,
+    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS channels (
+    id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name         VARCHAR2(128) NOT NULL,
+    category     VARCHAR2(64),
+    embed_url    VARCHAR2(1024) NOT NULL,
+    description  VARCHAR2(512),
+    approved     NUMBER(1)     DEFAULT 0,
+    suggested_by VARCHAR2(64),
+    sort_order   NUMBER        DEFAULT 0,
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -774,3 +799,153 @@ def status():
         "oci_config":      bool(OCI_NAMESPACE),
         "fallback_mode":   not db_available(),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# POST OPERATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def create_post(epic_id, display_name, skin_img, caption, embed_url):
+    """Create a new community post."""
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("""
+            INSERT INTO posts (epic_id, display_name, skin_img, caption, embed_url)
+            VALUES (:epic_id, :display_name, :skin_img, :caption, :embed_url)
+        """, {"epic_id": epic_id, "display_name": display_name,
+              "skin_img": skin_img, "caption": caption, "embed_url": embed_url})
+        conn.commit()
+        cur.close(); conn.close()
+        return True
+    except Exception as e:
+        print(f"[oracle_db] create_post error: {e}")
+        return False
+
+def get_posts(limit=50, approved_only=True):
+    """Return recent posts."""
+    if not db_available():
+        return []
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        if approved_only:
+            cur.execute("SELECT id, epic_id, display_name, skin_img, caption, embed_url, likes, created_at FROM posts WHERE approved=1 ORDER BY created_at DESC FETCH FIRST :n ROWS ONLY", {"n": limit})
+        else:
+            cur.execute("SELECT id, epic_id, display_name, skin_img, caption, embed_url, likes, created_at FROM posts ORDER BY created_at DESC FETCH FIRST :n ROWS ONLY", {"n": limit})
+        cols = ["id","epic_id","display_name","skin_img","caption","embed_url","likes","created_at"]
+        rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+        for r in rows:
+            if hasattr(r.get("created_at"), "isoformat"):
+                r["created_at"] = r["created_at"].isoformat()
+        cur.close(); conn.close()
+        return rows
+    except Exception as e:
+        print(f"[oracle_db] get_posts error: {e}")
+        return []
+
+def like_post(post_id):
+    """Increment likes on a post."""
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("UPDATE posts SET likes = likes + 1 WHERE id = :id", {"id": post_id})
+        conn.commit()
+        cur.close(); conn.close()
+        return True
+    except Exception as e:
+        print(f"[oracle_db] like_post error: {e}")
+        return False
+
+def delete_post(post_id):
+    """Delete a post by id."""
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("DELETE FROM posts WHERE id = :id", {"id": post_id})
+        conn.commit()
+        cur.close(); conn.close()
+        return True
+    except Exception as e:
+        print(f"[oracle_db] delete_post error: {e}")
+        return False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHANNEL OPERATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def suggest_channel(name, category, embed_url, description, suggested_by):
+    """Submit a channel suggestion (pending approval)."""
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("""
+            INSERT INTO channels (name, category, embed_url, description, suggested_by, approved)
+            VALUES (:name, :category, :embed_url, :description, :suggested_by, 0)
+        """, {"name": name, "category": category, "embed_url": embed_url,
+              "description": description, "suggested_by": suggested_by})
+        conn.commit()
+        cur.close(); conn.close()
+        return True
+    except Exception as e:
+        print(f"[oracle_db] suggest_channel error: {e}")
+        return False
+
+def get_channels(approved_only=True):
+    """Return channels list."""
+    if not db_available():
+        return []
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        if approved_only:
+            cur.execute("SELECT id, name, category, embed_url, description, suggested_by, sort_order FROM channels WHERE approved=1 ORDER BY category, sort_order, id")
+        else:
+            cur.execute("SELECT id, name, category, embed_url, description, suggested_by, sort_order, approved FROM channels ORDER BY approved DESC, category, id")
+        cols = ["id","name","category","embed_url","description","suggested_by","sort_order"] if approved_only else ["id","name","category","embed_url","description","suggested_by","sort_order","approved"]
+        rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+        cur.close(); conn.close()
+        return rows
+    except Exception as e:
+        print(f"[oracle_db] get_channels error: {e}")
+        return []
+
+def approve_channel(channel_id, approved=1):
+    """Approve or reject a channel."""
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("UPDATE channels SET approved=:a WHERE id=:id", {"a": approved, "id": channel_id})
+        conn.commit()
+        cur.close(); conn.close()
+        return True
+    except Exception as e:
+        print(f"[oracle_db] approve_channel error: {e}")
+        return False
+
+def delete_channel(channel_id):
+    """Delete a channel."""
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("DELETE FROM channels WHERE id=:id", {"id": channel_id})
+        conn.commit()
+        cur.close(); conn.close()
+        return True
+    except Exception as e:
+        print(f"[oracle_db] delete_channel error: {e}")
+        return False
+

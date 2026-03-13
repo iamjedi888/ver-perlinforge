@@ -46,6 +46,8 @@ try:
         audio_object_name, preview_object_name,
         heightmap_object_name, layout_object_name,
         init_schema, status as db_status,
+        create_post, get_posts, like_post, delete_post,
+        suggest_channel, get_channels, approve_channel, delete_channel,
     )
     DB_MODULE = True
 except ImportError:
@@ -69,6 +71,14 @@ except ImportError:
     def layout_object_name(seed): return f"layouts/island_{seed}_layout.json"
     def init_schema(): pass
     def db_status(): return {"fallback_mode": True, "oracle_online": False}
+    def create_post(*a, **k): return False
+    def get_posts(**k): return []
+    def like_post(*a): return False
+    def delete_post(*a): return False
+    def suggest_channel(*a, **k): return False
+    def get_channels(**k): return []
+    def approve_channel(*a, **k): return False
+    def delete_channel(*a): return False
 
 from audio_to_heightmap import (
     analyse_audio, generate_terrain, generate_moisture,
@@ -546,6 +556,56 @@ def forge():
 
 
 
+
+
+@app.route("/api/post", methods=["POST"])
+@login_required
+def api_create_post():
+    user = session.get("user", {})
+    data = request.get_json(force=True)
+    url  = data.get("url","").strip()
+    cap  = data.get("caption","").strip()[:500]
+    if not url:
+        return jsonify({"ok": False, "error": "URL required"}), 400
+    ok = create_post(
+        epic_id=user.get("account_id","anonymous"),
+        display_name=user.get("display_name","Member"),
+        skin_img=user.get("skin_img","") or user.get("avatar_url",""),
+        caption=cap,
+        embed_url=url,
+    )
+    return jsonify({"ok": ok})
+
+@app.route("/api/posts")
+def api_get_posts():
+    posts = get_posts(limit=100)
+    return jsonify({"ok": True, "posts": posts})
+
+@app.route("/api/like/<int:post_id>", methods=["POST"])
+def api_like_post(post_id):
+    like_post(post_id)
+    posts = get_posts(limit=200)
+    post  = next((p for p in posts if p["id"] == post_id), None)
+    likes = post["likes"] if post else 0
+    return jsonify({"ok": True, "likes": likes})
+
+@app.route("/api/suggest_channel", methods=["POST"])
+@login_required
+def api_suggest_channel():
+    user = session.get("user", {})
+    data = request.get_json(force=True)
+    url  = data.get("url","").strip()
+    name = data.get("name","").strip()[:128]
+    cat  = data.get("category","Community Picks").strip()[:64]
+    if not url or not name:
+        return jsonify({"ok": False, "error": "Name and URL required"}), 400
+    ok = suggest_channel(
+        name=name, category=cat, embed_url=url,
+        description=data.get("description","")[:512],
+        suggested_by=user.get("account_id","anonymous"),
+    )
+    return jsonify({"ok": ok})
+
 @app.route("/api/members")
 def api_members():
     try:
@@ -951,6 +1011,7 @@ _NAV = """
     <a href="/gallery"   style="color:#4a6a8a;text-decoration:none;font-size:13px;letter-spacing:1px">GALLERY</a>
     <a href="/feed"      style="color:#4a6a8a;text-decoration:none;font-size:13px;letter-spacing:1px">FEED</a>
     <a href="/community" style="color:#4a6a8a;text-decoration:none;font-size:13px;letter-spacing:1px">COMMUNITY</a>
+    <a href="/channels" style="color:#4a6a8a;text-decoration:none;font-size:13px;letter-spacing:1px">CHANNELS</a>
     <a href="/dev"       style="color:#4a6a8a;text-decoration:none;font-size:13px;letter-spacing:1px">DEV</a>
     {login_link}
   </div>
@@ -1425,75 +1486,492 @@ def serve_output(filename):
 
 
 @app.route("/feed")
+@login_required
 def feed():
-    # ── Latest islands from DB ──
-    island_cards = ""
-    try:
-        recent = get_recent_islands(limit=6)
-        for r in recent:
-            seed        = str(r.get("seed",""))
-            preview_src = r.get("preview_url","") or f"/outputs/island_{seed}_preview.png"
-            layout_href = r.get("layout_url","") or f"/outputs/island_{seed}_layout.json"
-            creator     = r.get("creator_id","anonymous")[:16]
-            world_size  = f"{r.get('world_size_cm',0):,} cm" if r.get("world_size_cm") else ""
-            island_cards += f'''
-            <div class="card" style="display:flex;gap:14px;align-items:flex-start;padding:16px 20px">
-              <img src="{preview_src}" style="width:64px;height:64px;object-fit:cover;image-rendering:pixelated;flex-shrink:0;border:1px solid var(--border)"
-                   onerror="this.style.display='none'">
-              <div style="flex:1;min-width:0">
-                <div style="font-family:'Orbitron',monospace;font-size:11px;color:#fff;margin-bottom:4px">SEED #{seed}</div>
-                <div style="font-size:12px;color:var(--dim)">{world_size}{" · " + creator if creator not in ("anonymous","") else ""}</div>
-                <div style="display:flex;gap:8px;margin-top:8px">
-                  <a href="{preview_src}" download class="btn btn-o" style="font-size:9px;padding:5px 10px">&#11015; PNG</a>
-                  <a href="{layout_href}" download class="btn btn-o" style="font-size:9px;padding:5px 10px">&#11015; JSON</a>
-                </div>
-              </div>
-            </div>'''
-    except Exception as e:
-        island_cards = f'<p class="sub">Could not load islands: {e}</p>'
+    user = session.get("user", {})
+    posts = get_posts(limit=100)
+    posts_json = __import__('json').dumps(posts)
+    return _shell("Feed", f"""
+<style>
+#feed-wrap {{
+  position:fixed;inset:0;top:60px;bottom:64px;overflow:hidden;
+  display:flex;flex-direction:column;
+}}
+#feed-viewport {{
+  flex:1;overflow:hidden;position:relative;
+  touch-action:none;
+}}
+.feed-slide {{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);
+  background:#000;
+}}
+.feed-embed {{
+  width:100%;height:100%;border:none;
+  display:block;
+}}
+.feed-overlay {{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,0.85));
+  padding:60px 24px 24px;
+  pointer-events:none;
+  z-index:10;
+}}
+.feed-avatar {{
+  position:absolute;right:20px;bottom:120px;
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  z-index:20;
+}}
+.feed-skin {{
+  width:56px;height:56px;border-radius:4px;
+  border:2px solid rgba(0,212,255,0.5);
+  object-fit:cover;image-rendering:pixelated;
+  animation:skinIdle 3s ease-in-out infinite;
+  box-shadow:0 0 20px rgba(0,212,255,0.3);
+}}
+@keyframes skinIdle {{
+  0%,100% {{transform:rotate(-2deg) translateY(0);}}
+  25%     {{transform:rotate(0deg) translateY(-4px);}}
+  50%     {{transform:rotate(2deg) translateY(0);}}
+  75%     {{transform:rotate(0deg) translateY(-2px);}}
+}}
+.feed-like-btn {{
+  background:none;border:1px solid rgba(255,255,255,0.3);
+  color:#fff;font-size:20px;width:44px;height:44px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:all 0.2s;border-radius:4px;
+  font-family:'Orbitron',monospace;
+}}
+.feed-like-btn:hover {{border-color:var(--accent);color:var(--accent);}}
+.feed-like-btn span {{font-size:10px;margin-top:2px;letter-spacing:1px;}}
+.feed-name {{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;}}
+.feed-caption {{font-size:15px;color:rgba(255,255,255,0.85);line-height:1.5;max-width:70%;}}
+.feed-counter {{
+  position:absolute;top:80px;right:20px;
+  font-family:'Orbitron',monospace;font-size:10px;color:rgba(255,255,255,0.4);
+  letter-spacing:2px;z-index:20;
+}}
+.feed-arrows {{
+  position:absolute;left:50%;transform:translateX(-50%);
+  bottom:20px;display:flex;gap:16px;z-index:20;
+}}
+.feed-arrow {{
+  background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);
+  color:rgba(255,255,255,0.6);font-size:18px;width:40px;height:40px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}}
+.feed-arrow:hover {{border-color:var(--accent);color:var(--accent);}}
+#feed-post-btn {{
+  position:fixed;top:70px;right:20px;z-index:200;
+}}
+#feed-post-modal {{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);
+  z-index:500;align-items:center;justify-content:center;
+}}
+#feed-post-modal.open {{display:flex;}}
+.feed-modal-box {{
+  background:var(--panel);border:1px solid var(--border);
+  padding:32px;width:480px;max-width:90vw;
+}}
+.feed-input {{
+  width:100%;background:var(--black);border:1px solid var(--border);
+  color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;
+  padding:10px 14px;outline:none;margin-bottom:12px;
+}}
+.feed-input:focus {{border-color:var(--accent);}}
+.feed-empty {{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;color:var(--dim);font-family:'Orbitron',monospace;font-size:13px;
+  letter-spacing:2px;gap:16px;
+}}
+</style>
 
-    if not island_cards:
-        island_cards = '<p class="sub">No islands yet. <a href="/forge" style="color:var(--accent)">Be the first →</a></p>'
+<div id="feed-post-btn">
+  <button class="btn btn-p" style="font-size:10px;padding:8px 18px"
+          onclick="document.getElementById('feed-post-modal').classList.add('open')">
+    + POST
+  </button>
+</div>
 
-    # ── Latest announcements from DB ──
-    ann_html = ""
-    try:
-        anns = get_announcements()
-        for a in anns[:4]:
-            ann_html += f'''
-            <div class="card">
-              <h3>{a.get("title","")}</h3>
-              <p style="margin-top:8px">{a.get("body","")}</p>
-              <p style="color:var(--dim);font-size:11px;margin-top:10px;font-family:monospace">{a.get("posted_by","")}</p>
-            </div>'''
-    except:
-        pass
-
-    if not ann_html:
-        ann_html = '<div class="card"><h3>NO ANNOUNCEMENTS</h3><p>Check back soon.</p></div>'
-
-    content = f"""
-    <div class="tag">// Community Feed</div>
-    <h1>Latest Activity</h1>
-    <p class="sub">Recent islands from the community and platform announcements.</p>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:40px">
-      <div>
-        <div style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:12px">// RECENT ISLANDS</div>
-        <div style="display:flex;flex-direction:column;gap:2px;background:var(--border);border:1px solid var(--border)">{island_cards}</div>
-        <div style="margin-top:12px"><a href="/gallery" class="btn btn-o" style="font-size:10px">View All Islands →</a></div>
-      </div>
-      <div>
-        <div style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:12px">// ANNOUNCEMENTS</div>
-        <div class="grid" style="grid-template-columns:1fr">{ann_html}</div>
-      </div>
+<div id="feed-post-modal">
+  <div class="feed-modal-box">
+    <div class="tag" style="margin-bottom:16px">// New Post</div>
+    <h3 style="color:#fff;font-family:'Orbitron',monospace;font-size:13px;margin-bottom:20px">SHARE A CLIP OR VIDEO</h3>
+    <input class="feed-input" id="fp-url" placeholder="YouTube / Twitch / Kick / Streamable URL" type="url">
+    <textarea class="feed-input" id="fp-caption" placeholder="Caption (optional)" rows="3" style="resize:none"></textarea>
+    <div style="display:flex;gap:12px;margin-top:8px">
+      <button class="btn btn-p" style="font-size:10px" onclick="submitPost()">POST IT</button>
+      <button class="btn btn-o" style="font-size:10px"
+              onclick="document.getElementById('feed-post-modal').classList.remove('open')">CANCEL</button>
     </div>
+    <div id="fp-msg" style="margin-top:12px;font-size:12px;color:var(--accent);font-family:monospace"></div>
+  </div>
+</div>
 
-    <div class="grid">
-      <div class="card"><h3>FNCS RESULTS</h3><p>Fortnite Champion Series standings and VODs. <span style="color:var(--accent2);font-size:11px">COMING SOON</span></p></div>
-      <div class="card"><h3>MAP UPDATES</h3><p>Season patch notes and POI breakdowns. <span style="color:var(--accent2);font-size:11px">COMING SOON</span></p></div>
-    </div>"""
-    return _shell("Feed", content, user=session.get("user"))
+<div id="feed-wrap">
+  <div id="feed-viewport">
+    <div id="feed-empty" class="feed-empty" style="display:none">
+      <div>NO POSTS YET</div>
+      <div style="font-size:11px;opacity:0.5">BE THE FIRST TO SHARE A CLIP</div>
+      <button class="btn btn-p" style="font-size:10px"
+              onclick="document.getElementById('feed-post-modal').classList.add('open')">+ POST</button>
+    </div>
+  </div>
+  <div class="feed-arrows">
+    <button class="feed-arrow" onclick="navigate(-1)">&#8679;</button>
+    <button class="feed-arrow" onclick="navigate(1)">&#8681;</button>
+  </div>
+</div>
+
+<script>
+const POSTS = {posts_json};
+const ME = {{
+  skin_img: "{user.get('skin_img','') or user.get('avatar_url','')}",
+  display_name: "{user.get('display_name','Member')}",
+  epic_id: "{user.get('account_id','')}",
+}};
+
+let cur = 0;
+let slides = [];
+const vp = document.getElementById('feed-viewport');
+
+function embedUrl(raw) {{
+  try {{
+    const u = new URL(raw);
+    const h = u.hostname.replace('www.','');
+    // YouTube
+    if (h === 'youtube.com' || h === 'youtu.be') {{
+      let vid = u.searchParams.get('v') || u.pathname.split('/').pop();
+      return `https://www.youtube.com/embed/${{vid}}?autoplay=1&mute=0`;
+    }}
+    // Twitch stream
+    if (h === 'twitch.tv' && !u.pathname.includes('/clip/')) {{
+      const ch = u.pathname.replace('/','');
+      return `https://player.twitch.tv/?channel=${{ch}}&parent=${{location.hostname}}&autoplay=true`;
+    }}
+    // Twitch clip
+    if (h === 'twitch.tv' && u.pathname.includes('/clip/')) {{
+      const slug = u.pathname.split('/clip/')[1];
+      return `https://clips.twitch.tv/embed?clip=${{slug}}&parent=${{location.hostname}}`;
+    }}
+    // Kick
+    if (h === 'kick.com') {{
+      const ch = u.pathname.replace('/','');
+      return `https://player.kick.com/${{ch}}`;
+    }}
+    // Streamable
+    if (h === 'streamable.com') {{
+      const id = u.pathname.replace('/','');
+      return `https://streamable.com/e/${{id}}`;
+    }}
+    // Default passthrough
+    return raw;
+  }} catch(e) {{ return raw; }}
+}}
+
+function buildSlide(post, idx) {{
+  const div = document.createElement('div');
+  div.className = 'feed-slide';
+  div.id = 'slide-' + idx;
+  div.style.transform = idx === 0 ? 'translateY(0)' : 'translateY(100%)';
+
+  const embed = embedUrl(post.embed_url);
+  const skinHtml = post.skin_img
+    ? `<img class="feed-skin" src="${{post.skin_img}}" onerror="this.style.display='none'">`
+    : `<div class="feed-skin" style="background:var(--panel);display:flex;align-items:center;justify-content:center;font-family:Orbitron,monospace;font-size:10px;color:var(--accent)">${{(post.display_name||'?').slice(0,2).toUpperCase()}}</div>`;
+
+  div.innerHTML = `
+    <iframe class="feed-embed" src="${{embed}}" allow="autoplay; fullscreen" allowfullscreen frameborder="0"></iframe>
+    <div class="feed-counter" id="ctr-${{idx}}">${{idx+1}} / ${{POSTS.length}}</div>
+    <div class="feed-overlay">
+      <div class="feed-name">@${{post.display_name || 'member'}}</div>
+      <div class="feed-caption">${{post.caption || ''}}</div>
+    </div>
+    <div class="feed-avatar">
+      ${{skinHtml}}
+      <button class="feed-like-btn" onclick="likePost(${{post.id}}, this)">
+        &#9829;<span id="lk-${{post.id}}">${{post.likes||0}}</span>
+      </button>
+    </div>
+  `;
+  return div;
+}}
+
+function initFeed() {{
+  if (!POSTS.length) {{
+    document.getElementById('feed-empty').style.display = 'flex';
+    return;
+  }}
+  POSTS.forEach((p, i) => {{
+    const s = buildSlide(p, i);
+    vp.appendChild(s);
+    slides.push(s);
+  }});
+}}
+
+function navigate(dir) {{
+  const next = cur + dir;
+  if (next < 0 || next >= slides.length) return;
+  slides[cur].style.transform = dir > 0 ? 'translateY(-100%)' : 'translateY(100%)';
+  slides[next].style.transform = 'translateY(0)';
+  // Pause prev iframe, play next
+  const prevIframe = slides[cur].querySelector('iframe');
+  const nextIframe = slides[next].querySelector('iframe');
+  if (prevIframe) {{ const s = prevIframe.src; prevIframe.src = ''; prevIframe.src = s.replace('autoplay=1','autoplay=0'); }}
+  cur = next;
+}}
+
+// Keyboard + touch
+document.addEventListener('keydown', e => {{
+  if (e.key === 'ArrowUp') navigate(-1);
+  if (e.key === 'ArrowDown') navigate(1);
+}});
+let touchY = 0;
+vp.addEventListener('touchstart', e => {{ touchY = e.touches[0].clientY; }}, {{passive:true}});
+vp.addEventListener('touchend', e => {{
+  const dy = touchY - e.changedTouches[0].clientY;
+  if (Math.abs(dy) > 50) navigate(dy > 0 ? 1 : -1);
+}}, {{passive:true}});
+
+async function likePost(id, btn) {{
+  btn.disabled = true;
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.color = 'var(--accent)';
+  try {{
+    const r = await fetch('/api/like/' + id, {{method:'POST'}});
+    const d = await r.json();
+    if (d.ok) document.getElementById('lk-' + id).textContent = d.likes;
+  }} catch(e) {{}}
+}}
+
+async function submitPost() {{
+  const url = document.getElementById('fp-url').value.trim();
+  const cap = document.getElementById('fp-caption').value.trim();
+  const msg = document.getElementById('fp-msg');
+  if (!url) {{ msg.textContent = 'URL required.'; return; }}
+  msg.textContent = 'Posting...';
+  try {{
+    const r = await fetch('/api/post', {{
+      method:'POST',
+      headers:{{'Content-Type':'application/json'}},
+      body: JSON.stringify({{url, caption: cap}})
+    }});
+    const d = await r.json();
+    if (d.ok) {{
+      msg.textContent = 'Posted! Reload to see it.';
+      setTimeout(() => location.reload(), 1200);
+    }} else {{
+      msg.textContent = d.error || 'Failed.';
+    }}
+  }} catch(e) {{ msg.textContent = 'Error: ' + e; }}
+}}
+
+initFeed();
+</script>
+""", user=user)
+
+
+@app.route("/channels")
+def channels():
+    user = session.get("user")
+    all_channels = get_channels(approved_only=True)
+    import json as _json
+
+    # Group by category
+    cats = {}
+    for ch in all_channels:
+        cat = ch.get("category","Other")
+        cats.setdefault(cat, []).append(ch)
+
+    channels_json = _json.dumps(all_channels)
+
+    # Build channel guide rows
+    guide_html = ""
+    for cat, chs in cats.items():
+        guide_html += '<div class="ch-cat">' + cat.upper() + '</div>'
+        for ch in chs:
+            ch_id   = str(ch["id"])
+            ch_name = ch.get("name","")
+            ch_desc = (ch.get("description",""))[:60]
+            guide_html += (
+                '<div class="ch-row" onclick="playChannel(' + ch_id + ')" id="chrow-' + ch_id + '">'
+                '<div class="ch-dot"></div>'
+                '<div class="ch-info">'
+                '<div class="ch-name">' + ch_name + '</div>'
+                '<div class="ch-desc">' + ch_desc + '</div>'
+                '</div></div>'
+            )
+
+
+    if not guide_html:
+        guide_html = '<div style="padding:20px;color:var(--dim);font-size:13px">No channels yet. Suggest one below!</div>'
+
+    return _shell("Channels", f"""
+<style>
+.ch-layout {{
+  display:grid;grid-template-columns:320px 1fr;gap:0;
+  height:calc(100vh - 124px);margin:-40px;overflow:hidden;
+}}
+.ch-guide {{
+  border-right:1px solid var(--border);overflow-y:auto;
+  background:var(--deep);padding:0;
+}}
+.ch-guide::-webkit-scrollbar {{width:4px;}}
+.ch-guide::-webkit-scrollbar-thumb {{background:var(--border);}}
+.ch-header {{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;
+  color:var(--accent);background:var(--black);position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+}}
+.ch-cat {{
+  padding:10px 20px 6px;font-family:'Orbitron',monospace;font-size:9px;
+  letter-spacing:3px;color:var(--accent2);text-transform:uppercase;
+  border-top:1px solid var(--border);margin-top:4px;
+}}
+.ch-row {{
+  display:flex;align-items:center;gap:12px;padding:12px 20px;
+  cursor:pointer;border-bottom:1px solid rgba(26,58,92,0.3);
+  transition:background 0.15s;
+}}
+.ch-row:hover {{background:rgba(0,212,255,0.04);}}
+.ch-row.active {{background:rgba(0,212,255,0.08);border-left:2px solid var(--accent);}}
+.ch-dot {{
+  width:8px;height:8px;border-radius:50%;background:var(--border);
+  flex-shrink:0;transition:background 0.2s;
+}}
+.ch-row.active .ch-dot, .ch-row:hover .ch-dot {{background:var(--accent);box-shadow:0 0 8px var(--accent);}}
+.ch-name {{font-family:'Orbitron',monospace;font-size:11px;color:#fff;letter-spacing:0.5px;}}
+.ch-desc {{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}}
+.ch-player {{
+  background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;
+}}
+.ch-iframe {{width:100%;height:100%;border:none;display:none;}}
+.ch-placeholder {{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;color:var(--dim);font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;
+}}
+.ch-placeholder-icon {{font-size:48px;opacity:0.2;}}
+.ch-now {{
+  position:absolute;top:0;left:0;right:0;
+  background:rgba(2,4,8,0.9);border-bottom:1px solid var(--border);
+  padding:8px 20px;font-family:'Orbitron',monospace;font-size:10px;
+  color:var(--accent);letter-spacing:2px;display:none;
+  align-items:center;gap:10px;
+}}
+.ch-suggest-bar {{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(6,13,24,0.95);border-top:1px solid var(--border);
+  padding:12px 20px;display:flex;gap:10px;align-items:center;
+}}
+.ch-suggest-input {{
+  flex:1;background:var(--black);border:1px solid var(--border);
+  color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;
+  padding:7px 12px;outline:none;
+}}
+.ch-suggest-input:focus {{border-color:var(--accent);}}
+</style>
+
+<div class="ch-layout">
+  <!-- GUIDE -->
+  <div class="ch-guide">
+    <div class="ch-header">
+      <span>&#9654; CHANNEL GUIDE</span>
+      <span style="color:var(--dim)">{len(all_channels)} CH</span>
+    </div>
+    {guide_html}
+  </div>
+
+  <!-- PLAYER -->
+  <div class="ch-player">
+    <div class="ch-now" id="ch-now">
+      <span style="color:var(--accent2)">&#9679; LIVE</span>
+      <span id="ch-now-name">—</span>
+    </div>
+    <div class="ch-placeholder" id="ch-placeholder">
+      <div class="ch-placeholder-icon">&#9654;</div>
+      <div>SELECT A CHANNEL</div>
+      <div style="font-size:10px;opacity:0.4">FROM THE GUIDE</div>
+    </div>
+    <iframe class="ch-iframe" id="ch-iframe"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen></iframe>
+    <div class="ch-suggest-bar">
+      <input class="ch-suggest-input" id="cs-url" placeholder="Suggest a channel — paste URL" type="url">
+      <input class="ch-suggest-input" id="cs-name" placeholder="Channel name" style="max-width:140px">
+      <select class="ch-suggest-input" id="cs-cat" style="max-width:160px;cursor:pointer">
+        <option>Fortnite Competitive</option>
+        <option>Creative / UEFN</option>
+        <option>Chill Gaming</option>
+        <option>Music</option>
+        <option>Community Picks</option>
+      </select>
+      <button class="btn btn-p" style="font-size:10px;padding:8px 16px;white-space:nowrap" onclick="suggestChannel()">SUGGEST</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CHANNELS = {channels_json};
+
+function embedUrl(raw) {{
+  try {{
+    const u = new URL(raw);
+    const h = u.hostname.replace('www.','');
+    if (h==='youtube.com'||h==='youtu.be') {{
+      let vid = u.searchParams.get('v') || u.pathname.split('/').pop();
+      return `https://www.youtube.com/embed/${{vid}}?autoplay=1`;
+    }}
+    if (h==='twitch.tv' && !u.pathname.includes('/clip/')) {{
+      return `https://player.twitch.tv/?channel=${{u.pathname.replace('/','').split('/')[0]}}&parent=${{location.hostname}}&autoplay=true`;
+    }}
+    if (h==='twitch.tv' && u.pathname.includes('/clip/')) {{
+      return `https://clips.twitch.tv/embed?clip=${{u.pathname.split('/clip/')[1]}}&parent=${{location.hostname}}`;
+    }}
+    if (h==='kick.com') return `https://player.kick.com/${{u.pathname.replace('/','')}}`;
+    if (h==='streamable.com') return `https://streamable.com/e/${{u.pathname.replace('/','')}}`;
+    return raw;
+  }} catch(e) {{ return raw; }}
+}}
+
+function playChannel(id) {{
+  const ch = CHANNELS.find(c => c.id === id);
+  if (!ch) return;
+  document.querySelectorAll('.ch-row').forEach(r => r.classList.remove('active'));
+  const row = document.getElementById('chrow-' + id);
+  if (row) row.classList.add('active');
+  const iframe = document.getElementById('ch-iframe');
+  const placeholder = document.getElementById('ch-placeholder');
+  const now = document.getElementById('ch-now');
+  iframe.src = embedUrl(ch.embed_url);
+  iframe.style.display = 'block';
+  placeholder.style.display = 'none';
+  now.style.display = 'flex';
+  document.getElementById('ch-now-name').textContent = ch.name.toUpperCase();
+}}
+
+async function suggestChannel() {{
+  const url  = document.getElementById('cs-url').value.trim();
+  const name = document.getElementById('cs-name').value.trim();
+  const cat  = document.getElementById('cs-cat').value;
+  if (!url || !name) {{ alert('Name and URL required.'); return; }}
+  const r = await fetch('/api/suggest_channel', {{
+    method:'POST',
+    headers:{{'Content-Type':'application/json'}},
+    body: JSON.stringify({{url, name, category: cat}})
+  }});
+  const d = await r.json();
+  if (d.ok) {{
+    document.getElementById('cs-url').value = '';
+    document.getElementById('cs-name').value = '';
+    alert('Suggestion submitted! Admin will review it.');
+  }}
+}}
+</script>
+""", user=user)
 
 
 @app.route("/jukebox")
@@ -1762,6 +2240,20 @@ def admin():
                 msg = "Announcement deleted."
             except Exception as e:
                 msg = f"Delete failed: {e}"
+        elif action == "approve_channel":
+            ch_id = request.form.get("ch_id","")
+            try:
+                approve_channel(int(ch_id), 1)
+                msg = "Channel approved."
+            except Exception as e:
+                msg = f"Approve failed: {e}"
+        elif action == "delete_channel":
+            ch_id = request.form.get("ch_id","")
+            try:
+                delete_channel(int(ch_id))
+                msg = "Channel deleted."
+            except Exception as e:
+                msg = f"Delete failed: {e}"
         elif action == "logout_admin":
             session.pop("admin", None)
             return redirect("/admin")
@@ -1785,6 +2277,12 @@ def admin():
     except:
         n_announcements = 0
         announcements = []
+
+    # Pending channel suggestions
+    try:
+        pending_channels = [c for c in get_channels(approved_only=False) if not c.get("approved")]
+    except:
+        pending_channels = []
 
     ann_rows = ""
     for a in (announcements or [])[:5]:
@@ -1824,7 +2322,34 @@ def admin():
     <form method="POST">
       <input type="hidden" name="action" value="logout_admin">
       <button type="submit" class="btn btn-o">Logout Admin</button>
-    </form>"""
+    </form>
+    {pending_ch_html}""".format(
+        pending_ch_html=(
+            '<div class="card" style="margin-top:24px;max-width:700px">'
+            '<h3 style="margin-bottom:16px">PENDING CHANNEL SUGGESTIONS (' + str(len(pending_channels)) + ')</h3>' +
+            ''.join(
+                '<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">'
+                '<div style="flex:1;min-width:0">'
+                '<strong style="color:#fff;font-size:13px">' + c.get("name","") + '</strong>'
+                '<span style="color:var(--dim);font-size:11px;margin-left:8px">' + c.get("category","") + '</span><br>'
+                '<span style="color:var(--dim);font-size:11px">' + c.get("embed_url","")[:60] + '</span>'
+                '</div>'
+                '<form method="POST" style="display:inline">'
+                '<input type="hidden" name="action" value="approve_channel">'
+                '<input type="hidden" name="ch_id" value="' + str(c.get("id","")) + '">'
+                '<button type="submit" class="btn btn-p" style="font-size:9px;padding:5px 12px">APPROVE</button>'
+                '</form>'
+                '<form method="POST" style="display:inline;margin-left:8px">'
+                '<input type="hidden" name="action" value="delete_channel">'
+                '<input type="hidden" name="ch_id" value="' + str(c.get("id","")) + '">'
+                '<button type="submit" class="btn btn-o" style="font-size:9px;padding:5px 12px;color:#ff4444;border-color:#ff4444">REJECT</button>'
+                '</form>'
+                '</div>'
+                for c in pending_channels
+            ) or '<p style="color:var(--dim);font-size:13px">No pending suggestions.</p>' +
+            '</div>'
+        ) if pending_channels is not None else ""
+    )
     return _shell("Admin", content, user=session.get("user"))
 
 
