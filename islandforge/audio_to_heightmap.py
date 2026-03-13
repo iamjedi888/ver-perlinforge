@@ -68,6 +68,7 @@ RECOMMENDED_HEIGHTMAP_SIZE = {
 
 import argparse, json, math, os, sys
 import numpy as np
+from verse_export_generator import integrate_with_forge  # ✅ NEW IMPORT
 from PIL import Image
 from scipy.ndimage import gaussian_filter, label
 
@@ -1200,6 +1201,8 @@ WORLD SIZE PRESETS:
                     help="World size preset name or integer cm value. Default: double_br (1,100,000 cm / 11km)")
     ap.add_argument("--world_wrap", action="store_true", default=True,
                     help="Enable edge-wrap teleporters (world_wrap_manager.verse)")
+    ap.add_argument("--theme",      type=str,   default="chapter1",
+                    help="Biome theme: chapter1, chapter2, chapter3, chapter4, arctic, desert, jungle, volcanic")
     args = ap.parse_args()
 
     # Resolve world size
@@ -1230,7 +1233,7 @@ WORLD SIZE PRESETS:
     cm_per_px = world_size_cm / args.size
     print(f"[gen] Seed={args.seed}  Size={args.size}×{args.size}  "
           f"World={world_size_cm:,}cm ({world_size_cm/100_000:.1f}km)  "
-          f"{cm_per_px:.0f}cm/px ({cm_per_px/100:.1f}m/px)  Water={args.water}")
+          f"{cm_per_px:.0f}cm/px ({cm_per_px/100:.1f}m/px)  Water={args.water}  Theme={args.theme}")
 
     w = {"sub_bass":args.sub_bass,"bass":args.bass,"midrange":args.midrange,
          "presence":args.presence,"brilliance":args.brilliance,
@@ -1248,6 +1251,17 @@ WORLD SIZE PRESETS:
                              args.water, args.world_wrap, world_size_cm)
     preview  = build_preview(height, biome, plots, args.size, road_mask)
 
+    # ✅ NEW: Generate Verse package
+    result = {
+        "heightmap_normalized": height.tolist(),
+        "biome_map": biome.tolist(),
+        "plots_found": layout["plots"],
+        "town_center": [layout["town_center"]["pixel"][0], layout["town_center"]["pixel"][1]],
+        "world_size_cm": world_size_cm,
+    }
+    result = integrate_with_forge(result, theme=args.theme, seed=args.seed)
+
+    # Save original files
     os.makedirs(args.out, exist_ok=True)
     hm16 = (height * 65535).astype(np.uint16)
     Image.fromarray(hm16).save(
@@ -1257,7 +1271,16 @@ WORLD SIZE PRESETS:
     with open(os.path.join(args.out, f"island_{args.seed}_layout.json"),"w") as f:
         json.dump(layout, f, indent=2)
 
+    # ✅ NEW: Save Verse package
+    verse_dir = os.path.join(args.out, f"island_{args.seed}_verse_package")
+    os.makedirs(verse_dir, exist_ok=True)
+    for filename, content in result["verse_package"].items():
+        filepath = os.path.join(verse_dir, filename)
+        with open(filepath, "w") as f:
+            f.write(content)
+    
     print(f"[done] {len(plots)} plots · biomes: {layout['meta']['biome_coverage_pct']}")
+    print(f"[verse] Saved {len(result['verse_package'])} files to {verse_dir}/")
     if layout["meta"].get("world_partition_warning"):
         print(f"[!] layout.json contains World Partition setup steps — check meta.world_partition_warning")
 
