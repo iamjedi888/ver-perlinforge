@@ -1,6 +1,35 @@
 # TriptokForge UEFN Complete Asset System
 ## Implementation Guide
 
+## Foundation Layout Note
+
+Current MMO world direction:
+
+- Keep all 32 player plots in one shared farm cluster near the safe town instead of spreading them across the island.
+- Place that farm cluster on a coastal landmass or ring with water around it so the social zone feels intentional and readable.
+- Treat each biome as one coherent Fortnite kit palette rather than mixing unrelated props.
+- Let Verse control placement, unlocks, and runtime logic.
+- Let the UEFN editor control which `creative_prop_asset` arrays belong to each biome kit.
+
+Current biome-kit direction:
+
+- Town center: urban / suburban / drive-in kits
+- Farm cluster: coastal / dock / settlement kits
+- Plains: western / dirt / farm kits
+- Forest: tropical / jungle kits
+- Highlands: medieval / castle kits
+- Peaks and nightmare space: sci-fi / spooky / darker endgame kits
+
+## Phase Lock Order
+
+Current system order for the extraction MMO layer:
+
+1. Lock `player_data` as the MMO schema before downstream systems expand.
+2. Lock `player_repository` and save helpers so all mutations stay atomic.
+3. Build the ability engine before deeper NPC, relic, expedition, and risk systems.
+4. Stabilize the NPC pipeline so XP, quests, drops, and risk all share one combat spine.
+5. Finish progression systems, then layer relics, expeditions, world events, and economy polish on top.
+
 ---
 
 ## 🎯 What This System Does

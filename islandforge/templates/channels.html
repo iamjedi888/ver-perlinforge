@@ -122,6 +122,7 @@ nav.ch-nav {
   letter-spacing: 2px; color: var(--blue); line-height: 1;
 }
 .hud-value.live { color: var(--teal); }
+.hud-value.replay { color: var(--jarvis); }
 .hud-np-name {
   font-family: 'Share Tech Mono', monospace; font-size: .75rem;
   letter-spacing: 1px; color: var(--text); line-height: 1;
@@ -343,6 +344,27 @@ nav.ch-nav {
 }
 .guide-search input:focus { border-color: var(--teal); box-shadow: 0 0 8px var(--teal-dim); }
 .guide-search input::placeholder { color: var(--dim); }
+.guide-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.guide-scope {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 9px;
+  border: 1px solid rgba(0,145,255,.16);
+  border-radius: 999px;
+  background: rgba(0,145,255,.06);
+  color: var(--blue);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .48rem;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
 
 .guide-scroll {
   flex: 1; overflow-y: auto; overflow-x: hidden;
@@ -403,15 +425,67 @@ nav.ch-nav {
   0%, 100% { opacity: 1; } 50% { opacity: .4; }
 }
 .ch-info { flex: 1; min-width: 0; }
+.ch-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
 .ch-name {
   display: block; font-size: .78rem; font-weight: 600; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ch-row.active .ch-name { color: var(--teal); }
+.ch-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.ch-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(58,74,96,.45);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .42rem;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--mid);
+  background: rgba(13,16,24,.88);
+}
+.ch-badge.scope {
+  color: var(--blue);
+  border-color: rgba(0,145,255,.22);
+  background: rgba(0,145,255,.08);
+}
+.ch-badge.official {
+  color: var(--teal);
+  border-color: rgba(0,229,160,.24);
+  background: rgba(0,229,160,.08);
+}
+.ch-badge.mode-replay {
+  color: var(--jarvis);
+  border-color: rgba(0,234,255,.24);
+  background: rgba(0,234,255,.08);
+}
+.ch-badge.mode-live {
+  color: var(--amber);
+  border-color: rgba(255,170,0,.26);
+  background: rgba(255,170,0,.09);
+}
+.ch-badge.mode-feed {
+  color: var(--mid);
+  border-color: rgba(58,74,96,.45);
+  background: rgba(13,16,24,.88);
+}
 .ch-desc {
   display: block; font-size: .58rem; color: var(--dim);
   font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px;
 }
 .ch-arr { font-size: .55rem; color: var(--dim); flex-shrink: 0; transition: color .15s; }
 .ch-row:hover .ch-arr, .ch-row.active .ch-arr { color: var(--teal); }
@@ -489,6 +563,16 @@ nav.ch-nav {
     width: 100%;
     margin-left: 0;
     justify-content: flex-end;
+  }
+  .ch-topline {
+    flex-direction: column;
+    gap: 5px;
+  }
+  .ch-badges {
+    justify-content: flex-start;
+  }
+  .ch-desc {
+    white-space: normal;
   }
 }
 @media (max-width: 600px) {
@@ -592,12 +676,18 @@ nav.ch-nav {
   <div class="ch-guide" id="chGuide">
     <div class="guide-header">
       <div class="guide-title">Live Channels</div>
-      <div class="guide-sub">{{ channel_total }} channels &middot; {{ category_total }} categories</div>
+      <div class="guide-sub">{{ channel_total }} channels &middot; {{ category_total }} categories &middot; {{ scope_total }} scopes</div>
     </div>
 
     <div class="guide-search">
       <input type="text" id="ch-search" placeholder="Search channels..."
              oninput="filterChannels(this.value)"/>
+    </div>
+
+    <div class="guide-scopes">
+      {% for scope in channel_scopes %}
+        <span class="guide-scope">{{ scope }}</span>
+      {% endfor %}
     </div>
 
     <div class="guide-scroll" id="guideScroll">
@@ -612,11 +702,20 @@ nav.ch-nav {
           <div class="cat-body">
             {% for channel in group.channels %}
               <div class="ch-row"
-                   onclick='loadChannel({{ channel.embed|tojson }}, {{ channel.name|tojson }}, {{ channel.source_url|tojson }}, {{ channel.playable|tojson }})'
+                   onclick='loadChannel({{ channel.embed|tojson }}, {{ channel.name|tojson }}, {{ channel.source_url|tojson }}, {{ channel.playable|tojson }}, {{ channel.mode|tojson }})'
                    data-name="{{ channel.name|e }}">
                 <span class="ch-live-dot"></span>
                 <div class="ch-info">
-                  <span class="ch-name">{{ channel.name }}</span>
+                  <div class="ch-topline">
+                    <span class="ch-name">{{ channel.name }}</span>
+                    <div class="ch-badges">
+                      <span class="ch-badge scope">{{ channel.scope }}</span>
+                      {% if channel.official %}
+                        <span class="ch-badge official">Official</span>
+                      {% endif %}
+                      <span class="ch-badge mode-{{ channel.mode }}">{{ channel.mode_label }}</span>
+                    </div>
+                  </div>
                   <span class="ch-desc">{{ channel.description }}</span>
                 </div>
                 <span class="ch-arr">&gt;</span>
@@ -719,33 +818,38 @@ function stopPlayerResize() {
   document.getElementById('chPlayer').classList.remove('resizing');
 }
 
-function loadChannel(url, name, sourceUrl, playable) {
+function loadChannel(url, name, sourceUrl, playable, mode) {
   if (!sourceUrl && !url) return;
   currentUrl = url || '';
   currentSourceUrl = sourceUrl || url || '';
 
+  const resolvedMode = mode || (playable ? 'live' : 'feed');
+  const hudStatus = document.getElementById('hudStatus');
   document.getElementById('nowPlaying').textContent = name;
-  document.getElementById('hudStatus').textContent = playable ? 'LIVE' : 'OPEN';
-  document.getElementById('hudStatus').classList.toggle('live', playable);
+  hudStatus.textContent = resolvedMode.toUpperCase();
+  hudStatus.classList.toggle('live', resolvedMode === 'live');
+  hudStatus.classList.toggle('replay', resolvedMode === 'replay');
 
   const placeholder = document.getElementById('placeholder');
   const iframe = document.getElementById('ch-iframe');
   const linkOut = document.getElementById('linkOut');
 
   let lo = sourceUrl || url;
-  const tch = (url || '').match(/channel=([^&]+)/);
-  if (tch) lo = 'https://twitch.tv/' + tch[1];
-  const yt = (url || '').match(/youtube\.com\/embed\/([^?]+)/);
-  if (yt) lo = 'https://youtu.be/' + yt[1];
   linkOut.href = lo || '#';
   linkOut.classList.toggle('external', !playable);
-  linkOut.textContent = playable ? 'Open Stream' : 'Open Feed';
+  linkOut.textContent = playable
+    ? (resolvedMode === 'replay' ? 'Open Replay' : 'Open Live')
+    : 'Open Feed';
 
   if (playable && url) {
     placeholder.style.display = 'none';
     iframe.style.display = 'block';
     iframe.src = muted ? url + (url.includes('?') ? '&' : '?') + 'muted=true' : url;
-    setPlayerMessage('Embeddable streams, replays, and curated feeds load here.');
+    setPlayerMessage(
+      resolvedMode === 'replay'
+        ? 'Embeddable replay and playlist feeds load here.'
+        : 'Embeddable live feeds and curated streams load here.'
+    );
   } else {
     iframe.style.display = 'none';
     iframe.src = '';

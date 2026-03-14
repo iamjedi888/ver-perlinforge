@@ -214,9 +214,10 @@
         <li><code>channels_page.py</code> now only normalizes embeds and groups channel data for the template.</li>
         <li>The page keeps the current holo/JARVIS visual treatment while becoming easier to maintain.</li>
         <li>The player stage now keeps a comfortable default size and supports saved drag-resizing on desktop.</li>
+        <li>Scopes now mirror the news curation model with Fortnite, Builders, Arena, Signal, Community, and Chill rails.</li>
         <li>Channel suggestions submit through <code>POST /api/suggest_channel</code> for review.</li>
       </ul>
-      <p>Current category coverage includes Fortnite, esports, gaming, news, music, business, weather, and documentary streams. Catalog refreshes should prefer direct replay, playlist, or live-feed URLs over raw channel handles.</p>
+      <p>Catalog refreshes should prefer official replay, playlist, and /videos feed URLs over weak raw handles, with the Oracle seed script acting as the source of truth for the live channel catalog.</p>
     </div>
   </section>
 
@@ -243,6 +244,7 @@
         <li><strong>Material encoding:</strong> compress rarity and element into deterministic inventory slots.</li>
         <li><strong>Persistence:</strong> keep long-term player progression compatible with seasonal updates.</li>
         <li><strong>Death penalty:</strong> preserve risk and extraction tension as a core loop.</li>
+        <li><strong>World layout:</strong> keep the 32 farm plots in one coastal social cluster near town, then push biome escalation outward.</li>
       </ul>
     </div>
   </section>
@@ -273,14 +275,17 @@
       <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Generation</strong><p>Energy and rhythm map to elevation, land variance, and biome decisions.</p></div></div>
       <div class="step"><div class="step-n">04</div><div class="step-b"><strong>Export</strong><p>Generated PNGs and metadata are stored in OCI and tracked in Oracle.</p></div></div>
     </div>
+    <div class="prose">
+      <p>Current target layout keeps all 32 farm plots in one shared coastal hub near town, with coherent Fortnite prefab kits assigned biome by biome instead of random prop mixing.</p>
+    </div>
   </section>
 
   <section class="doc" id="roadmap">
     <div class="dh"><div class="dh-num">12</div><div><h2>Roadmap <span>Now / Next / Later</span></h2><p>Short-term execution order for site polish, platform readiness, and deeper game systems.</p></div></div>
     <div class="fg">
-      <div class="fc done"><div class="fc-top"><span class="fc-name">Now</span><span class="fc-st st-done">ACTIVE</span></div><div class="fc-desc">Finish layout consolidation, remove redundant page chrome, and keep deployment predictable from GitHub main to Oracle.</div></div>
-      <div class="fc wip"><div class="fc-top"><span class="fc-name">Next</span><span class="fc-st st-todo">QUEUE</span></div><div class="fc-desc">Epic production approval, WhitePages expansion, dashboard identity polish, and shared base layout for more pages.</div></div>
-      <div class="fc wip"><div class="fc-top"><span class="fc-name">Later</span><span class="fc-st st-todo">R&amp;D</span></div><div class="fc-desc">AI-assisted player tools, richer creator workflows, roadmap and changelog feeds, and deeper Tarkov-Lite extraction systems.</div></div>
+      <div class="fc done"><div class="fc-top"><span class="fc-name">Now</span><span class="fc-st st-done">ACTIVE</span></div><div class="fc-desc">Lock the MMO backbone: finalize <code>player_data</code>, keep <code>player_repository</code> atomic, and keep deployment predictable from GitHub main to Oracle.</div></div>
+      <div class="fc wip"><div class="fc-top"><span class="fc-name">Next</span><span class="fc-st st-todo">QUEUE</span></div><div class="fc-desc">Build the combat spine with abilities, NPC routing, XP, and quest hooks while continuing WhitePages expansion and Epic production readiness.</div></div>
+      <div class="fc wip"><div class="fc-top"><span class="fc-name">Later</span><span class="fc-st st-todo">R&amp;D</span></div><div class="fc-desc">Layer relics, expeditions, world events, richer creator tooling, and deeper extraction MMO systems onto the locked backbone.</div></div>
     </div>
   </section>
 
