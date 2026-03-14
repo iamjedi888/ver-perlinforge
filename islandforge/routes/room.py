@@ -68,3 +68,4 @@ def api_set_room_theme():
     if ROOM_DB:
         set_room_theme(user.get("account_id", ""), theme)
     return jsonify({"ok": True, "theme": theme})
+
