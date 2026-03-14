@@ -911,6 +911,132 @@ def suggest_channel(name, category, embed_url, description, suggested_by):
         print(f"[oracle_db] suggest_channel error: {e}")
         return False
 
+def _next_channel_sort_order(cur, category):
+    cur.execute(
+        "SELECT NVL(MAX(sort_order), -1) + 1 FROM channels WHERE category = :category",
+        {"category": category},
+    )
+    row = cur.fetchone()
+    return int(row[0] or 0) if row else 0
+
+def create_channel(name, category, embed_url, description="", suggested_by="admin", approved=1, sort_order=None):
+    """Create a channel entry."""
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        if sort_order is None:
+            sort_order = _next_channel_sort_order(cur, category)
+        cur.execute(
+            """
+            INSERT INTO channels (name, category, embed_url, description, suggested_by, approved, sort_order)
+            VALUES (:name, :category, :embed_url, :description, :suggested_by, :approved, :sort_order)
+            """,
+            {
+                "name": name,
+                "category": category,
+                "embed_url": embed_url,
+                "description": description,
+                "suggested_by": suggested_by,
+                "approved": approved,
+                "sort_order": sort_order,
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close(); conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] create_channel error: {e}")
+        return False
+
+def update_channel(channel_id, name, category, embed_url, description="", sort_order=None, approved=None):
+    """Update an existing channel entry."""
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        if sort_order is None:
+            cur.execute("SELECT sort_order FROM channels WHERE id = :id", {"id": channel_id})
+            row = cur.fetchone()
+            sort_order = int(row[0] or 0) if row else 0
+        if approved is None:
+            cur.execute(
+                """
+                UPDATE channels
+                   SET name = :name,
+                       category = :category,
+                       embed_url = :embed_url,
+                       description = :description,
+                       sort_order = :sort_order
+                 WHERE id = :id
+                """,
+                {
+                    "id": channel_id,
+                    "name": name,
+                    "category": category,
+                    "embed_url": embed_url,
+                    "description": description,
+                    "sort_order": sort_order,
+                },
+            )
+        else:
+            cur.execute(
+                """
+                UPDATE channels
+                   SET name = :name,
+                       category = :category,
+                       embed_url = :embed_url,
+                       description = :description,
+                       sort_order = :sort_order,
+                       approved = :approved
+                 WHERE id = :id
+                """,
+                {
+                    "id": channel_id,
+                    "name": name,
+                    "category": category,
+                    "embed_url": embed_url,
+                    "description": description,
+                    "sort_order": sort_order,
+                    "approved": approved,
+                },
+            )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close(); conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] update_channel error: {e}")
+        return False
+
+def get_channel(channel_id):
+    """Return a single channel by id."""
+    if not db_available():
+        return None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, name, category, embed_url, description, suggested_by, sort_order, approved
+              FROM channels
+             WHERE id = :id
+            """,
+            {"id": channel_id},
+        )
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if not row:
+            return None
+        cols = ["id", "name", "category", "embed_url", "description", "suggested_by", "sort_order", "approved"]
+        return dict(zip(cols, row))
+    except Exception as e:
+        print(f"[oracle_db] get_channel error: {e}")
+        return None
+
 def get_channels(approved_only=True):
     """Return channels list."""
     if not db_available():

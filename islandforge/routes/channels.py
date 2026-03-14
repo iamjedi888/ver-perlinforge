@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, jsonify, render_template, request, session
 from oracle_db import get_channels, suggest_channel as db_suggest
 from channels_page import build_channels_context
 
@@ -14,7 +14,21 @@ def suggest_channel_route():
     name = data.get("name","").strip()
     embed_url = data.get("embed_url","").strip()
     category = data.get("category","Other").strip()
+    description = data.get("description", "").strip()
     if not name or not embed_url:
         return jsonify({"error":"required"}), 400
-    db_suggest(name=name, category=category, embed_url=embed_url, description="", suggested_by="anonymous")
+    suggested_by = (
+        session.get("display_name")
+        or session.get("epic_id")
+        or "anonymous"
+    )
+    ok = db_suggest(
+        name=name,
+        category=category,
+        embed_url=embed_url,
+        description=description,
+        suggested_by=suggested_by,
+    )
+    if not ok:
+        return jsonify({"error": "save_failed"}), 500
     return jsonify({"ok": True})

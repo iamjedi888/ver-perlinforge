@@ -1,13 +1,76 @@
-from flask import Blueprint, render_template, request, redirect, session, jsonify, send_from_directory, Response
+from flask import (
+    Blueprint,
+    Response,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 import os
-from oracle_db import get_all_members, get_recent_islands, get_audio_tracks, get_announcements, get_posts, post_announcement, db_available, upsert_member, status
+from oracle_db import (
+    create_channel,
+    delete_channel,
+    get_all_members,
+    get_announcements,
+    get_audio_tracks,
+    get_channel,
+    get_channels,
+    get_posts,
+    get_recent_islands,
+    get_wp_tracks,
+    post_announcement,
+    status,
+    update_channel,
+    approve_channel,
+)
 
 platform_bp = Blueprint("platform", __name__)
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "triptokadmin2026")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+COMMON_CHANNEL_CATEGORIES = [
+    "Fortnite Competitive",
+    "Game Developers",
+    "Esports",
+    "Creative / UEFN",
+    "Gaming News",
+    "Community Picks",
+    "Chill Gaming",
+]
 
 def serve_index():
     return send_from_directory(ROOT, "index.html")
+
+
+def _is_checked(value):
+    return str(value).lower() in {"1", "true", "on", "yes"}
+
+
+def _to_int(value, default=None):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _channel_payload(form):
+    return {
+        "channel_id": _to_int(form.get("channel_id")),
+        "name": (form.get("name") or "").strip()[:128],
+        "category": ((form.get("category") or "").strip()[:64] or "Other"),
+        "embed_url": (form.get("embed_url") or "").strip()[:1024],
+        "description": (form.get("description") or "").strip()[:512],
+        "sort_order": _to_int((form.get("sort_order") or "").strip(), None),
+        "approved": 1 if _is_checked(form.get("approved")) else 0,
+    }
+
+
+def _admin_redirect(anchor="overview", edit_channel=None):
+    target = url_for("platform.admin", edit_channel=edit_channel) if edit_channel else url_for("platform.admin")
+    return redirect(f"{target}#{anchor}")
 
 @platform_bp.route("/")
 @platform_bp.route("/home")
@@ -62,19 +125,150 @@ def privacy():
 
 @platform_bp.route("/admin", methods=["GET","POST"])
 def admin():
-    authed = session.get("admin_authed")
+    authed = bool(session.get("admin_authed"))
     if request.method == "POST":
-        if request.form.get("action") == "login":
+        action = request.form.get("action")
+        if action == "login":
             if request.form.get("password") == ADMIN_PASSWORD:
                 session["admin_authed"] = True
-                authed = True
+                flash("Admin session opened.", "success")
+                return _admin_redirect("overview")
             else:
-                return Response("Wrong password", 403)
-        if request.form.get("action") == "announce" and authed:
-            post_announcement(title=request.form.get("title",""), body=request.form.get("body",""), pinned=bool(request.form.get("pinned")))
+                flash("Wrong admin password.", "error")
+                return _admin_redirect("login")
+        if action == "logout":
+            session.pop("admin_authed", None)
+            flash("Admin session closed.", "success")
+            return _admin_redirect("login")
+        if not authed:
+            return Response("Unauthorized", 403)
+
+        if action == "announce":
+            title = (request.form.get("title") or "").strip()
+            body = (request.form.get("body") or "").strip()
+            if not title:
+                flash("Announcement title is required.", "error")
+            else:
+                post_announcement(title=title, body=body, pinned=bool(request.form.get("pinned")))
+                flash("Announcement posted.", "success")
+            return _admin_redirect("announcements")
+
+        if action == "channel_create":
+            payload = _channel_payload(request.form)
+            if not payload["name"] or not payload["embed_url"]:
+                flash("Channel name and source URL are required.", "error")
+                return _admin_redirect("channel-editor")
+            created = create_channel(
+                name=payload["name"],
+                category=payload["category"],
+                embed_url=payload["embed_url"],
+                description=payload["description"],
+                suggested_by=session.get("display_name") or "admin",
+                approved=payload["approved"],
+                sort_order=payload["sort_order"],
+            )
+            if not created:
+                flash("Channel creation failed.", "error")
+                return _admin_redirect("channel-editor")
+            flash("Channel created.", "success")
+            return _admin_redirect("catalog")
+
+        if action == "channel_update":
+            payload = _channel_payload(request.form)
+            if not payload["channel_id"]:
+                flash("Channel id missing for update.", "error")
+                return _admin_redirect("channel-editor")
+            if not payload["name"] or not payload["embed_url"]:
+                flash("Channel name and source URL are required.", "error")
+                return _admin_redirect("channel-editor", payload["channel_id"])
+            ok = update_channel(
+                channel_id=payload["channel_id"],
+                name=payload["name"],
+                category=payload["category"],
+                embed_url=payload["embed_url"],
+                description=payload["description"],
+                sort_order=payload["sort_order"],
+                approved=payload["approved"],
+            )
+            if not ok:
+                flash("Channel update failed.", "error")
+                return _admin_redirect("channel-editor", payload["channel_id"])
+            flash("Channel updated.", "success")
+            return _admin_redirect("catalog")
+
+        channel_id = _to_int(request.form.get("channel_id"))
+        if action == "channel_approve":
+            if channel_id and approve_channel(channel_id, 1):
+                flash("Submission approved.", "success")
+            else:
+                flash("Approval failed.", "error")
+            return _admin_redirect("queue")
+
+        if action == "channel_unpublish":
+            if channel_id and approve_channel(channel_id, 0):
+                flash("Channel moved back to pending.", "success")
+            else:
+                flash("Unable to move channel back to pending.", "error")
+            return _admin_redirect("catalog")
+
+        if action in {"channel_delete", "channel_reject"}:
+            if channel_id and delete_channel(channel_id):
+                flash("Submission removed." if action == "channel_reject" else "Channel deleted.", "success")
+            else:
+                flash("Delete failed.", "error")
+            return _admin_redirect("queue" if action == "channel_reject" else "catalog")
+
+        flash("Unknown admin action.", "error")
+        return _admin_redirect("overview")
+
     t = os.path.join(ROOT, "templates", "admin.html")
     if os.path.exists(t):
-        return render_template("admin.html", authed=authed, members=get_all_members() if authed else [], announcements=get_announcements() if authed else [])
+        members = (get_all_members() or []) if authed else []
+        announcements = (get_announcements() or []) if authed else []
+        audio_tracks = (get_audio_tracks() or []) if authed else []
+        islands = (get_recent_islands(limit=999) or []) if authed else []
+        wp_tracks = (get_wp_tracks() or []) if authed else []
+        channels = (get_channels(approved_only=False) or []) if authed else []
+        approved_channels = []
+        pending_channels = []
+        for channel in channels:
+            if channel.get("approved"):
+                approved_channels.append(channel)
+            else:
+                pending_channels.append(channel)
+        approved_channels.sort(key=lambda item: ((item.get("category") or ""), int(item.get("sort_order") or 0), item.get("name") or ""))
+        pending_channels.sort(key=lambda item: (item.get("category") or "", item.get("name") or "", -(item.get("id") or 0)))
+
+        edit_channel_id = _to_int(request.args.get("edit_channel"))
+        edit_channel = get_channel(edit_channel_id) if authed and edit_channel_id else None
+        category_values = set(COMMON_CHANNEL_CATEGORIES)
+        category_values.update(
+            channel.get("category") or "Other"
+            for channel in channels
+            if channel.get("category")
+        )
+        admin_stats = {
+            "approved_channels": len(approved_channels),
+            "pending_channels": len(pending_channels),
+            "channel_categories": len({channel.get("category") or "Other" for channel in channels}),
+            "members": len(members or []),
+            "announcements": len(announcements or []),
+            "whitepages_tracks": len(wp_tracks or []),
+            "islands": len(islands or []),
+            "audio": len(audio_tracks or []),
+        }
+        return render_template(
+            "admin.html",
+            authed=authed,
+            members=members,
+            announcements=announcements,
+            approved_channels=approved_channels,
+            pending_channels=pending_channels,
+            edit_channel=edit_channel,
+            channel_categories=sorted(category_values),
+            admin_stats=admin_stats,
+            system_status=status() if authed else {},
+        )
     return serve_index()
 
 @platform_bp.route("/health")
