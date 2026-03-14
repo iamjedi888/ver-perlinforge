@@ -102,8 +102,8 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32
     <a href="/privacy">Privacy</a>
   </div>
   <div class="nav-r">
-    {% if user %}
-      <a href="/dashboard" class="btn btn-p" style="padding:7px 18px">Dashboard →</a>
+    {% if portal_logged_in %}
+      <a href="{{ portal_exit_href }}" class="btn btn-p" style="padding:7px 18px">{{ portal_exit_label }} →</a>
     {% else %}
       <a href="/auth/epic" class="btn btn-p" style="padding:7px 18px">⚡ Connect Epic</a>
     {% endif %}
@@ -116,8 +116,8 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32
     <h1><span class="l1">FORGE YOUR</span><span class="l2">LEGACY</span></h1>
     <p>Connect your Epic Games account. Build your member profile. Access tools built for serious Fortnite players and creators.</p>
     <div class="hero-btns">
-      {% if user %}
-        <a href="/dashboard" class="btn btn-p">Go to Dashboard →</a>
+      {% if portal_logged_in %}
+        <a href="{{ portal_exit_href }}" class="btn btn-p">Go to {{ portal_exit_label }} →</a>
       {% else %}
         <a href="/auth/epic" class="btn btn-p">⚡ Connect Epic Account</a>
       {% endif %}
@@ -164,7 +164,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32
     <a href="/channels" class="plink"><span class="plink-icon">▶</span>Live Channels</a>
     <a href="/gallery" class="plink"><span class="plink-icon">⬡</span>Gallery</a>
     <a href="/community" class="plink"><span class="plink-icon">◉</span>Community</a>
-    <a href="/dashboard" class="plink"><span class="plink-icon">◐</span>Dashboard</a>
+    <a href="{{ portal_exit_href }}" class="plink"><span class="plink-icon">◐</span>{{ portal_exit_label }}</a>
     <a href="/whitepages" class="plink"><span class="plink-icon">◇</span>Dev Docs</a>
     <a href="/admin" class="plink"><span class="plink-icon">⚙</span>Admin</a>
   </div>

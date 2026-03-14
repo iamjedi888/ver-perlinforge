@@ -5,7 +5,7 @@ All route logic lives in routes/ as Blueprints.
 
 import os
 
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, jsonify, render_template, send_from_directory, session
 
 try:
     from dotenv import load_dotenv
@@ -18,6 +18,16 @@ if load_dotenv is not None:
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
+
+
+@app.context_processor
+def inject_portal_nav():
+    logged_in = bool(session.get("user") or session.get("epic_id"))
+    return {
+        "portal_logged_in": logged_in,
+        "portal_exit_href": "/dashboard" if logged_in else "/home",
+        "portal_exit_label": "Dashboard" if logged_in else "Home",
+    }
 
 # Import all blueprints
 from routes.platform import platform_bp

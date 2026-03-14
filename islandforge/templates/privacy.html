@@ -13,6 +13,9 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;mi
 nav{position:fixed;top:0;left:0;right:0;height:58px;display:flex;align-items:center;padding:0 40px;background:rgba(7,9,13,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);z-index:200}
 .nav-logo{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:var(--teal);letter-spacing:3px;text-decoration:none}
 .nav-logo em{color:var(--blue);font-style:normal}
+.nav-r{margin-left:auto}
+.nav-r a{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--mid);text-decoration:none;padding:6px 10px;border:1px solid rgba(0,145,255,.2);border-radius:3px;background:rgba(0,145,255,.07)}
+.nav-r a:hover{color:#fff;border-color:var(--blue);background:rgba(0,145,255,.14)}
 .wrap{max-width:700px;margin:0 auto;padding:40px 24px}
 .box{background:var(--panel);border:1px solid var(--border);padding:32px;margin-bottom:16px}
 h1{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:700;letter-spacing:3px;color:var(--teal);margin-bottom:20px}
@@ -23,7 +26,7 @@ a{color:var(--teal)}
 </style>
 </head>
 <body>
-<nav><a href="/home" class="nav-logo">Triptok<em>Forge</em></a></nav>
+<nav><a href="/home" class="nav-logo">Triptok<em>Forge</em></a><div class="nav-r"><a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a></div></nav>
 <div class="wrap">
   <div class="box">
     <h1>Privacy Policy</h1>
