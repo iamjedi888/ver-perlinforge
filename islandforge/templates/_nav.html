@@ -12,7 +12,6 @@
         </div>
         <div class="nav-right">
             <a href="{{ portal_exit_href }}" class="nav-link nav-link--accent">{{ portal_exit_label }}</a>
-            <a href="/whitepages" class="nav-link nav-link--vault">Whitepages</a>
         </div>
     </div>
 </nav>
@@ -138,24 +137,8 @@
     box-shadow: 0 0 12px rgba(0,145,255,0.2);
 }
 
-/* Whitepages vault link */
-.nav-link--vault {
-    color: #00ff41;
-    border-color: rgba(0,255,65,0.15);
-    background: rgba(0,255,65,0.04);
-    font-family: 'VT323', 'Share Tech Mono', monospace;
-    font-size: 0.72rem;
-}
-
-.nav-link--vault:hover {
-    color: #00ff41;
-    border-color: rgba(0,255,65,0.4);
-    background: rgba(0,255,65,0.08);
-    box-shadow: 0 0 10px rgba(0,255,65,0.15);
-}
-
 /* Auto-highlight current page */
-.site-nav .nav-link[href]:not(.nav-link--accent):not(.nav-link--vault) {
+.site-nav .nav-link[href]:not(.nav-link--accent) {
     position: relative;
 }
 

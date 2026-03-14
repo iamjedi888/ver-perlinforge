@@ -146,7 +146,7 @@ def build_channels_page(
 
 /* ── Reset ───────────────────────────────────────────────────── */
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-html, body {{ height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; }}
+html, body {{ min-height: 100%; overflow-x: hidden; background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; }}
 
 /* ── Nav ─────────────────────────────────────────────────────── */
 nav.ch-nav {{
@@ -519,15 +519,153 @@ nav.ch-nav {{
 }}
 
 /* ── Responsive ──────────────────────────────────────────────── */
+/* Footer */
+.global-footer {{
+  position: relative;
+  border-top: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(7,9,13,.96), rgba(4,6,10,.99)),
+    radial-gradient(circle at top right, rgba(0,145,255,.08), transparent 30%);
+}}
+.global-footer__shell {{
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 30px 28px 20px;
+}}
+.global-footer__mast {{
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 420px);
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}}
+.global-footer__logo {{
+  display: inline-block;
+  margin-bottom: 10px;
+  font-family: 'Orbitron', monospace;
+  font-size: .96rem;
+  font-weight: 900;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--teal);
+  text-decoration: none;
+}}
+.global-footer__logo em {{ color: var(--blue); font-style: normal; }}
+.global-footer__summary {{
+  max-width: 640px;
+  color: var(--mid);
+  font-size: .98rem;
+  line-height: 1.7;
+}}
+.global-footer__whitepages {{
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 18px 20px;
+  border: 1px solid rgba(0,229,160,.22);
+  background:
+    linear-gradient(135deg, rgba(0,229,160,.08), rgba(0,145,255,.04)),
+    rgba(13,16,24,.9);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color .18s, transform .18s, box-shadow .18s;
+}}
+.global-footer__whitepages:hover {{
+  border-color: rgba(0,229,160,.45);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0,229,160,.08);
+}}
+.global-footer__eyebrow {{
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .54rem;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--teal);
+}}
+.global-footer__whitepages strong {{
+  font-family: 'Orbitron', monospace;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}}
+.global-footer__whitepages span:last-child {{
+  color: var(--mid);
+  font-size: .94rem;
+  line-height: 1.55;
+}}
+.global-footer__grid {{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(26,37,53,.85);
+}}
+.global-footer__col h3 {{
+  margin-bottom: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .56rem;
+  font-weight: 400;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--dim);
+}}
+.global-footer__col ul {{
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}}
+.global-footer__col a {{
+  color: var(--text);
+  text-decoration: none;
+  font-size: .96rem;
+  line-height: 1.4;
+  transition: color .15s, transform .15s;
+}}
+.global-footer__col a:hover {{
+  color: var(--teal);
+  transform: translateX(2px);
+}}
+.global-footer__bar {{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(26,37,53,.7);
+  color: var(--dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .56rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}}
+.global-footer__bar-links {{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: flex-end;
+}}
+.global-footer__bar-links a {{
+  color: inherit;
+  text-decoration: none;
+}}
+.global-footer__bar-links a:hover {{ color: var(--teal); }}
+
 @media (max-width: 900px) {{
   .ch-guide {{ width: 240px; }}
   .ch-nav-links {{ display: none; }}
   nav.ch-nav {{ padding: 0 14px; }}
   .hud-segment.side {{ display: none; }}
+  .global-footer__mast,
+  .global-footer__grid {{ grid-template-columns: 1fr; }}
+  .global-footer__bar {{ display: grid; justify-content: stretch; }}
+  .global-footer__bar-links {{ justify-content: flex-start; }}
 }}
 @media (max-width: 600px) {{
   .ch-guide {{ display: none; }}
   .ch-shell.theater .ch-guide {{ display: none; }}
+  .global-footer__shell {{ padding: 26px 16px 18px; }}
 }}
 </style>
 </head>
@@ -547,7 +685,6 @@ nav.ch-nav {{
   </div>
   <div class="nav-right">
     <a href="{portal_exit_href}">{portal_exit_label}</a>
-    <a href="/whitepages">Whitepages</a>
   </div>
 </nav>
 
@@ -652,6 +789,64 @@ nav.ch-nav {{
   </div><!-- /ch-guide -->
 
 </div><!-- /ch-shell -->
+
+<footer class="global-footer">
+  <div class="global-footer__shell">
+    <div class="global-footer__mast">
+      <div>
+        <a href="/home" class="global-footer__logo">Triptok<em>Forge</em></a>
+        <p class="global-footer__summary">
+          Competitive Fortnite infrastructure for players, creators, and launch ops.
+          Whitepages lives here in the footer so the channel nav stays focused on viewing and discovery.
+        </p>
+      </div>
+      <a href="/whitepages" class="global-footer__whitepages">
+        <span class="global-footer__eyebrow">Whitepages</span>
+        <strong>Open the builder vault</strong>
+        <span>Roadmaps, deployment notes, backend references, and internal launch prep.</span>
+      </a>
+    </div>
+
+    <div class="global-footer__grid">
+      <div class="global-footer__col">
+        <h3>Company</h3>
+        <ul>
+          <li><a href="/home">Home</a></li>
+          <li><a href="/community">Community</a></li>
+          <li><a href="/news">News</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+        </ul>
+      </div>
+      <div class="global-footer__col">
+        <h3>Platform</h3>
+        <ul>
+          <li><a href="/forge">Island Forge</a></li>
+          <li><a href="/channels">Live Channels</a></li>
+          <li><a href="/feed">Feed</a></li>
+          <li><a href="/leaderboard">Leaderboard</a></li>
+        </ul>
+      </div>
+      <div class="global-footer__col">
+        <h3>Access</h3>
+        <ul>
+          <li><a href="{portal_exit_href}">{portal_exit_label}</a></li>
+          <li><a href="/room">My Room</a></li>
+          <li><a href="/auth/epic">Connect Epic</a></li>
+          <li><a href="/cardgame">Roadmap</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="global-footer__bar">
+      <span>Copyright &copy; 2026 TriptokForge</span>
+      <div class="global-footer__bar-links">
+        <a href="/privacy">Privacy policy</a>
+        <a href="/news">Platform updates</a>
+        <a href="{portal_exit_href}">{portal_exit_label}</a>
+      </div>
+    </div>
+  </div>
+</footer>
 
 <script>
 let currentUrl = '', muted = false, theater = false, sidebarOpen = true;

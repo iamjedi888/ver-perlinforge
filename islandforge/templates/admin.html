@@ -113,7 +113,6 @@ tr:hover td{background:rgba(0,255,65,.02)}
   <span class="nav-sep">/</span>
   <span class="nav-crumb">ADMIN</span>
   <div class="nav-links">
-    <a href="/whitepages" class="nav-a">Whitepages</a>
     <a href="{{ portal_exit_href }}" class="nav-a">{{ portal_exit_label }}</a>
   </div>
 </nav>
@@ -336,5 +335,6 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
+{% include "_site_footer.html" %}
 </body>
 </html>

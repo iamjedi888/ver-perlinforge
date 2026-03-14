@@ -1,0 +1,269 @@
+<style>
+.global-footer {
+  position: relative;
+  z-index: 10;
+  margin-top: 64px;
+  border-top: 1px solid rgba(36, 48, 64, 0.9);
+  background:
+    linear-gradient(180deg, rgba(7, 9, 13, 0.94), rgba(4, 6, 10, 0.98)),
+    radial-gradient(circle at top right, rgba(0, 145, 255, 0.08), transparent 30%);
+  backdrop-filter: blur(18px);
+}
+
+.global-footer__shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 34px 28px 22px;
+}
+
+.global-footer__mast {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 420px);
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 28px;
+}
+
+.global-footer__brand {
+  min-width: 0;
+}
+
+.global-footer__logo {
+  display: inline-block;
+  margin-bottom: 12px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.96rem;
+  font-weight: 900;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #00e5a0;
+  text-decoration: none;
+}
+
+.global-footer__logo em {
+  color: #0091ff;
+  font-style: normal;
+}
+
+.global-footer__summary {
+  max-width: 640px;
+  color: #7a8aa8;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+.global-footer__whitepages {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 18px 20px;
+  border: 1px solid rgba(0, 229, 160, 0.22);
+  background:
+    linear-gradient(135deg, rgba(0, 229, 160, 0.08), rgba(0, 145, 255, 0.04)),
+    rgba(13, 16, 24, 0.9);
+  color: #c8d8e8;
+  text-decoration: none;
+  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+
+.global-footer__whitepages:hover {
+  border-color: rgba(0, 229, 160, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 229, 160, 0.08);
+}
+
+.global-footer__eyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.54rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #00e5a0;
+}
+
+.global-footer__whitepages strong {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.global-footer__whitepages span:last-child {
+  color: #7a8aa8;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.global-footer__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(26, 37, 53, 0.85);
+}
+
+.global-footer__col h3 {
+  margin-bottom: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.56rem;
+  font-weight: 400;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #4a5a70;
+}
+
+.global-footer__col ul {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  padding: 0;
+}
+
+.global-footer__col a {
+  color: #c8d8e8;
+  text-decoration: none;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.96rem;
+  line-height: 1.4;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.global-footer__col a:hover {
+  color: #00e5a0;
+  transform: translateX(2px);
+}
+
+.global-footer__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(26, 37, 53, 0.7);
+  color: #4a5a70;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.global-footer__bar-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: flex-end;
+}
+
+.global-footer__bar-links a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.global-footer__bar-links a:hover {
+  color: #00e5a0;
+}
+
+@media (max-width: 900px) {
+  .global-footer__mast,
+  .global-footer__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .global-footer__bar {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .global-footer__bar-links {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .global-footer {
+    margin-top: 48px;
+  }
+
+  .global-footer__shell {
+    padding: 28px 16px 18px;
+  }
+
+  .global-footer__logo {
+    font-size: 0.82rem;
+    letter-spacing: 0.2em;
+  }
+
+  .global-footer__summary,
+  .global-footer__col a,
+  .global-footer__whitepages span:last-child {
+    font-size: 0.9rem;
+  }
+}
+</style>
+
+<footer class="global-footer">
+  <div class="global-footer__shell">
+    <div class="global-footer__mast">
+      <div class="global-footer__brand">
+        <a href="/home" class="global-footer__logo">Triptok<em>Forge</em></a>
+        <p class="global-footer__summary">
+          Competitive Fortnite infrastructure for players, creators, and launch ops.
+          Whitepages stays here in the footer so the top navigation stays focused on the product surface.
+        </p>
+      </div>
+      <a href="/whitepages" class="global-footer__whitepages">
+        <span class="global-footer__eyebrow">Whitepages</span>
+        <strong>Open the builder vault</strong>
+        <span>Roadmaps, deployment notes, backend references, and internal launch prep.</span>
+      </a>
+    </div>
+
+    <div class="global-footer__grid">
+      <div class="global-footer__col">
+        <h3>Company</h3>
+        <ul>
+          <li><a href="/home">Home</a></li>
+          <li><a href="/community">Community</a></li>
+          <li><a href="/news">News</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+        </ul>
+      </div>
+      <div class="global-footer__col">
+        <h3>Platform</h3>
+        <ul>
+          <li><a href="/forge">Island Forge</a></li>
+          <li><a href="/channels">Live Channels</a></li>
+          <li><a href="/feed">Feed</a></li>
+          <li><a href="/leaderboard">Leaderboard</a></li>
+        </ul>
+      </div>
+      <div class="global-footer__col">
+        <h3>Access</h3>
+        <ul>
+          <li><a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a></li>
+          {% if portal_logged_in %}
+            <li><a href="/room">My Room</a></li>
+            <li><a href="/auth/logout">Logout</a></li>
+          {% else %}
+            <li><a href="/auth/epic">Connect Epic</a></li>
+            <li><a href="/cardgame">Card Game</a></li>
+          {% endif %}
+          <li><a href="/cardgame">Roadmap</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="global-footer__bar">
+      <span>Copyright &copy; 2026 TriptokForge</span>
+      <div class="global-footer__bar-links">
+        <a href="/privacy">Privacy policy</a>
+        <a href="/news">Platform updates</a>
+        <a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a>
+      </div>
+    </div>
+  </div>
+</footer>

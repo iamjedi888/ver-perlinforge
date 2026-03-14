@@ -452,7 +452,7 @@ body::before {
         &#9642; Quick Access
       </div>
       <div style="display:flex;flex-direction:column;gap:7px;">
-        {% set links = [('/channels','TV Channels'),('/forge','Island Forge'),('/leaderboard','Leaderboard'),('/cardgame','Card Game'),('/whitepages','Whitepages'),(portal_exit_href, portal_exit_label)] %}
+        {% set links = [('/channels','TV Channels'),('/forge','Island Forge'),('/leaderboard','Leaderboard'),('/cardgame','Card Game'),('/news','Newsroom'),(portal_exit_href, portal_exit_label)] %}
         {% for href, label in links %}
           <a href="{{ href }}" style="display:block;font-family:'Share Tech Mono',monospace;
              font-size:.6rem;letter-spacing:2px;text-transform:uppercase;
@@ -570,5 +570,6 @@ function esc(s) {
 
 loadFeed();
 </script>
+{% include "_site_footer.html" %}
 </body>
 </html>
