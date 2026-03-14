@@ -213,9 +213,10 @@
         <li>The channels page now renders from <code>templates/channels.html</code> instead of building HTML inside Python.</li>
         <li><code>channels_page.py</code> now only normalizes embeds and groups channel data for the template.</li>
         <li>The page keeps the current holo/JARVIS visual treatment while becoming easier to maintain.</li>
+        <li>The player stage now keeps a comfortable default size and supports saved drag-resizing on desktop.</li>
         <li>Channel suggestions submit through <code>POST /api/suggest_channel</code> for review.</li>
       </ul>
-      <p>Current category coverage includes Fortnite, esports, gaming, news, music, business, weather, and documentary streams.</p>
+      <p>Current category coverage includes Fortnite, esports, gaming, news, music, business, weather, and documentary streams. Catalog refreshes should prefer direct replay, playlist, or live-feed URLs over raw channel handles.</p>
     </div>
   </section>
 

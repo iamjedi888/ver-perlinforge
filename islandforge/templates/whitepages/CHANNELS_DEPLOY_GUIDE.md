@@ -1,264 +1,73 @@
-# TriptokForge TV Guide - Deployment Guide
+# TriptokForge Channels Guide
 
-## What We Built
+## Current Architecture
 
-✅ **Backend** (channels_backend.py):
-   - Channel database (Twitch/YouTube support)
-   - EPG (Electronic Program Guide) generator
-   - Schedule blocks (like TV programming)
-   - Live status tracking
-   - REST API for all channel data
+- Route: `routes/channels.py`
+- View-model helpers: `channels_page.py`
+- Template: `templates/channels.html`
+- Data source: Oracle `channels` table via `oracle_db.get_channels()`
+- Seed and refresh script: `seed_channels.py`
 
-✅ **Frontend** (channels_page.html):
-   - TV Guide grid interface
-   - Live channel switcher
-   - Embedded video player (Twitch/YouTube)
-   - Program schedules with time blocks
-   - Responsive design
+The channels page is now a Jinja template with a bounded player stage, footer consistency, and a saved resizable player width on desktop.
 
----
+## Feed Rules
 
-## Quick Deploy (3 Steps)
+For the page to play reliably inside the embedded player, `embed_url` should be one of:
 
-### Step 1: Add Backend Routes
+- Twitch channel or VOD URLs
+- YouTube watch URLs
+- YouTube playlist URLs
+- Kick channel URLs
+- Streamable URLs
 
-Copy `channels_backend.py` to: `islandforge/routes/channels.py`
+Raw YouTube channel handles, search result URLs, and other non-embed pages should be treated as temporary catalog items. The page can open them externally, but they are not the long-term target.
 
-In your `server.py`, add:
-```python
-from routes.channels import channels_bp
-app.register_blueprint(channels_bp)
-```
+## Refreshing The Channel Catalog
 
-### Step 2: Add Frontend Page
+`seed_channels.py` now performs an upsert instead of skipping existing rows. That means you can refresh the live Oracle catalog with updated URLs and descriptions by rerunning the script.
 
-Copy `channels_page.html` to: `islandforge/templates/channels.html`
+Oracle usage:
 
-Add a route in `server.py`:
-```python
-@app.route('/channels')
-def channels_page():
-    return render_template('channels.html')
-```
-
-### Step 3: Configure Your Channels
-
-Edit `islandforge/routes/channels.py`, find the `CHANNELS` dict:
-
-```python
-CHANNELS = {
-    "ttf-live": {
-        "id": "ttf-live",
-        "name": "TriptokForge LIVE",
-        "number": 1,
-        "type": "twitch",
-        "stream_id": "YOUR_TWITCH_CHANNEL_NAME",  # ← Change this!
-        "live": True,
-    },
-    # Add more channels...
-}
-```
-
-**Deploy:**
-```powershell
-.\deploy.ps1 "Add TV Guide channel system"
-```
-
----
-
-## How It Works
-
-### Channel Types Supported:
-- **Twitch** - Live streams (24/7 or scheduled)
-- **YouTube** - Live streams or VOD playlists
-
-### TV Guide Features:
-- **EPG Grid** - See all channels and schedules at once
-- **Time Blocks** - Programs scheduled like real TV
-- **Live Indicators** - Red badges for live channels
-- **Channel Switcher** - Click any channel to watch
-- **Now Playing** - Shows current program
-
-### Program Schedule System:
-Each channel has a daily schedule template that repeats:
-```python
-"ttf-live": [
-    {"start": "09:00", "duration": 120, "title": "Morning Scrims"},
-    {"start": "14:00", "duration": 180, "title": "Ranked Arena"},
-    {"start": "18:00", "duration": 240, "title": "Prime Time Tournament"},
-]
-```
-
-This generates a full TV Guide for the next 7 days.
-
----
-
-## Customization
-
-### Add New Channels:
-Edit the `CHANNELS` dict in `channels.py`:
-```python
-"new-channel": {
-    "id": "new-channel",
-    "name": "New Channel",
-    "number": 5,
-    "type": "twitch",  # or "youtube"
-    "stream_id": "twitch_username",
-    "logo": "/static/img/channels/logo.png",
-    "description": "Channel description",
-    "live": True,
-    "category": "competitive"
-}
-```
-
-### Modify Schedule Blocks:
-Edit `generate_schedule()` in `channels.py`:
-```python
-schedule_templates = {
-    "your-channel": [
-        {"start": "10:00", "duration": 60, "title": "Your Show"},
-        {"start": "12:00", "duration": 120, "title": "Another Show"},
-    ]
-}
-```
-
-### Change EPG Time Window:
-In the frontend, modify the time controls:
-```javascript
-loadGuide(6)   // 6 hours
-loadGuide(12)  // 12 hours
-loadGuide(24)  // 24 hours
-```
-
----
-
-## Real-World Setup Examples
-
-### Example 1: Tournament Channel (24/7 Live)
-```python
-"tournaments": {
-    "id": "tournaments",
-    "name": "TriptokForge Tournaments",
-    "type": "twitch",
-    "stream_id": "triptokforge_official",
-    "live": True,
-    "schedule": [
-        {"start": "09:00", "duration": 180, "title": "Morning Qualifiers"},
-        {"start": "14:00", "duration": 240, "title": "Main Event"},
-        {"start": "20:00", "duration": 180, "title": "Finals"},
-    ]
-}
-```
-
-### Example 2: Highlights Channel (VOD Playlist)
-```python
-"highlights": {
-    "id": "highlights",
-    "name": "Best Plays",
-    "type": "youtube",
-    "stream_id": "UC_your_youtube_channel",
-    "live": False,
-    "schedule": [
-        {"start": "00:00", "duration": 30, "title": "Top 10 #47"},
-        {"start": "00:30", "duration": 45, "title": "Pro Highlights"},
-        # Loops through playlist
-    ]
-}
-```
-
-### Example 3: Member Streams (Rotating)
-```python
-"community": {
-    "id": "community",
-    "name": "Member Streams",
-    "type": "twitch",
-    "stream_id": "community_channel",
-    "live": True,
-    "schedule": [
-        {"start": "10:00", "duration": 120, "title": "Player1 Stream"},
-        {"start": "14:00", "duration": 120, "title": "Player2 Stream"},
-        {"start": "18:00", "duration": 120, "title": "Player3 Stream"},
-    ]
-}
-```
-
----
-
-## API Endpoints
-
-After deployment, you'll have:
-
-- `GET /api/channels` - All channels
-- `GET /api/channels/<id>` - Specific channel
-- `GET /api/channels/<id>/schedule` - Channel schedule
-- `GET /api/channels/now-playing` - Current programs on all channels
-- `GET /api/channels/epg?hours=12` - Full TV Guide grid
-
-Test:
 ```bash
-curl http://localhost:5000/api/channels
-curl http://localhost:5000/api/channels/epg?hours=12
+cd ~/ver-perlinforge/islandforge
+export ORACLE_PASSWORD='your-password'
+python3 seed_channels.py
+sudo systemctl restart islandforge
 ```
 
----
+## Current Frontend Notes
 
-## Future Enhancements
+- Default player size is responsive and centered.
+- Desktop users can drag the bottom-right corner of the player to resize it.
+- The resized width is saved locally in the browser.
+- `Reset Size` returns the player to the default calculated layout.
+- If a source is not embed-ready yet, the page keeps the player shell stable and switches the call-to-action to `Open Feed`.
 
-### Phase 2: Save Schedules to Oracle
-Move `CHANNELS` and schedules to Oracle database:
-```sql
-CREATE TABLE channels (
-    id VARCHAR2(64) PRIMARY KEY,
-    name VARCHAR2(128),
-    type VARCHAR2(32),
-    stream_id VARCHAR2(128),
-    live NUMBER(1)
-);
+## Channel Roadmap
 
-CREATE TABLE programs (
-    id NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    channel_id VARCHAR2(64),
-    start_time TIMESTAMP,
-    end_time TIMESTAMP,
-    title VARCHAR2(256)
-);
-```
+### Now
 
-### Phase 3: Multi-View
-Show 2-4 channels on screen at once (picture-in-picture style)
+- Keep the player comfortable and stable across desktop and mobile.
+- Replace legacy raw channel handles with direct replay, playlist, or live-feed URLs.
+- Prioritize official Fortnite, UEFN, esports, and creator-safe feeds first.
 
-### Phase 4: Chat Integration
-Embed Twitch chat or custom chat alongside streams
+### Next
 
-### Phase 5: Admin Panel
-Web UI to add/edit channels and schedules without code changes
+- Add a curated "embed-ready" quality pass for every category.
+- Separate always-on replay feeds from external-only sources.
+- Add admin metadata for `embed_ready`, `official`, and `priority`.
 
----
+### Later
 
-## Troubleshooting
+- Multi-view mode
+- Optional companion chat
+- Scheduled featured channel rail
+- Admin UI for catalog curation without script edits
 
-### Player Not Loading:
-1. Check `parent` parameter matches your domain
-2. Verify Twitch/YouTube stream IDs are correct
-3. Check browser console for errors
+## Practical Rule
 
-### Schedule Not Showing:
-1. Verify channel ID exists in `CHANNELS` dict
-2. Check schedule template in `generate_schedule()`
-3. Test API: `/api/channels/<channel_id>/schedule`
+When adding a new channel:
 
-### EPG Grid Empty:
-1. Test EPG endpoint: `/api/channels/epg?hours=12`
-2. Check browser console for JavaScript errors
-3. Verify time zone is correct
-
----
-
-## Ready to Deploy?
-
-1. Put files in place (Step 1-2)
-2. Configure your Twitch/YouTube channels (Step 3)
-3. Run: `.\deploy.ps1 "Add TV Guide"`
-4. Visit: `https://triptokforge.org/channels`
-
-🎬 You'll have a professional TV Guide streaming hub!
+1. Prefer a source that actually embeds.
+2. Prefer a source that has reliable replay or always-on value.
+3. If it is external-only for now, still allow it, but mark it for later replacement.

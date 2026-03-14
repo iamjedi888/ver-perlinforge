@@ -152,7 +152,9 @@ nav.ch-nav {
   aspect-ratio: 16 / 9;
   margin-inline: auto;
   border-radius: 18px;
+  touch-action: none;
 }
+.ch-player.resizing { cursor: nwse-resize; }
 @keyframes holo-border-pulse {
   0%, 100% { border-color: rgba(0,145,255,.2); box-shadow: 0 0 30px rgba(0,145,255,.08), inset 0 0 30px rgba(0,145,255,.03); }
   50% { border-color: rgba(0,234,255,.35); box-shadow: 0 0 60px rgba(0,145,255,.18), inset 0 0 60px rgba(0,145,255,.06); }
@@ -225,7 +227,33 @@ nav.ch-nav {
   font-family: 'Share Tech Mono', monospace; font-size: .58rem;
   letter-spacing: 2px; color: var(--dim); text-align: center;
 }
+.arc-subhint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .54rem;
+  letter-spacing: 1px;
+  color: var(--mid);
+  text-align: center;
+  max-width: 34ch;
+  line-height: 1.6;
+}
 #ch-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
+.player-resize {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 18px;
+  height: 18px;
+  z-index: 12;
+  cursor: nwse-resize;
+  border-right: 2px solid rgba(0,234,255,.5);
+  border-bottom: 2px solid rgba(0,234,255,.5);
+  opacity: .78;
+  transition: opacity .15s ease, border-color .15s ease;
+}
+.player-resize:hover {
+  opacity: 1;
+  border-color: var(--jarvis);
+}
 
 .glass-controls {
   display: flex; align-items: center; gap: 12px; padding: 10px 20px; flex-shrink: 0;
@@ -266,6 +294,15 @@ nav.ch-nav {
   color: var(--mid); border-radius: 2px; transition: all .15s; text-decoration: none;
 }
 .gc-link:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-dim); }
+.gc-link.external {
+  border-color: rgba(255,170,0,.2);
+  color: var(--amber);
+}
+.gc-link.external:hover {
+  border-color: var(--amber);
+  color: #fff;
+  background: rgba(255,170,0,.08);
+}
 .gc-right { margin-left: auto; display: flex; gap: 8px; }
 
 .ch-guide {
@@ -461,6 +498,9 @@ nav.ch-nav {
     min-width: 100%;
     width: 100%;
   }
+  .player-resize {
+    display: none;
+  }
   .gc-actions,
   .gc-right {
     width: 100%;
@@ -524,10 +564,12 @@ nav.ch-nav {
         </div>
         <div class="arc-text">AWAITING UPLINK</div>
         <div class="arc-hint">Select a channel from the guide -&gt;</div>
+        <div class="arc-subhint" id="playerMessage">Embeddable streams, replays, and curated feeds load here.</div>
       </div>
 
       <iframe id="ch-iframe" src="" allow="autoplay; fullscreen; picture-in-picture"
               allowfullscreen style="display:none;width:100%;height:100%;border:none;"></iframe>
+      <div class="player-resize" id="playerResize" title="Drag to resize player"></div>
     </div>
 
     <div class="glass-controls">
@@ -541,6 +583,7 @@ nav.ch-nav {
         <button class="gc-btn" onclick="goFullscreen()">Fullscreen</button>
       </div>
       <div class="gc-right">
+        <button class="gc-btn" onclick="resetPlayerSize()">Reset Size</button>
         <button class="gc-btn" onclick="toggleSidebar()">Guide</button>
       </div>
     </div>
@@ -569,7 +612,7 @@ nav.ch-nav {
           <div class="cat-body">
             {% for channel in group.channels %}
               <div class="ch-row"
-                   onclick='loadChannel({{ channel.embed|tojson }}, {{ channel.name|tojson }})'
+                   onclick='loadChannel({{ channel.embed|tojson }}, {{ channel.name|tojson }}, {{ channel.source_url|tojson }}, {{ channel.playable|tojson }})'
                    data-name="{{ channel.name|e }}">
                 <span class="ch-live-dot"></span>
                 <div class="ch-info">
@@ -601,30 +644,117 @@ nav.ch-nav {
 {% include "_site_footer.html" %}
 
 <script>
-let currentUrl = '', muted = false, theater = false, sidebarOpen = true;
+const PLAYER_SIZE_KEY = 'ttf.channels.playerWidth';
+let currentUrl = '';
+let currentSourceUrl = '';
+let muted = false;
+let theater = false;
+let sidebarOpen = true;
+let resizeState = null;
 
-function loadChannel(url, name) {
-  if (!url) return;
-  currentUrl = url;
+function setPlayerMessage(message) {
+  document.getElementById('playerMessage').textContent = message;
+}
+
+function getPlayerBounds() {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const stageMax = parseFloat(rootStyles.getPropertyValue('--stage-max')) || 1180;
+  const navHeight = parseFloat(rootStyles.getPropertyValue('--nav-h')) || 56;
+  const containerWidth = document.querySelector('.ch-main').clientWidth;
+  const minWidth = Math.min(Math.max(420, Math.floor(containerWidth * 0.62)), containerWidth);
+  const viewportBasedWidth = Math.max(420, Math.floor((window.innerHeight - navHeight - 214) * 16 / 9));
+  const maxWidth = Math.max(minWidth, Math.min(stageMax, containerWidth, viewportBasedWidth));
+  return { minWidth, maxWidth };
+}
+
+function applyPlayerSize(width) {
+  const player = document.getElementById('chPlayer');
+  if (window.innerWidth <= 760) {
+    player.style.width = '';
+    localStorage.removeItem(PLAYER_SIZE_KEY);
+    return;
+  }
+  const bounds = getPlayerBounds();
+  const clamped = Math.max(bounds.minWidth, Math.min(bounds.maxWidth, Math.round(width)));
+  player.style.width = clamped + 'px';
+  localStorage.setItem(PLAYER_SIZE_KEY, String(clamped));
+}
+
+function restorePlayerSize() {
+  const stored = localStorage.getItem(PLAYER_SIZE_KEY);
+  if (!stored) return;
+  const width = parseInt(stored, 10);
+  if (Number.isFinite(width)) {
+    applyPlayerSize(width);
+  }
+}
+
+function resetPlayerSize() {
+  const player = document.getElementById('chPlayer');
+  player.style.width = '';
+  localStorage.removeItem(PLAYER_SIZE_KEY);
+}
+
+function beginPlayerResize(event) {
+  if (window.innerWidth <= 760) return;
+  const player = document.getElementById('chPlayer');
+  const rect = player.getBoundingClientRect();
+  resizeState = {
+    startX: event.clientX,
+    startWidth: rect.width,
+  };
+  player.classList.add('resizing');
+  event.preventDefault();
+}
+
+function onPlayerResize(event) {
+  if (!resizeState) return;
+  const delta = event.clientX - resizeState.startX;
+  applyPlayerSize(resizeState.startWidth + delta);
+}
+
+function stopPlayerResize() {
+  if (!resizeState) return;
+  resizeState = null;
+  document.getElementById('chPlayer').classList.remove('resizing');
+}
+
+function loadChannel(url, name, sourceUrl, playable) {
+  if (!sourceUrl && !url) return;
+  currentUrl = url || '';
+  currentSourceUrl = sourceUrl || url || '';
 
   document.getElementById('nowPlaying').textContent = name;
-  document.getElementById('hudStatus').textContent = 'LIVE';
-  document.getElementById('hudStatus').classList.add('live');
+  document.getElementById('hudStatus').textContent = playable ? 'LIVE' : 'OPEN';
+  document.getElementById('hudStatus').classList.toggle('live', playable);
 
-  document.getElementById('placeholder').style.display = 'none';
+  const placeholder = document.getElementById('placeholder');
   const iframe = document.getElementById('ch-iframe');
-  iframe.style.display = 'block';
-  iframe.src = muted ? url + (url.includes('?') ? '&' : '?') + 'muted=true' : url;
+  const linkOut = document.getElementById('linkOut');
+
+  let lo = sourceUrl || url;
+  const tch = (url || '').match(/channel=([^&]+)/);
+  if (tch) lo = 'https://twitch.tv/' + tch[1];
+  const yt = (url || '').match(/youtube\.com\/embed\/([^?]+)/);
+  if (yt) lo = 'https://youtu.be/' + yt[1];
+  linkOut.href = lo || '#';
+  linkOut.classList.toggle('external', !playable);
+  linkOut.textContent = playable ? 'Open Stream' : 'Open Feed';
+
+  if (playable && url) {
+    placeholder.style.display = 'none';
+    iframe.style.display = 'block';
+    iframe.src = muted ? url + (url.includes('?') ? '&' : '?') + 'muted=true' : url;
+    setPlayerMessage('Embeddable streams, replays, and curated feeds load here.');
+  } else {
+    iframe.style.display = 'none';
+    iframe.src = '';
+    placeholder.style.display = 'flex';
+    setPlayerMessage('This source is currently best opened directly. A catalog refresh is in progress for more embed-ready feeds.');
+  }
 
   document.getElementById('chPlayer').classList.add('active');
   document.getElementById('playerScanlines').style.opacity = '1';
-
-  let lo = url;
-  const tch = url.match(/channel=([^&]+)/);
-  if (tch) lo = 'https://twitch.tv/' + tch[1];
-  const yt = url.match(/youtube\.com\/embed\/([^?]+)/);
-  if (yt) lo = 'https://youtu.be/' + yt[1];
-  document.getElementById('linkOut').href = lo;
 
   document.querySelectorAll('.ch-row').forEach(r => {
     r.classList.toggle('active', r.dataset.name === name);
@@ -636,7 +766,7 @@ function toggleMute() {
   const btn = document.getElementById('muteBtn');
   btn.textContent = muted ? 'UNMUTE' : 'MUTE';
   btn.classList.toggle('muted', muted);
-  if (currentUrl) {
+  if (currentUrl && document.getElementById('ch-iframe').style.display !== 'none') {
     const iframe = document.getElementById('ch-iframe');
     iframe.src = muted
       ? currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'muted=true'
@@ -731,11 +861,24 @@ async function submitSuggest() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  restorePlayerSize();
   document.querySelectorAll('.cat-hd').forEach(hd => {
     hd.classList.add('open');
   });
   document.querySelectorAll('.cat-body').forEach(body => {
     body.style.maxHeight = body.scrollHeight + 'px';
+  });
+  document.getElementById('playerResize').addEventListener('pointerdown', beginPlayerResize);
+  window.addEventListener('pointermove', onPlayerResize);
+  window.addEventListener('pointerup', stopPlayerResize);
+  window.addEventListener('resize', () => {
+    if (window.innerWidth <= 760) {
+      resetPlayerSize();
+      return;
+    }
+    if (localStorage.getItem(PLAYER_SIZE_KEY)) {
+      restorePlayerSize();
+    }
   });
 });
 </script>

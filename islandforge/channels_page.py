@@ -45,6 +45,10 @@ def detect_embed(url: str) -> str:
         video_id = value.split("youtu.be/")[-1].split("?")[0]
         return f"https://www.youtube.com/embed/{video_id}?autoplay=0"
 
+    if "youtube.com/playlist" in value and "list=" in value:
+        playlist_id = value.split("list=")[-1].split("&")[0]
+        return f"https://www.youtube.com/embed/videoseries?list={playlist_id}"
+
     if "youtube.com/@" in value or "youtube.com/c/" in value or "youtube.com/channel/" in value:
         return value
 
@@ -59,11 +63,43 @@ def detect_embed(url: str) -> str:
     return value
 
 
+def is_embeddable(url: str) -> bool:
+    if not url:
+        return False
+    return any(
+        marker in url
+        for marker in (
+            "player.twitch.tv/",
+            "youtube.com/embed/",
+            "player.kick.com/",
+            "streamable.com/e/",
+        )
+    )
+
+
+def normalize_source_url(url: str) -> str:
+    if not url:
+        return ""
+
+    value = url.strip()
+    if (
+        "youtube.com/@" in value
+        or "youtube.com/c/" in value
+        or "youtube.com/channel/" in value
+    ) and not any(
+        suffix in value for suffix in ("/videos", "/streams", "/live", "/featured")
+    ):
+        return value.rstrip("/") + "/videos"
+
+    return value
+
+
 def build_channels_context(channels: list) -> dict:
     groups = OrderedDict()
 
     for channel in channels:
         category = channel.get("category", "Other") or "Other"
+        embed_url = detect_embed(channel.get("embed_url", ""))
         group = groups.setdefault(
             category,
             {
@@ -76,7 +112,9 @@ def build_channels_context(channels: list) -> dict:
             {
                 "name": channel.get("name", "Unnamed"),
                 "description": channel.get("description", ""),
-                "embed": detect_embed(channel.get("embed_url", "")),
+                "embed": embed_url,
+                "source_url": normalize_source_url(channel.get("embed_url", "")),
+                "playable": is_embeddable(embed_url),
             }
         )
 

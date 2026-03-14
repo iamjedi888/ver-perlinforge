@@ -1,6 +1,10 @@
 """
 seed_channels.py — Run once on the VM to seed 35 channels into Oracle DB.
 Usage: python3 seed_channels.py
+
+The channels page works best when embed_url is a direct embeddable replay,
+playlist, or live feed URL. Raw channel handles can still open externally,
+but they should be refreshed over time with embed-ready sources.
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
@@ -298,31 +302,41 @@ def main():
                         print(f"DDL warning: {e}")
 
     inserted = 0
-    skipped  = 0
+    updated = 0
 
     with pool.acquire() as conn:
         with conn.cursor() as cur:
             for i, ch in enumerate(CHANNELS):
                 cur.execute("SELECT COUNT(*) FROM channels WHERE name = :n", {"n": ch["name"]})
-                if cur.fetchone()[0] > 0:
-                    print(f"  SKIP  [{ch['category']}] {ch['name']}")
-                    skipped += 1
-                    continue
-                cur.execute("""
-                    INSERT INTO channels (name, category, embed_url, description, approved, suggested_by, sort_order)
-                    VALUES (:name, :category, :embed_url, :description, 1, 'admin', :sort_order)
-                """, {
+                params = {
                     "name":        ch["name"],
                     "category":    ch["category"],
                     "embed_url":   ch["embed_url"],
-                    "description": ch.get("description",""),
+                    "description": ch.get("description", ""),
                     "sort_order":  i,
-                })
-                print(f"  INSERT [{ch['category']}] {ch['name']}")
-                inserted += 1
+                }
+                if cur.fetchone()[0] > 0:
+                    cur.execute("""
+                        UPDATE channels
+                           SET category = :category,
+                               embed_url = :embed_url,
+                               description = :description,
+                               approved = 1,
+                               sort_order = :sort_order
+                         WHERE name = :name
+                    """, params)
+                    print(f"  UPDATE [{ch['category']}] {ch['name']}")
+                    updated += 1
+                else:
+                    cur.execute("""
+                        INSERT INTO channels (name, category, embed_url, description, approved, suggested_by, sort_order)
+                        VALUES (:name, :category, :embed_url, :description, 1, 'admin', :sort_order)
+                    """, params)
+                    print(f"  INSERT [{ch['category']}] {ch['name']}")
+                    inserted += 1
         conn.commit()
 
-    print(f"\nDone. {inserted} inserted, {skipped} skipped.")
+    print(f"\nDone. {inserted} inserted, {updated} updated.")
 
 if __name__ == "__main__":
     main()
