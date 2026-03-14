@@ -4,38 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TriptokForge News - Your Interests</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/news.css">
 </head>
 <body>
+    {% include "_nav.html" %}
     
     <div class="news-header">
         <h1>🌐 TriptokForge News</h1>
-        <div class="live-badge">● LIVE</div>
+        <button class="prefs-btn" onclick="togglePrefs()">⚙️ Preferences</button>
+    </div>
+    
+    <div class="prefs-panel" id="prefsPanel">
+        <div class="prefs-header">
+            <h2>Your Interests</h2>
+            <button onclick="togglePrefs()">×</button>
+        </div>
+        
+        <div class="filter-toggle">
+            <label>
+                <input type="checkbox" id="filterNegative" checked onchange="savePrefs()">
+                <span>Filter out negative news (violence, crime, etc.)</span>
+            </label>
+        </div>
+        
+        <div class="interests-grid" id="interestsGrid"></div>
     </div>
     
     <div class="news-ticker-bar">
         <div class="ticker-label">LATEST</div>
-        <div class="ticker-content" id="tickerContent">
-            Loading latest headlines...
-        </div>
+        <div class="ticker-content" id="tickerContent">Loading...</div>
     </div>
     
     <div class="news-container">
-        
-        <!-- Interest Toggles -->
-        <div class="interests-panel">
-            <h3>📌 Your Interests</h3>
-            <p class="interests-hint">Check the topics you want to see news about</p>
-            <div class="interests-grid" id="interestsGrid">
-                <!-- Checkboxes loaded here -->
-            </div>
+        <div class="category-tabs">
+            <button class="tab-btn active" data-cat="all">All</button>
+            <button class="tab-btn" data-cat="gaming">Gaming</button>
+            <button class="tab-btn" data-cat="anime">Anime</button>
+            <button class="tab-btn" data-cat="culture">Culture</button>
+            <button class="tab-btn" data-cat="food">Food</button>
+            <button class="tab-btn" data-cat="automotive">Cars</button>
+            <button class="tab-btn" data-cat="art">Art</button>
+            <button class="tab-btn" data-cat="nature">Nature</button>
+            <button class="tab-btn" data-cat="restoration">Restoration</button>
         </div>
         
-        <!-- News Grid -->
         <div class="news-grid" id="newsGrid">
-            <!-- News cards loaded here -->
+            <div class="loading">Loading your personalized news...</div>
         </div>
-        
     </div>
     
     <script src="/static/js/news.js"></script>

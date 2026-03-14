@@ -5,8 +5,7 @@ Restored from server_old.py.
 import io, base64, json, os, sys, traceback, secrets
 import urllib.parse, urllib.request
 
-import numpy as np
-from flask import Blueprint, request, jsonify, send_file, session, redirect
+from flask import Blueprint, request, jsonify, send_file, session, redirect, render_template
 
 forge_bp = Blueprint("forge", __name__)
 
@@ -56,9 +55,7 @@ _cosmetics_cache = None
 # ── FORGE PAGE ───────────────────────────────────────────────
 @forge_bp.route("/forge")
 def forge():
-    path = os.path.join(BASE_DIR, "index.html")
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read(), 200, {"Content-Type": "text/html"}
+    return render_template("forge.html")
 
 # ── GENERATE ─────────────────────────────────────────────────
 @forge_bp.route("/generate", methods=["POST"])
