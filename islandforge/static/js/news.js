@@ -1,173 +1,113 @@
-// TriptokForge News - Interest-Based
+let prefs = { interests: [], filter_negative: true };
+let currentCategory = 'all';
 
-let allNews = [];
-let enabledCategories = [];
-
-// Load user preferences from localStorage
-function loadPreferences() {
-    const saved = localStorage.getItem('news_interests');
-    if (saved) {
-        enabledCategories = JSON.parse(saved);
-    } else {
-        // Default: all safe categories enabled
-        enabledCategories = [
-            'gaming', 'anime', 'culture', 'food',
-            'automotive', 'art', 'nature', 'restoration'
-        ];
-    }
-}
-
-// Save user preferences
-function savePreferences() {
-    localStorage.setItem('news_interests', JSON.stringify(enabledCategories));
-}
-
-// Load available interests and create checkboxes
-async function loadInterests() {
+async function loadPrefs() {
     try {
-        const response = await fetch('/api/news/interests');
-        const interests = await response.json();
-        
-        const grid = document.getElementById('interestsGrid');
-        
-        Object.entries(interests).forEach(([category, data]) => {
-            const checkbox = document.createElement('div');
-            checkbox.className = `interest-checkbox ${!data.safe ? 'warning' : ''}`;
-            
-            const checked = enabledCategories.includes(category);
-            
-            checkbox.innerHTML = `
-                <input type="checkbox" 
-                       id="interest-${category}" 
-                       ${checked ? 'checked' : ''}
-                       onchange="toggleInterest('${category}')">
-                <label for="interest-${category}">${data.name}</label>
-            `;
-            
-            grid.appendChild(checkbox);
-        });
-        
-    } catch (error) {
-        console.error('Error loading interests:', error);
+        const res = await fetch('/api/news/preferences');
+        prefs = await res.json();
+        document.getElementById('filterNegative').checked = prefs.filter_negative;
+        await loadInterests();
+    } catch (e) {
+        console.error('Error loading prefs:', e);
     }
 }
 
-// Toggle interest on/off
-function toggleInterest(category) {
-    if (enabledCategories.includes(category)) {
-        enabledCategories = enabledCategories.filter(c => c !== category);
-    } else {
-        enabledCategories.push(category);
-    }
+async function savePrefs() {
+    const checkboxes = document.querySelectorAll('.interest-checkbox');
+    prefs.interests = [];
+    checkboxes.forEach(cb => {
+        if (cb.checked) prefs.interests.push(cb.value);
+    });
+    prefs.filter_negative = document.getElementById('filterNegative').checked;
     
-    savePreferences();
-    loadNews();
-}
-
-// Load news based on enabled interests
-async function loadNews() {
     try {
-        document.getElementById('newsGrid').innerHTML = 
-            '<div class="loading">Loading news</div>';
-        
-        const response = await fetch('/api/news/latest', {
+        await fetch('/api/news/preferences', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ categories: enabledCategories })
+            body: JSON.stringify(prefs)
         });
-        
-        const data = await response.json();
-        allNews = data.news;
-        
-        renderNews();
-        updateTicker(data.news.slice(0, 10));
-        
-    } catch (error) {
-        console.error('Error loading news:', error);
-        document.getElementById('newsGrid').innerHTML = 
-            '<div class="loading">Failed to load news. Please refresh.</div>';
+        loadNews();
+    } catch (e) {
+        console.error('Error saving prefs:', e);
     }
 }
 
-function renderNews() {
+async function loadInterests() {
+    try {
+        const res = await fetch('/api/news/interests');
+        const interests = await res.json();
+        
+        const grid = document.getElementById('interestsGrid');
+        grid.innerHTML = Object.entries(interests).map(([id, data]) => `
+            <div class="interest-item">
+                <input type="checkbox" class="interest-checkbox" value="${id}" 
+                       id="int_${id}" ${prefs.interests.includes(id) ? 'checked' : ''}
+                       onchange="savePrefs()">
+                <label for="int_${id}">${data.name}</label>
+                <small>${data.category}</small>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error('Error loading interests:', e);
+    }
+}
+
+async function loadNews() {
+    try {
+        const res = await fetch('/api/news/latest');
+        const data = await res.json();
+        renderNews(data.news);
+        updateTicker(data.news.slice(0, 10));
+    } catch (e) {
+        console.error('Error loading news:', e);
+    }
+}
+
+function renderNews(news) {
     const grid = document.getElementById('newsGrid');
-    
-    if (!allNews || allNews.length === 0) {
-        grid.innerHTML = '<div class="loading">No news available for selected interests</div>';
+    if (!news || news.length === 0) {
+        grid.innerHTML = '<div class="loading">No news for your selected interests</div>';
         return;
     }
     
-    grid.innerHTML = allNews.map(item => {
-        const pubDate = new Date(item.published);
-        const timeAgo = getTimeAgo(pubDate);
-        const categoryName = formatCategory(item.category);
-        
-        return `
-            <div class="news-card" onclick="openNews('${item.link}')">
-                <div class="news-source">
-                    <span class="source-name">${item.source}</span>
-                    <span class="news-time">${timeAgo}</span>
-                </div>
-                <h3 class="news-title">${item.title}</h3>
-                <p class="news-summary">${item.summary || ''}</p>
-                <div class="news-footer">
-                    <span class="category-badge">${categoryName}</span>
-                    <a href="${item.link}" class="read-more" target="_blank" 
-                       onclick="event.stopPropagation()">Read More →</a>
-                </div>
-            </div>
-        `;
-    }).join('');
+    grid.innerHTML = news.map(item => `
+        <div class="news-card" onclick="window.open('${item.link}', '_blank')">
+            <div class="news-source">${item.source}</div>
+            <h3 class="news-title">${item.title}</h3>
+            <p class="news-summary">${item.summary || ''}</p>
+        </div>
+    `).join('');
 }
 
-function updateTicker(headlines) {
+function updateTicker(news) {
     const ticker = document.getElementById('tickerContent');
-    
-    const tickerText = headlines
-        .map(item => `${item.source}: ${item.title}`)
-        .join(' • ');
-    
-    ticker.innerHTML = `<span>${tickerText}</span>`;
+    const text = news.map(n => `${n.source}: ${n.title}`).join(' • ');
+    ticker.innerHTML = `<span>${text}</span>`;
 }
 
-function getTimeAgo(date) {
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-    
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
+function togglePrefs() {
+    document.getElementById('prefsPanel').classList.toggle('open');
 }
 
-function formatCategory(category) {
-    const categoryNames = {
-        'gaming': '🎮 Gaming',
-        'anime': '🎌 Anime',
-        'culture': '🇯🇵 Culture',
-        'food': '🍜 Food',
-        'automotive': '🏎️ Cars',
-        'art': '🎨 Art',
-        'nature': '🌿 Nature',
-        'restoration': '🔧 Restoration',
-        'general_news': '📰 News'
-    };
-    
-    return categoryNames[category] || category;
-}
-
-function openNews(url) {
-    if (url) {
-        window.open(url, '_blank');
-    }
-}
-
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadPreferences();
-    loadInterests();
-    loadNews();
+    loadPrefs().then(() => loadNews());
     
-    // Auto-refresh every 10 minutes
-    setInterval(loadNews, 600000);
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', async function() {
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentCategory = this.getAttribute('data-cat');
+            
+            if (currentCategory === 'all') {
+                loadNews();
+            } else {
+                const res = await fetch(`/api/news/category/${currentCategory}`);
+                const data = await res.json();
+                renderNews(data.news);
+            }
+        });
+    });
+    
+    setInterval(loadNews, 300000);
 });
