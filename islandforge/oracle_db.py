@@ -220,6 +220,17 @@ CREATE TABLE IF NOT EXISTS channels (
     sort_order   NUMBER        DEFAULT 0,
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS wp_tracks (
+    id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    title        VARCHAR2(256) NOT NULL,
+    artist       VARCHAR2(128),
+    source_type  VARCHAR2(32)  DEFAULT 'soundcloud',
+    embed_url    VARCHAR2(1024) NOT NULL,
+    sort_order   NUMBER        DEFAULT 0,
+    active       NUMBER(1)     DEFAULT 1,
+    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 def init_schema():
@@ -1196,3 +1207,95 @@ def save_island_to_gallery(epic_id: str, display_name: str, name: str,
     except Exception as e:
         _log(f"save_island_to_gallery error: {e}")
         return None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WHITEPAGES PLAYER TRACKS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_WP_TRACKS_JSON = os.path.join(os.path.dirname(__file__), "data", "wp_tracks.json")
+
+def _wp_json_load():
+    try:
+        os.makedirs(os.path.dirname(_WP_TRACKS_JSON), exist_ok=True)
+        if os.path.exists(_WP_TRACKS_JSON):
+            with open(_WP_TRACKS_JSON) as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return []
+
+def _wp_json_save(tracks):
+    try:
+        os.makedirs(os.path.dirname(_WP_TRACKS_JSON), exist_ok=True)
+        with open(_WP_TRACKS_JSON, "w") as f:
+            json.dump(tracks, f, indent=2)
+        return True
+    except Exception:
+        return False
+
+def get_wp_tracks():
+    """Return all active whitepages player tracks ordered by sort_order."""
+    if not db_available():
+        return _wp_json_load()
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("""
+            SELECT id, title, artist, source_type, embed_url, sort_order
+            FROM wp_tracks WHERE active=1
+            ORDER BY sort_order, id
+        """)
+        rows = [dict(zip(["id","title","artist","source_type","embed_url","sort_order"], r))
+                for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return rows
+    except Exception as e:
+        print(f"[oracle_db] get_wp_tracks error: {e}")
+        return _wp_json_load()
+
+def add_wp_track(title, artist, source_type, embed_url):
+    """Add a track to the whitepages player."""
+    track = {"title": title, "artist": artist,
+             "source_type": source_type, "embed_url": embed_url}
+    if not db_available():
+        tracks = _wp_json_load()
+        track["id"] = (max((t.get("id",0) for t in tracks), default=0) + 1)
+        track["sort_order"] = len(tracks)
+        tracks.append(track)
+        _wp_json_save(tracks)
+        return track["id"]
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        new_id = cur.var(int)
+        cur.execute("""
+            INSERT INTO wp_tracks (title, artist, source_type, embed_url, sort_order)
+            VALUES (:title, :artist, :source_type, :embed_url,
+                    (SELECT NVL(MAX(sort_order),0)+1 FROM wp_tracks))
+            RETURNING id INTO :new_id
+        """, {"title": title, "artist": artist, "source_type": source_type,
+              "embed_url": embed_url, "new_id": new_id})
+        conn.commit()
+        cur.close(); conn.close()
+        return int(new_id.getvalue()[0])
+    except Exception as e:
+        print(f"[oracle_db] add_wp_track error: {e}")
+        return None
+
+def delete_wp_track(track_id):
+    """Remove a track from the whitepages player."""
+    if not db_available():
+        tracks = _wp_json_load()
+        tracks = [t for t in tracks if t.get("id") != track_id]
+        return _wp_json_save(tracks)
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("DELETE FROM wp_tracks WHERE id=:id", {"id": track_id})
+        conn.commit()
+        cur.close(); conn.close()
+        return True
+    except Exception as e:
+        print(f"[oracle_db] delete_wp_track error: {e}")
+        return False

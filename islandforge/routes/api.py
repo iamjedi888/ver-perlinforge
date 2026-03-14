@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from oracle_db import get_all_members, create_post, like_post
+from oracle_db import get_all_members, create_post, like_post, get_wp_tracks, add_wp_track, delete_wp_track
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -23,3 +23,32 @@ def post():
 @api_bp.route("/like/<int:post_id>", methods=["POST"])
 def like(post_id):
     return jsonify({"ok":True,"likes":like_post(post_id)})
+
+# ── Whitepages Player Tracks ────────────────────────────────
+
+@api_bp.route("/whitepages/tracks", methods=["GET"])
+def wp_tracks_get():
+    return jsonify(get_wp_tracks() or [])
+
+@api_bp.route("/whitepages/tracks", methods=["POST"])
+def wp_tracks_add():
+    if not session.get("admin_authed"):
+        return jsonify({"error": "unauthorized"}), 403
+    data = request.get_json(silent=True) or request.form
+    title       = (data.get("title") or "").strip()[:256]
+    artist      = (data.get("artist") or "").strip()[:128]
+    source_type = (data.get("source_type") or "soundcloud").strip()[:32]
+    embed_url   = (data.get("embed_url") or "").strip()[:1024]
+    if not title or not embed_url:
+        return jsonify({"error": "title and embed_url required"}), 400
+    if source_type not in ("soundcloud", "youtube", "audio"):
+        source_type = "soundcloud"
+    new_id = add_wp_track(title, artist, source_type, embed_url)
+    return jsonify({"ok": True, "id": new_id})
+
+@api_bp.route("/whitepages/tracks/<int:track_id>", methods=["DELETE"])
+def wp_tracks_delete(track_id):
+    if not session.get("admin_authed"):
+        return jsonify({"error": "unauthorized"}), 403
+    ok = delete_wp_track(track_id)
+    return jsonify({"ok": ok})
