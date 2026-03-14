@@ -3,60 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TriptokForge News - Your Interests</title>
+    <title>TriptokForge News - Curated Signal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/news.css">
 </head>
 <body>
     {% include "_nav.html" %}
-    
-    <div class="news-header">
-        <h1>🌐 TriptokForge News</h1>
-        <button class="prefs-btn" onclick="togglePrefs()">⚙️ Preferences</button>
-    </div>
-    
-    <div class="prefs-panel" id="prefsPanel">
-        <div class="prefs-header">
-            <h2>Your Interests</h2>
-            <button onclick="togglePrefs()">×</button>
-        </div>
-        
-        <div class="filter-toggle">
-            <label>
-                <input type="checkbox" id="filterNegative" checked onchange="savePrefs()">
-                <span>Filter out negative news (violence, crime, etc.)</span>
-            </label>
-        </div>
-        
-        <div class="interests-grid" id="interestsGrid"></div>
-    </div>
-    
-    <div class="news-ticker-bar">
-        <div class="ticker-label">LATEST</div>
-        <div class="ticker-content" id="tickerContent">Loading...</div>
-    </div>
-    
-    <div class="news-container">
-        <div class="category-tabs">
-            <button class="tab-btn active" data-cat="all">All</button>
-            <button class="tab-btn" data-cat="gaming">Gaming</button>
-            <button class="tab-btn" data-cat="anime">Anime</button>
-            <button class="tab-btn" data-cat="culture">Culture</button>
-            <button class="tab-btn" data-cat="food">Food</button>
-            <button class="tab-btn" data-cat="automotive">Cars</button>
-            <button class="tab-btn" data-cat="art">Art</button>
-            <button class="tab-btn" data-cat="nature">Nature</button>
-            <button class="tab-btn" data-cat="restoration">Restoration</button>
-        </div>
-        
-        <div class="news-grid" id="newsGrid">
-            <div class="loading">Loading your personalized news...</div>
-        </div>
-    </div>
-    
-    <script src="/static/js/news.js"></script>
+
+    <main class="news-page">
+        <section class="news-hero">
+            <div class="hero-copy">
+                <div class="hero-kicker">CURATED SIGNAL</div>
+                <h1>News for builders, players, and people who do not want a war ticker.</h1>
+                <p>
+                    Pokemon, tech, science, nature, culture, and positive world updates.
+                    The feed is tuned to surface signal first and keep conflict-heavy noise out by default.
+                </p>
+                <div class="hero-actions">
+                    <button class="prefs-btn" type="button" onclick="togglePrefs()">Tune Feed</button>
+                    <div class="hero-note">Dashboard returns still follow the shared site nav.</div>
+                </div>
+            </div>
+            <div class="hero-panel">
+                <div class="panel-card">
+                    <span class="panel-label">Mode</span>
+                    <strong>Low Doomscroll</strong>
+                </div>
+                <div class="panel-card">
+                    <span class="panel-label">Priority</span>
+                    <strong>Gaming / Tech / Nature</strong>
+                </div>
+                <div class="panel-card">
+                    <span class="panel-label">Community Fit</span>
+                    <strong>Fortnite Players + Builders</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="news-charter">
+            <div class="charter-item">
+                <span class="charter-label">Default Rule</span>
+                <p>Conflict and crime-heavy stories are filtered unless you explicitly turn that filter off.</p>
+            </div>
+            <div class="charter-item">
+                <span class="charter-label">Focus</span>
+                <p>Pokemon, tech, space, nature, creative culture, food, restoration, and positive-world signal.</p>
+            </div>
+            <div class="charter-item">
+                <span class="charter-label">Use Case</span>
+                <p>A calmer front page for a Fortnite-native community that still wants to stay plugged into the world.</p>
+            </div>
+        </section>
+
+        <aside class="prefs-panel" id="prefsPanel" aria-hidden="true">
+            <div class="prefs-header">
+                <div>
+                    <div class="prefs-kicker">FEED CONTROL</div>
+                    <h2>Signal Preferences</h2>
+                </div>
+                <button type="button" class="prefs-close" onclick="togglePrefs()">Close</button>
+            </div>
+
+            <div class="filter-toggle">
+                <label>
+                    <input type="checkbox" id="filterNegative" checked onchange="savePrefs()">
+                    <span>Filter conflict-heavy and crime-heavy stories</span>
+                </label>
+                <small>This stays on by default.</small>
+            </div>
+
+            <div class="prefs-section">
+                <div class="prefs-section-title">Interests</div>
+                <div class="interests-grid" id="interestsGrid"></div>
+            </div>
+        </aside>
+
+        <section class="news-ticker-bar">
+            <div class="ticker-label">LIVE CUT</div>
+            <div class="ticker-content" id="tickerContent">Loading curated headlines...</div>
+        </section>
+
+        <section class="news-container">
+            <div class="category-tabs" id="categoryTabs">
+                <button class="tab-btn active" data-cat="all">All Signal</button>
+                <button class="tab-btn" data-cat="gaming">Gaming</button>
+                <button class="tab-btn" data-cat="tech">Tech</button>
+                <button class="tab-btn" data-cat="science">Science</button>
+                <button class="tab-btn" data-cat="culture">Culture</button>
+                <button class="tab-btn" data-cat="food">Food</button>
+                <button class="tab-btn" data-cat="creative">Creative</button>
+                <button class="tab-btn" data-cat="nature">Nature</button>
+                <button class="tab-btn" data-cat="world">Positive World</button>
+            </div>
+
+            <div class="news-status" id="newsStatus">
+                <span class="status-pill">Loading feed...</span>
+            </div>
+
+            <div class="news-grid" id="newsGrid">
+                <div class="loading">Loading your curated feed...</div>
+            </div>
+        </section>
+    </main>
+
     {% include "_site_footer.html" %}
+    <script src="/static/js/news.js"></script>
 </body>
 </html>
