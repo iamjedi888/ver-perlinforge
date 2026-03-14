@@ -54,7 +54,11 @@ def _detect_embed(url: str) -> str:
     return u
 
 
-def build_channels_page(channels: list) -> str:
+def build_channels_page(
+    channels: list,
+    portal_exit_href: str = "/home",
+    portal_exit_label: str = "Home",
+) -> str:
     groups: dict = OrderedDict()
     for ch in channels:
         cat = ch.get("category", "Other")
@@ -491,10 +495,9 @@ nav.ch-nav {{
 .suggest-toggle {{
   font-family: 'Share Tech Mono', monospace; font-size: .56rem; letter-spacing: 2px;
   text-transform: uppercase; color: var(--mid); cursor: pointer;
-  transition: color .15s; padding: 4px 0; display: flex; align-items: center; gap: 6px;
+  transition: color .15s; padding: 4px 0; display: inline-flex; align-items: center;
 }}
 .suggest-toggle:hover {{ color: var(--teal); }}
-.suggest-toggle::before {{ content: '&#8853;'; }}
 #suggest-form {{ margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }}
 #suggest-form input {{
   background: rgba(0,229,160,.03); border: 1px solid var(--border2); color: var(--text);
@@ -532,9 +535,9 @@ nav.ch-nav {{
 
 <!-- ── Nav ───────────────────────────────────────────────────── -->
 <nav class="ch-nav">
-  <a href="/" class="nav-logo">Triptok<em>Forge</em></a>
+  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
   <div class="ch-nav-links">
-    <a href="/">Home</a>
+    <a href="/home">Home</a>
     <a href="/forge">Island Forge</a>
     <a href="/leaderboard">Leaderboard</a>
     <a href="/channels" class="active">TV Channels</a>
@@ -543,7 +546,7 @@ nav.ch-nav {{
     <a href="/community">Community</a>
   </div>
   <div class="nav-right">
-    <a href="/dashboard">Dashboard</a>
+    <a href="{portal_exit_href}">{portal_exit_label}</a>
     <a href="/whitepages">Whitepages</a>
   </div>
 </nav>
@@ -635,13 +638,13 @@ nav.ch-nav {{
     </div>
 
     <div class="suggest-wrap">
-      <div class="suggest-toggle" onclick="toggleSuggest()">Suggest a Channel</div>
+      <div class="suggest-toggle" onclick="toggleSuggest()">Submit</div>
       <div id="suggest-form" style="display:none">
         <input id="sg-name" type="text" placeholder="Channel name"/>
         <input id="sg-cat"  type="text" placeholder="Category"/>
         <input id="sg-url"  type="text" placeholder="Twitch / YouTube / Kick URL"/>
         <input id="sg-desc" type="text" placeholder="Short description (optional)"/>
-        <button onclick="submitSuggest()">Submit Suggestion</button>
+        <button onclick="submitSuggest()">Submit</button>
         <div id="sg-msg" style="display:none"></div>
       </div>
     </div>
@@ -676,7 +679,7 @@ function loadChannel(url, name) {{
   let lo = url;
   const tch = url.match(/channel=([^&]+)/);
   if (tch) lo = 'https://twitch.tv/' + tch[1];
-  const yt = url.match(/youtube\.com\/embed\/([^?]+)/);
+  const yt = url.match(/youtube\\.com\\/embed\\/([^?]+)/);
   if (yt) lo = 'https://youtu.be/' + yt[1];
   document.getElementById('linkOut').href = lo;
 

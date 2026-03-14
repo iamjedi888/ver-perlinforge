@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>ISLAND FORGE — UEFN Procedural Generator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -20,9 +20,11 @@
     --text:     #c8d0e0;
     --dim:      #4a5570;
     --med:      #7a8aaa;
+    --bright:   #f3f7ff;
     --mono:     'Share Tech Mono', monospace;
     --display:  'Bebas Neue', sans-serif;
     --body:     'DM Sans', sans-serif;
+    --brand:    'Orbitron', monospace;
   }
   html,body { height:100%; background:var(--bg); color:var(--text); font-family:var(--body); font-size:14px; overflow-x:hidden; }
   body::before {
@@ -39,10 +41,29 @@
     background:rgba(10,12,16,.97); backdrop-filter:blur(8px);
     position:sticky; top:0; z-index:100;
   }
-  .logo { display:flex; align-items:baseline; gap:10px; }
-  .logo-mark { font-family:var(--display); font-size:26px; letter-spacing:3px; color:var(--accent); }
-  .logo-sub  { font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:2px; }
+  .logo { display:flex; align-items:center; gap:14px; text-decoration:none; min-width:0; }
+  .logo-copy { display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .logo-mark {
+    font-family:var(--brand); font-size:14px; font-weight:900; letter-spacing:3px;
+    color:var(--accent); text-transform:uppercase; line-height:1; white-space:nowrap;
+  }
+  .logo-mark em { color:var(--accent2); font-style:normal; }
+  .logo-sub  {
+    font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:2px;
+    text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
   .header-right { display:flex; align-items:center; gap:16px; }
+  .portal-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-height:36px; padding:0 16px; border-radius:4px;
+    border:1px solid var(--border2); background:rgba(0,145,255,.06);
+    color:var(--bright); font-family:var(--brand); font-size:11px; font-weight:700;
+    letter-spacing:2px; text-transform:uppercase; text-decoration:none; transition:all .2s;
+  }
+  .portal-btn:hover {
+    border-color:var(--accent); color:var(--accent); background:rgba(0,229,160,.08);
+    box-shadow:0 0 18px rgba(0,229,160,.12);
+  }
   .status-pill {
     display:flex; align-items:center; gap:7px;
     font-family:var(--mono); font-size:11px; color:var(--dim);
@@ -351,17 +372,27 @@
   ::-webkit-scrollbar { width:5px; }
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+  @media (max-width: 720px) {
+    header { padding:14px 18px; }
+    .header-right { gap:10px; }
+    .portal-btn { padding:0 12px; font-size:10px; letter-spacing:1.5px; }
+    .status-pill { padding:5px 10px; }
+    .logo-sub { max-width:140px; }
+  }
 </style>
 </head>
 <body>
 <div class="shell">
 
 <header>
-  <div class="logo">
-    <span class="logo-mark">ISLAND FORGE</span>
-    <span class="logo-sub">UEFN Procedural Generator v1.0</span>
-  </div>
+  <a href="/home" class="logo" aria-label="TriptokForge home">
+    <div class="logo-copy">
+      <span class="logo-mark">Triptok<em>Forge</em></span>
+      <span class="logo-sub">Island Forge // UEFN Procedural Generator</span>
+    </div>
+  </a>
   <div class="header-right">
+    <a href="{{ portal_exit_href }}" class="portal-btn">{{ portal_exit_label }}</a>
     <div class="status-pill">
       <div class="status-dot"></div>
       <span id="status-text">READY</span>
