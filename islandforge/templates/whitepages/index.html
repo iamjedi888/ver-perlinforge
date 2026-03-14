@@ -5,116 +5,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Whitepages — TriptokForge</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Barlow:wght@300;400;500&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-:root{--bg:#04060a;--bg2:#070a10;--surface:#0a0f18;--surface2:#0d1420;--border:#141e2e;--border2:#1e2f44;--teal:#00e5a0;--teal2:#00c887;--teal-glow:rgba(0,229,160,.12);--blue:#0091ff;--amber:#ffaa00;--red:#ff3355;--text:#c8d8e8;--mid:#7a8fa8;--dim:#3a4a5a;--mono:'Share Tech Mono',monospace;--display:'Orbitron',sans-serif;--body:'Barlow',sans-serif;--condensed:'Barlow Condensed',sans-serif;--sw:268px;--hh:54px}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;overflow-x:hidden}
-body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:999}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2)}::-webkit-scrollbar-thumb:hover{background:var(--teal2)}
-.nav{position:fixed;top:0;left:0;right:0;height:var(--hh);z-index:200;background:rgba(4,6,10,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:0}
-.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;margin-right:28px}
-.nav-mark{font-family:var(--display);font-weight:700;font-size:.72rem;letter-spacing:4px;color:var(--teal)}
-.nav-div{width:1px;height:22px;background:var(--border2);margin-right:20px}
-.nav-crumb{font-family:var(--mono);font-size:.62rem;letter-spacing:3px;color:var(--mid)}
-.nav-links{margin-left:auto;display:flex;align-items:center;gap:4px}
-.nav-a{font-family:var(--mono);font-size:.58rem;letter-spacing:2px;color:var(--dim);text-decoration:none;padding:5px 10px;border-radius:3px;transition:all .15s;text-transform:uppercase}
-.nav-a:hover{color:var(--teal);background:var(--teal-glow)}
-.nav-pill{background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);color:var(--teal);font-family:var(--mono);font-size:.56rem;letter-spacing:2px;padding:4px 10px;border-radius:2px}
-.shell{display:flex;padding-top:var(--hh);min-height:100vh}
-.sidebar{width:var(--sw);flex-shrink:0;position:fixed;top:var(--hh);left:0;bottom:0;overflow-y:auto;border-right:1px solid var(--border);background:var(--bg2);padding:28px 0 80px}
-.sb-top{padding:0 18px 24px;border-bottom:1px solid var(--border);margin-bottom:20px}
-.sb-ver{font-family:var(--mono);font-size:.58rem;color:var(--dim);letter-spacing:3px;display:block;margin-top:5px}
-.sb-status{display:flex;align-items:center;gap:6px;margin-top:8px}
-.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 6px var(--teal);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.sb-status span{font-family:var(--mono);font-size:.58rem;color:var(--mid);letter-spacing:2px}
-.sb-group{margin-bottom:24px}
-.sb-glabel{font-family:var(--mono);font-size:.52rem;letter-spacing:4px;color:var(--dim);text-transform:uppercase;padding:0 18px;margin-bottom:5px;display:flex;align-items:center;gap:8px}
-.sb-glabel::after{content:'';flex:1;height:1px;background:var(--border)}
-.sb-a{display:flex;align-items:center;gap:9px;padding:7px 18px;font-family:var(--condensed);font-size:.92rem;font-weight:500;letter-spacing:.5px;color:var(--mid);text-decoration:none;border-left:2px solid transparent;transition:all .12s}
-.sb-a:hover{color:var(--text);background:rgba(255,255,255,.015);border-left-color:var(--border2)}
-.sb-a.active{color:var(--teal);border-left-color:var(--teal);background:var(--teal-glow)}
-.sb-a .ic{font-size:.65rem;opacity:.5;flex-shrink:0;width:13px;text-align:center}
-.sb-tag{margin-left:auto;font-family:var(--mono);font-size:.5rem;letter-spacing:1px;padding:2px 6px;border-radius:2px}
-.tag-live{background:rgba(0,229,160,.1);color:var(--teal)}.tag-wip{background:rgba(255,170,0,.1);color:var(--amber)}.tag-todo{background:rgba(58,74,90,.2);color:var(--dim)}
-.content{margin-left:var(--sw);flex:1;min-width:0;padding:0 0 120px}
-.hero{padding:52px 60px 44px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
-.hero::before{content:'WHITEPAGES';position:absolute;right:-10px;top:50%;transform:translateY(-50%);font-family:var(--display);font-size:7rem;font-weight:900;color:rgba(0,229,160,.022);letter-spacing:6px;pointer-events:none;white-space:nowrap}
-.h-eye{font-family:var(--mono);font-size:.6rem;letter-spacing:5px;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:10px}
-.h-eye::before{content:'';width:20px;height:1px;background:var(--teal)}
-.hero h1{font-family:var(--display);font-weight:900;font-size:3.2rem;letter-spacing:5px;text-transform:uppercase;line-height:1;color:var(--text);margin-bottom:6px}
-.hero h1 em{color:var(--teal);font-style:normal}
-.hero p{font-family:var(--condensed);font-size:1.1rem;font-weight:300;color:var(--mid);max-width:500px;line-height:1.65;margin-bottom:26px}
-.h-stats{display:flex;gap:28px;flex-wrap:wrap}
-.hs .v{font-family:var(--display);font-size:.68rem;font-weight:700;color:var(--teal);letter-spacing:3px;display:block}
-.hs .l{font-family:var(--mono);font-size:.52rem;color:var(--dim);letter-spacing:3px;display:block}
-.doc{padding:48px 60px;border-bottom:1px solid var(--border);scroll-margin-top:68px}
-.doc:last-child{border-bottom:none}
-.dh{display:flex;align-items:flex-start;gap:18px;margin-bottom:28px}
-.dh-num{font-family:var(--display);font-size:.6rem;font-weight:700;color:var(--dim);letter-spacing:4px;margin-top:7px;flex-shrink:0}
-.dh h2{font-family:var(--display);font-weight:700;font-size:1.35rem;letter-spacing:5px;text-transform:uppercase;color:var(--text);line-height:1.1}
-.dh h2 span{color:var(--teal)}
-.dh p{font-family:var(--condensed);font-size:.98rem;font-weight:300;color:var(--mid);margin-top:7px;line-height:1.6}
-.prose p{font-size:.95rem;color:var(--mid);margin-bottom:13px;line-height:1.75;font-weight:300}
-.prose h3{font-family:var(--condensed);font-weight:600;font-size:.95rem;letter-spacing:3px;text-transform:uppercase;color:var(--text);margin:24px 0 10px;display:flex;align-items:center;gap:9px}
-.prose h3::before{content:'';width:14px;height:1px;background:var(--teal)}
-.prose ul{list-style:none;margin:0 0 16px}
-.prose li{font-size:.92rem;color:var(--mid);padding:4px 0 4px 18px;position:relative;line-height:1.6;font-weight:300}
-.prose li::before{content:'▸';position:absolute;left:0;color:var(--teal);font-size:.65em;top:6px}
-code{font-family:var(--mono);font-size:.78em;color:var(--teal);background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.1);padding:1px 6px;border-radius:3px}
-.callout{display:flex;gap:12px;padding:14px 16px;border-radius:4px;margin:18px 0;border:1px solid}
-.callout.green{background:rgba(0,229,160,.03);border-color:rgba(0,229,160,.18)}.callout.blue{background:rgba(0,145,255,.03);border-color:rgba(0,145,255,.18)}.callout.amber{background:rgba(255,170,0,.03);border-color:rgba(255,170,0,.18)}.callout.red{background:rgba(255,51,85,.03);border-color:rgba(255,51,85,.18)}
-.callout-icon{font-size:.9rem;flex-shrink:0;margin-top:1px}
-.c-title{font-family:var(--mono);font-size:.58rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}
-.callout.green .c-title{color:var(--teal)}.callout.blue .c-title{color:var(--blue)}.callout.amber .c-title{color:var(--amber)}.callout.red .c-title{color:var(--red)}
-.callout p{font-size:.86rem;color:var(--mid);margin:0;font-weight:300}
-.tw{overflow-x:auto;margin:16px 0;border:1px solid var(--border);border-radius:4px}
-table{width:100%;border-collapse:collapse;font-size:.83rem}
-thead tr{background:var(--surface)}
-th{font-family:var(--mono);font-size:.56rem;letter-spacing:3px;text-transform:uppercase;color:var(--dim);padding:11px 14px;text-align:left;border-bottom:1px solid var(--border2)}
-td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--mid);font-weight:300;vertical-align:top;line-height:1.5}
-tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008)}
-.method{font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:2px;white-space:nowrap}
-.get{background:rgba(0,229,160,.08);color:var(--teal)}.post{background:rgba(0,145,255,.08);color:var(--blue)}
-.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:9px;margin:18px 0}
-.fc{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:13px 15px;transition:border-color .15s;position:relative;overflow:hidden}
-.fc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border)}
-.fc.done::before{background:var(--teal)}.fc.wip::before{background:var(--amber)}
-.fc:hover{border-color:var(--border2)}
-.fc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
-.fc-name{font-family:var(--mono);font-size:.65rem;color:var(--text)}
-.fc-st{font-family:var(--mono);font-size:.5rem;letter-spacing:1px;padding:2px 6px;border-radius:2px}
-.st-done{background:rgba(0,229,160,.08);color:var(--teal)}.st-wip{background:rgba(255,170,0,.08);color:var(--amber)}.st-todo{background:rgba(58,74,90,.2);color:var(--dim)}
-.fc-desc{font-size:.78rem;color:var(--dim);line-height:1.5}
-.steps{display:flex;flex-direction:column;gap:0;margin:18px 0}
-.step{display:flex;gap:18px;padding-bottom:28px;position:relative}
-.step::after{content:'';position:absolute;left:16px;top:34px;bottom:0;width:1px;background:linear-gradient(to bottom,var(--border2),transparent)}
-.step:last-child::after{display:none}
-.step-n{width:34px;height:34px;flex-shrink:0;border:1px solid var(--teal);border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:.58rem;font-weight:700;color:var(--teal);background:rgba(0,229,160,.04)}
-.step-b{flex:1;padding-top:5px}
-.step-b strong{font-family:var(--condensed);font-weight:600;font-size:.95rem;letter-spacing:1px;color:var(--text);display:block;margin-bottom:3px;text-transform:uppercase}
-.step-b p{font-size:.86rem;color:var(--mid);font-weight:300;line-height:1.6}
-.zones{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:9px;margin:18px 0}
-.zone{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px;transition:border-color .15s}
-.zone:hover{border-color:var(--border2)}
-.z-tier{font-family:var(--display);font-size:.55rem;font-weight:700;letter-spacing:4px;margin-bottom:7px}
-.z-name{font-family:var(--condensed);font-weight:600;font-size:1.05rem;letter-spacing:2px;text-transform:uppercase;color:var(--text);margin-bottom:5px}
-.z-desc{font-size:.78rem;color:var(--dim);line-height:1.5}
-.frontier{border-top:2px solid #44cc88}.wildlands{border-top:2px solid var(--amber)}.corrupted{border-top:2px solid var(--blue)}.nightmare{border-top:2px solid var(--red)}
-.frontier .z-tier{color:#44cc88}.wildlands .z-tier{color:var(--amber)}.corrupted .z-tier{color:var(--blue)}.nightmare .z-tier{color:var(--red)}
-.footer{margin-left:var(--sw);border-top:1px solid var(--border);padding:18px 60px;display:flex;align-items:center;gap:14px}
-.f-logo{font-family:var(--display);font-size:.6rem;font-weight:700;letter-spacing:4px;color:var(--teal)}
-.f-sep{color:var(--border2)}.f-txt{font-family:var(--mono);font-size:.56rem;color:var(--dim);letter-spacing:2px}
-.f-copy{margin-left:auto;font-family:var(--mono);font-size:.56rem;color:var(--dim)}
-@media(max-width:820px){:root{--sw:0px}.sidebar{display:none}.content,.footer{margin-left:0}.hero,.doc{padding:30px 22px}.hero h1{font-size:2.2rem}}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=VT323&family=Share+Tech+Mono&family=Barlow:wght@300;400;500&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/codex-theme.css"/>
 </head>
-<body>
+<body class="codex-page">
+
+<!-- ══ BOOT SEQUENCE ══════════════════════════════════════════ -->
+<div id="boot-seq">
+  <div class="boot-logo">VAULT·TEC</div>
+  <div id="boot-lines"></div>
+</div>
+
+<!-- ══ MOUSE PARTICLE CANVAS ═════════════════════════════════ -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- ══ NAV ════════════════════════════════════════════════════ -->
 <nav class="nav">
   <a href="/home" class="nav-logo">
-    <svg width="20" height="20" viewBox="0 0 256 256"><rect width="256" height="256" rx="44" fill="#07090d"/><polygon points="36,32 208,32 220,44 220,212 208,224 36,224 24,212 24,44" fill="#0d1018" stroke="#1a2535" stroke-width="2"/><rect x="44" y="62" width="168" height="34" fill="#00e5a0"/><rect x="99" y="96" width="58" height="100" fill="#00e5a0"/><polygon points="82,62 118,62 156,130 120,130" fill="#07090d"/><rect x="99" y="130" width="58" height="66" fill="#00e5a0"/><rect x="44" y="196" width="168" height="10" fill="#0091ff"/></svg>
+    <svg width="20" height="20" viewBox="0 0 256 256"><rect width="256" height="256" rx="44" fill="#07090d"/><polygon points="36,32 208,32 220,44 220,212 208,224 36,224 24,212 24,44" fill="#0d1018" stroke="#1a2535" stroke-width="2"/><rect x="44" y="62" width="168" height="34" fill="#00ff41"/><rect x="99" y="96" width="58" height="100" fill="#00ff41"/><polygon points="82,62 118,62 156,130 120,130" fill="#07090d"/><rect x="99" y="130" width="58" height="66" fill="#00ff41"/><rect x="44" y="196" width="168" height="10" fill="#00eaff"/></svg>
     <span class="nav-mark">TriptokForge</span>
   </a>
   <div class="nav-div"></div>
@@ -127,39 +35,53 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
     <span class="nav-pill">Dev Docs</span>
   </div>
 </nav>
+
+<!-- ══ SHELL ══════════════════════════════════════════════════ -->
 <div class="shell">
+
+<!-- ── SIDEBAR ─────────────────────────────────────────────── -->
 <aside class="sidebar">
   <div class="sb-top">
-    <svg width="28" height="28" viewBox="0 0 256 256"><rect width="256" height="256" rx="44" fill="#07090d"/><polygon points="36,32 208,32 220,44 220,212 208,224 36,224 24,212 24,44" fill="#0d1018" stroke="#1a2535" stroke-width="2"/><rect x="44" y="62" width="168" height="34" fill="#00e5a0"/><rect x="99" y="96" width="58" height="100" fill="#00e5a0"/><polygon points="82,62 118,62 156,130 120,130" fill="#07090d"/><rect x="99" y="130" width="58" height="66" fill="#00e5a0"/><rect x="44" y="196" width="168" height="10" fill="#0091ff"/></svg>
+    <svg width="28" height="28" viewBox="0 0 256 256"><rect width="256" height="256" rx="44" fill="#07090d"/><polygon points="36,32 208,32 220,44 220,212 208,224 36,224 24,212 24,44" fill="#0d1018" stroke="#1a2535" stroke-width="2"/><rect x="44" y="62" width="168" height="34" fill="#00ff41"/><rect x="99" y="96" width="58" height="100" fill="#00ff41"/><polygon points="82,62 118,62 156,130 120,130" fill="#07090d"/><rect x="99" y="130" width="58" height="66" fill="#00ff41"/><rect x="44" y="196" width="168" height="10" fill="#00eaff"/></svg>
     <span class="sb-ver">WHITEPAGES · v0.4.1</span>
     <div class="sb-status"><div class="sb-dot"></div><span>SYSTEM ONLINE</span></div>
   </div>
-  <div class="sb-group"><div class="sb-glabel">Platform</div>
-    <a href="#overview" class="sb-a active"><span class="ic">◈</span>Overview</a>
+  <div class="sb-group">
+    <div class="sb-glabel">Platform</div>
+    <a href="#overview"     class="sb-a active"><span class="ic">◈</span>Overview</a>
     <a href="#architecture" class="sb-a"><span class="ic">⬡</span>Architecture</a>
-    <a href="#deploy" class="sb-a"><span class="ic">↑</span>Deploy Guide</a>
+    <a href="#deploy"       class="sb-a"><span class="ic">↑</span>Deploy Guide</a>
   </div>
-  <div class="sb-group"><div class="sb-glabel">API</div>
-    <a href="#routes" class="sb-a"><span class="ic">⇌</span>Routes <span class="sb-tag tag-live">LIVE</span></a>
+  <div class="sb-group">
+    <div class="sb-glabel">API</div>
+    <a href="#routes"   class="sb-a"><span class="ic">⇌</span>Routes <span class="sb-tag tag-live">LIVE</span></a>
     <a href="#database" class="sb-a"><span class="ic">◉</span>Schema</a>
   </div>
-  <div class="sb-group"><div class="sb-glabel">Verse / UEFN</div>
-    <a href="#verse" class="sb-a"><span class="ic">◇</span>Architecture</a>
+  <div class="sb-group">
+    <div class="sb-glabel">Verse / UEFN</div>
+    <a href="#verse"       class="sb-a"><span class="ic">◇</span>Architecture</a>
     <a href="#verse-files" class="sb-a"><span class="ic">▤</span>File Reference</a>
   </div>
-  <div class="sb-group"><div class="sb-glabel">Features</div>
+  <div class="sb-group">
+    <div class="sb-glabel">Features</div>
     <a href="#island-forge" class="sb-a"><span class="ic">▲</span>Island Forge</a>
-    <a href="#channels" class="sb-a"><span class="ic">▶</span>Channels</a>
-    <a href="#epic-oauth" class="sb-a"><span class="ic">⚡</span>Epic OAuth <span class="sb-tag tag-wip">PENDING</span></a>
+    <a href="#channels"     class="sb-a"><span class="ic">▶</span>Channels</a>
+    <a href="#epic-oauth"   class="sb-a"><span class="ic">⚡</span>Epic OAuth <span class="sb-tag tag-wip">PENDING</span></a>
   </div>
-  <div class="sb-group"><div class="sb-glabel">Tarkov-Lite</div>
-    <a href="#tarkov" class="sb-a"><span class="ic">◐</span>Vision</a>
+  <div class="sb-group">
+    <div class="sb-glabel">Tarkov-Lite</div>
+    <a href="#tarkov"         class="sb-a"><span class="ic">◐</span>Vision</a>
     <a href="#tarkov-systems" class="sb-a"><span class="ic">⚙</span>Systems <span class="sb-tag tag-wip">WIP</span></a>
-    <a href="#tarkov-zones" class="sb-a"><span class="ic">◎</span>Zones</a>
+    <a href="#tarkov-zones"   class="sb-a"><span class="ic">◎</span>Zones</a>
   </div>
 </aside>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────────── -->
 <main class="content">
+
+  <!-- HERO -->
   <div class="hero">
+    <div class="hero-bg-text">VAULT-TEC</div>
     <div class="h-eye">Developer Reference</div>
     <h1>White<em>pages</em></h1>
     <p>Internal docs — Flask backend, Oracle Cloud, UEFN Verse game systems, and the Tarkov-Lite MMO.</p>
@@ -169,7 +91,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       <div class="hs"><span class="v">UEFN + Verse</span><span class="l">Engine</span></div>
       <div class="hs"><span class="v">65 Channels</span><span class="l">Live</span></div>
     </div>
+    <!-- Radiation ticker strip -->
+    <div class="hero-ticker">
+      <div class="hero-ticker-inner">
+        ▌ STRUCT INTEGRITY: 47% ▌ FUSION CORE: STABLE ▌ THREAT LEVEL: NOMINAL ▌ VAULT DOOR: SEALED ▌ RADIATION: ELEVATED ▌ NEURAL NET: ACTIVE ▌ JARVIS OVERLAY: LOADED ▌ OPERATOR AUTHENTICATED ▌ STRUCT INTEGRITY: 47% ▌ FUSION CORE: STABLE ▌ THREAT LEVEL: NOMINAL ▌ VAULT DOOR: SEALED ▌ RADIATION: ELEVATED ▌ NEURAL NET: ACTIVE ▌
+      </div>
+    </div>
   </div>
+
+  <!-- 01 OVERVIEW -->
   <section class="doc" id="overview">
     <div class="dh"><div class="dh-num">01</div><div><h2>Platform <span>Overview</span></h2><p>Fortnite esports community — island generation, live channels, social feed, player profiles.</p></div></div>
     <div class="prose">
@@ -185,6 +115,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
     </div>
     <div class="callout green"><div class="callout-icon">◈</div><div><div class="c-title">Status</div><p>Live at <code>triptokforge.org</code>. Blueprint v4.0. Epic OAuth pending brand review — all other features operational.</p></div></div>
   </section>
+
+  <!-- 02 ARCHITECTURE -->
   <section class="doc" id="architecture">
     <div class="dh"><div class="dh-num">02</div><div><h2>System <span>Architecture</span></h2><p>Oracle Always Free ARM — nginx → Gunicorn → Flask Blueprints.</p></div></div>
     <div class="prose">
@@ -207,6 +139,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       </ul>
     </div>
   </section>
+
+  <!-- 03 DEPLOY -->
   <section class="doc" id="deploy">
     <div class="dh"><div class="dh-num">03</div><div><h2>Deploy <span>Guide</span></h2><p>Commit locally → push GitHub → pull VM → restart.</p></div></div>
     <div class="steps">
@@ -216,6 +150,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
     </div>
     <div class="callout amber"><div class="callout-icon">⚠</div><div><div class="c-title">Git Auth</div><p>Set token once: <code>git remote set-url origin https://iamjedi888:TOKEN@github.com/iamjedi888/ver-perlinforge.git</code></p></div></div>
   </section>
+
+  <!-- 04 ROUTES -->
   <section class="doc" id="routes">
     <div class="dh"><div class="dh-num">04</div><div><h2>Routes <span>Reference</span></h2><p>All live routes — v4.0 Blueprint architecture.</p></div></div>
     <div class="tw"><table>
@@ -240,6 +176,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       </tbody>
     </table></div>
   </section>
+
+  <!-- 05 DATABASE -->
   <section class="doc" id="database">
     <div class="dh"><div class="dh-num">05</div><div><h2>Database <span>Schema</span></h2><p>Oracle Autonomous DB — python-oracledb thin mode. Tables auto-created via init_schema().</p></div></div>
     <div class="tw"><table>
@@ -254,6 +192,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       </tbody>
     </table></div>
   </section>
+
+  <!-- 06 VERSE ARCHITECTURE -->
   <section class="doc" id="verse">
     <div class="dh"><div class="dh-num">06</div><div><h2>Verse <span>Architecture</span></h2><p>Tarkov-Lite systems in Verse for UEFN. Immutable player_data pattern throughout.</p></div></div>
     <div class="prose">
@@ -267,6 +207,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       </ul>
     </div>
   </section>
+
+  <!-- 07 VERSE FILE REFERENCE -->
   <section class="doc" id="verse-files">
     <div class="dh"><div class="dh-num">07</div><div><h2>Verse File <span>Reference</span></h2><p>Build via UEFN → Verse → Build Verse Code.</p></div></div>
     <div class="fg">
@@ -284,6 +226,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       <div class="fc wip"><div class="fc-top"><span class="fc-name">world_evolution_manager.verse</span><span class="fc-st st-todo">TODO</span></div><div class="fc-desc">Activity tracking, prop swaps, build persistence.</div></div>
     </div>
   </section>
+
+  <!-- 08 ISLAND FORGE -->
   <section class="doc" id="island-forge">
     <div class="dh"><div class="dh-num">08</div><div><h2>Island <span>Forge</span></h2><p>Audio → heightmap pipeline for UEFN island generation.</p></div></div>
     <div class="steps">
@@ -293,6 +237,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       <div class="step"><div class="step-n">04</div><div class="step-b"><strong>Export</strong><p>PNG + metadata saved to OCI. URL written to island_saves table.</p></div></div>
     </div>
   </section>
+
+  <!-- 09 CHANNELS -->
   <section class="doc" id="channels">
     <div class="dh"><div class="dh-num">09</div><div><h2>Live <span>Channels</span></h2><p>65 channels across 18 categories. Roku-style embedded player.</p></div></div>
     <div class="prose">
@@ -304,11 +250,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       <p>New channels via <code>POST /api/suggest_channel</code> → pending queue → approved in admin panel.</p>
     </div>
   </section>
+
+  <!-- 10 EPIC OAUTH -->
   <section class="doc" id="epic-oauth">
     <div class="dh"><div class="dh-num">10</div><div><h2>Epic <span>OAuth</span></h2><p>Epic Games OAuth2 — pending brand approval.</p></div></div>
     <div class="callout red"><div class="callout-icon">⚡</div><div><div class="c-title">Pending</div><p>Current deployment ID: <code>b4d6e13c2206494a88d6ea1783129dad</code> · Approved ID: <code>8c57f3550d41430f9cf2ff2be4695fbf</code></p></div></div>
     <div class="prose"><p>On approval — update <code>EPIC_DEPLOYMENT_ID</code> in systemd service, then daemon-reload + restart.</p></div>
   </section>
+
+  <!-- 11 TARKOV VISION -->
   <section class="doc" id="tarkov">
     <div class="dh"><div class="dh-num">11</div><div><h2>Tarkov-Lite <span>Vision</span></h2><p>Persistent extraction MMO on Fortnite — Tarkov risk/reward inside UEFN.</p></div></div>
     <div class="prose">
@@ -323,6 +273,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       </ul>
     </div>
   </section>
+
+  <!-- 12 GAME SYSTEMS -->
   <section class="doc" id="tarkov-systems">
     <div class="dh"><div class="dh-num">12</div><div><h2>Game <span>Systems</span></h2><p>All systems in Verse, communicating via immutable player_data.</p></div></div>
     <div class="prose">
@@ -340,6 +292,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       </ul>
     </div>
   </section>
+
+  <!-- 13 ZONE TIERS -->
   <section class="doc" id="tarkov-zones">
     <div class="dh"><div class="dh-num">13</div><div><h2>Zone <span>Tiers</span></h2><p>Four extraction zones scaling from starter to endgame.</p></div></div>
     <div class="zones">
@@ -349,17 +303,18 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.008
       <div class="zone nightmare"><div class="z-tier">Tier 04</div><div class="z-name">Nightmare</div><div class="z-desc">Endgame. Max penalty. Mythic loot. Legendary enemies.</div></div>
     </div>
   </section>
+
 </main>
-</div>
+</div><!-- end .shell -->
+
+<!-- ══ FOOTER ═════════════════════════════════════════════════ -->
 <footer class="footer">
-  <span class="f-logo">TriptokForge</span><span class="f-sep">/</span>
+  <span class="f-logo">TriptokForge</span>
+  <span class="f-sep">/</span>
   <span class="f-txt">Whitepages — Internal Developer Reference</span>
   <span class="f-copy">© 2026 EuphoriÆ Studios</span>
 </footer>
-<script>
-const secs=document.querySelectorAll('.doc[id]'),links=document.querySelectorAll('.sb-a');
-const io=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){links.forEach(l=>l.classList.remove('active'));const a=document.querySelector('.sb-a[href="#'+x.target.id+'"]');if(a)a.classList.add('active')}})},{rootMargin:'-15% 0px -75% 0px'});
-secs.forEach(s=>io.observe(s));
-</script>
+
+<script src="/static/js/codex-fx.js"></script>
 </body>
 </html>
