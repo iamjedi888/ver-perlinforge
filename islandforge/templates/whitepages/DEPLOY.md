@@ -67,11 +67,13 @@ WorkingDirectory=/home/ubuntu/ver-perlinforge/islandforge
 ExecStart=/usr/local/bin/gunicorn -w 2 -b 0.0.0.0:5000 wsgi:application
 Restart=always
 RestartSec=5
-Environment="EPIC_CLIENT_ID=xyza7891Qe7LilJtX5iFxwuLlazSBexH"
-Environment="EPIC_CLIENT_SECRET=YOUR_SECRET_HERE"
-Environment="EPIC_DEPLOYMENT_ID=b4d6e13c2206494a88d6ea1783129dad"
-Environment="FLASK_SECRET_KEY=triptokforge2026epicstudio"
-Environment="ADMIN_PASSWORD=YOUR_ADMIN_PASSWORD_HERE"
+Environment="EPIC_CLIENT_ID=YOUR_EPIC_CLIENT_ID_HERE"
+Environment="EPIC_CLIENT_SECRET=YOUR_EPIC_CLIENT_SECRET_HERE"
+Environment="EPIC_DEPLOYMENT_ID=YOUR_EPIC_DEPLOYMENT_ID_HERE"
+Environment="APP_BASE_URL=https://triptokforge.org"
+Environment="EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback"
+Environment="FLASK_SECRET_KEY=REPLACE_WITH_A_LONG_RANDOM_SECRET"
+Environment="ADMIN_PASSWORD=REPLACE_WITH_A_LONG_RANDOM_PASSWORD"
 
 [Install]
 WantedBy=multi-user.target
@@ -79,6 +81,24 @@ WantedBy=multi-user.target
 
 > ⚠️ Never commit `EPIC_CLIENT_SECRET` or `ADMIN_PASSWORD` to GitHub.  
 > Set them only in the systemd service file on the server.
+
+### Epic approval hand-off
+
+When Epic approves `triptokforge.org`, update the Oracle server with:
+
+- `APP_BASE_URL=https://triptokforge.org`
+- `EPIC_CLIENT_ID`
+- `EPIC_CLIENT_SECRET`
+- `EPIC_DEPLOYMENT_ID`
+- `EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback` if Epic requires the explicit override
+
+Then reload and restart:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart islandforge
+sudo systemctl status islandforge
+```
 
 ---
 

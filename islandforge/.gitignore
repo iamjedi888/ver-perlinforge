@@ -39,6 +39,7 @@ truststore.jks
 .env
 .env.*
 *.env
+!.env.example
 
 # Generated outputs — use OCI storage, not git
 outputs/

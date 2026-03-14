@@ -1,8 +1,8 @@
 """
 TriptokForge - Complete Forge Routes
 Drop this into: islandforge/routes/forge_routes.py
-Then in server.py: from routes.forge_routes import forge_bp
-                    app.register_blueprint(forge_bp)
+Then in server.py: from routes.forge_routes import forge_downloads_bp
+                    app.register_blueprint(forge_downloads_bp)
 """
 
 from flask import Blueprint, request, jsonify, send_file
@@ -13,10 +13,10 @@ from compression_utils import (
     create_verse_package_zip
 )
 
-forge_bp = Blueprint('forge', __name__)
+forge_downloads_bp = Blueprint('forge_downloads', __name__)
 
 
-@forge_bp.route('/api/forge/download-verse', methods=['POST'])
+@forge_downloads_bp.route('/api/forge/download-verse', methods=['POST'])
 def download_verse_package():
     """Download Verse package as zip file"""
     try:
@@ -41,7 +41,7 @@ def download_verse_package():
         return jsonify({'error': str(e)}), 500
 
 
-@forge_bp.route('/api/forge/get-saved-verse/<int:save_id>', methods=['GET'])
+@forge_downloads_bp.route('/api/forge/get-saved-verse/<int:save_id>', methods=['GET'])
 def get_saved_verse_package(save_id):
     """Retrieve saved Verse package from Oracle"""
     try:

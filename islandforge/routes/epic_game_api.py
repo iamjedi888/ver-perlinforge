@@ -1,5 +1,4 @@
-EPIC_CONFIG = {
-    'client_id': os.getenv('EPIC_CLIENT_ID', 'PLACEHOLDER'),
-    'client_secret': os.getenv('EPIC_CLIENT_SECRET', 'PLACEHOLDER'),
-    'redirect_uri': 'https://triptokforge.org/auth/epic/callback'
-}
+from routes.epic_auth_config import get_epic_auth_config
+
+
+EPIC_CONFIG = get_epic_auth_config()

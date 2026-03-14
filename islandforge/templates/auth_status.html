@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} | TriptokForge</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #081018;
+      --panel: #101a25;
+      --panel-2: #152232;
+      --text: #e6f2ff;
+      --muted: #9ab0c8;
+      --accent: #00e5a0;
+      --accent-2: #0091ff;
+      --border: rgba(255, 255, 255, 0.08);
+      --danger: #ff6a7d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(0, 145, 255, 0.18), transparent 35%),
+        radial-gradient(circle at bottom left, rgba(0, 229, 160, 0.12), transparent 30%),
+        var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .panel {
+      width: min(760px, 100%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .hero {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(0, 229, 160, 0.08), rgba(0, 145, 255, 0.08));
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 5vw, 40px);
+      line-height: 1.05;
+    }
+
+    .hero p,
+    .body p,
+    .body li {
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    .body {
+      padding: 28px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    code {
+      display: block;
+      margin-top: 8px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .missing {
+      color: var(--danger);
+      font-weight: bold;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      text-decoration: none;
+      padding: 12px 16px;
+      border-radius: 999px;
+      font-weight: bold;
+      border: 1px solid var(--border);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #041018;
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <section class="hero">
+      <div class="eyebrow">TriptokForge / Epic OAuth</div>
+      <h1>{{ title }}</h1>
+      <p>{{ message }}</p>
+    </section>
+    <section class="body">
+      <div class="card">
+        <h2>Required Server Variables</h2>
+        {% if missing_vars %}
+          <p>These values still need to be set on the Oracle server:</p>
+          <ul>
+            {% for item in missing_vars %}
+              <li class="missing">{{ item }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Epic credentials are present. If login is still failing, confirm the approved domain and redirect URI match Epic exactly.</p>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h2>Domain Hand-off</h2>
+        <p>Once Epic approves the domain, the app should be restarted with the production values below.</p>
+        <code>APP_BASE_URL={{ base_url }}</code>
+        <code>EPIC_REDIRECT_URI={{ redirect_uri }}</code>
+      </div>
+
+      <div class="card">
+        <h2>Next Steps</h2>
+        <ul>
+          <li>Set <strong>APP_BASE_URL</strong> to the approved public domain.</li>
+          <li>Set <strong>EPIC_CLIENT_ID</strong>, <strong>EPIC_CLIENT_SECRET</strong>, and <strong>EPIC_DEPLOYMENT_ID</strong> on the Oracle server.</li>
+          <li>Run <strong>sudo systemctl daemon-reload</strong> and <strong>sudo systemctl restart islandforge</strong>.</li>
+          <li>Start the login flow again from the home page.</li>
+        </ul>
+      </div>
+
+      <div class="actions">
+        <a class="btn btn-primary" href="/home">Back to Home</a>
+        <a class="btn btn-secondary" href="/whitepages">Open Whitepages</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
