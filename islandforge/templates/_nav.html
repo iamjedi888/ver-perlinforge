@@ -1,6 +1,6 @@
 <nav class="site-nav">
     <div class="nav-container">
-        <a href="/" class="nav-logo">TRIPTOKFORGE</a>
+        <a href="/" class="nav-logo">Triptok<em>Forge</em></a>
         <div class="nav-links">
             <a href="/" class="nav-link">Home</a>
             <a href="/forge" class="nav-link">Island Forge</a>
@@ -10,58 +10,173 @@
             <a href="/cardgame" class="nav-link">Card Game</a>
             <a href="/community" class="nav-link">Community</a>
         </div>
+        <div class="nav-right">
+            <a href="/dashboard" class="nav-link nav-link--accent">Dashboard</a>
+            <a href="/whitepages" class="nav-link nav-link--vault">Whitepages</a>
+        </div>
     </div>
 </nav>
 
 <style>
+:root {
+    --nav-bg:     rgba(7, 9, 13, 0.96);
+    --nav-border: #1a2535;
+    --teal:       #00e5a0;
+    --teal-dim:   rgba(0, 229, 160, 0.08);
+    --teal-glow:  rgba(0, 229, 160, 0.25);
+    --blue:       #0091ff;
+    --blue-dim:   rgba(0, 145, 255, 0.08);
+    --nav-text:   #7a8aa8;
+    --nav-dim:    #3a4a60;
+}
+
 .site-nav {
-    background: var(--surface, #111318);
-    border-bottom: 1px solid var(--border, #1e2330);
+    background: var(--nav-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid var(--nav-border);
     position: sticky;
     top: 0;
     z-index: 999;
 }
+
+.site-nav::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,229,160,.25) 30%, rgba(0,145,255,.25) 70%, transparent);
+    pointer-events: none;
+}
+
 .nav-container {
-    max-width: 1400px;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 28px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    height: 60px;
+    height: 56px;
+    gap: 0;
 }
+
 .nav-logo {
-    font-family: var(--display, 'Bebas Neue', sans-serif);
-    font-size: 24px;
+    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
     letter-spacing: 3px;
-    color: var(--accent, #00e5a0);
+    color: var(--teal);
     text-decoration: none;
+    text-transform: uppercase;
     transition: color 0.2s;
+    flex-shrink: 0;
+    text-shadow: 0 0 12px var(--teal-glow);
 }
-.nav-logo:hover { color: var(--accent2, #0091ff); }
+
+.nav-logo em {
+    color: var(--blue);
+    font-style: normal;
+}
+
+.nav-logo:hover { color: var(--blue); }
+
 .nav-links {
     display: flex;
-    gap: 24px;
+    gap: 2px;
     align-items: center;
+    margin-left: 20px;
+    flex: 1;
 }
+
+.nav-right {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
 .nav-link {
-    color: var(--text, #c8d0e0);
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: var(--mono, monospace);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 0.56rem;
+    font-weight: 400;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 8px 12px;
-    border-radius: 4px;
-    transition: all 0.2s;
+    color: var(--nav-text);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 2px;
+    transition: all 0.15s;
+    white-space: nowrap;
+    border: 1px solid transparent;
 }
+
 .nav-link:hover {
-    background: rgba(0, 229, 160, 0.1);
-    color: var(--accent, #00e5a0);
+    color: var(--teal);
+    background: var(--teal-dim);
+    border-color: rgba(0,229,160,0.15);
 }
+
+/* Active page highlight — set via JS or Jinja */
+.nav-link.active {
+    color: var(--teal);
+    border-color: rgba(0,229,160,0.2);
+    background: var(--teal-dim);
+}
+
+/* Dashboard accent */
+.nav-link--accent {
+    color: var(--blue);
+    border-color: rgba(0,145,255,0.2);
+    background: var(--blue-dim);
+}
+
+.nav-link--accent:hover {
+    color: #fff;
+    border-color: var(--blue);
+    background: rgba(0,145,255,0.15);
+    box-shadow: 0 0 12px rgba(0,145,255,0.2);
+}
+
+/* Whitepages vault link */
+.nav-link--vault {
+    color: #00ff41;
+    border-color: rgba(0,255,65,0.15);
+    background: rgba(0,255,65,0.04);
+    font-family: 'VT323', 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+}
+
+.nav-link--vault:hover {
+    color: #00ff41;
+    border-color: rgba(0,255,65,0.4);
+    background: rgba(0,255,65,0.08);
+    box-shadow: 0 0 10px rgba(0,255,65,0.15);
+}
+
+/* Auto-highlight current page */
+.site-nav .nav-link[href]:not(.nav-link--accent):not(.nav-link--vault) {
+    position: relative;
+}
+
+@media (max-width: 900px) {
+    .nav-links { gap: 0; }
+    .nav-link { font-size: 0.52rem; padding: 5px 7px; }
+}
+
 @media (max-width: 768px) {
-    .nav-links { gap: 12px; }
-    .nav-link { font-size: 11px; padding: 6px 8px; }
+    .nav-links { display: none; }
+    .nav-container { padding: 0 14px; }
 }
 </style>
+
+<script>
+/* Auto-highlight current page nav link */
+(function() {
+    const path = window.location.pathname.replace(/\/$/, '') || '/';
+    document.querySelectorAll('.site-nav .nav-link').forEach(a => {
+        const href = a.getAttribute('href').replace(/\/$/, '') || '/';
+        if (href === path) a.classList.add('active');
+    });
+})();
+</script>

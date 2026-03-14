@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin — TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=VT323&family=Barlow+Condensed:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --g: #00ff41; --gd: #00922a; --gl: rgba(0,255,65,.1);
+  --c: #00eaff; --r: #ff2a2a;  --a: #ffaa00;
+  --bg: #050505; --s: #080e09;  --b: rgba(0,255,65,.14);
+  --text: #b8ffd0; --mid: #4a7a5a; --dim: #1e3a28;
+  --mono: 'VT323','Share Tech Mono',monospace;
+  --display: 'Orbitron',sans-serif;
+  --body: 'Barlow Condensed','Barlow',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;padding:0}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:9999}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--gd)}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(4,8,5,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--g);box-shadow:0 1px 20px rgba(0,255,65,.12);padding:0 28px;height:52px;display:flex;align-items:center;gap:16px}
+.nav-logo{font-family:var(--display);font-size:.72rem;letter-spacing:4px;color:var(--g);text-shadow:0 0 12px var(--g);text-decoration:none}
+.nav-sep{color:var(--dim)}
+.nav-crumb{font-family:var(--mono);font-size:.8rem;letter-spacing:3px;color:var(--c);text-shadow:0 0 8px var(--c)}
+.nav-links{margin-left:auto;display:flex;gap:6px}
+.nav-a{font-family:var(--mono);font-size:.7rem;letter-spacing:2px;color:var(--mid);text-decoration:none;padding:4px 9px;border:1px solid transparent;border-radius:2px;transition:all .15s}
+.nav-a:hover{color:var(--g);border-color:var(--b);background:var(--gl)}
+
+/* LAYOUT */
+.shell{max-width:1100px;margin:0 auto;padding:32px 28px 80px}
+
+/* LOGIN SCREEN */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 52px)}
+.login-box{background:rgba(5,14,8,.7);border:1px solid var(--b);border-radius:4px;padding:48px 52px;width:380px;text-align:center}
+.login-logo{font-family:var(--display);font-size:1.1rem;letter-spacing:6px;color:var(--g);text-shadow:0 0 20px var(--g);margin-bottom:8px}
+.login-sub{font-family:var(--mono);font-size:.7rem;color:var(--mid);letter-spacing:3px;margin-bottom:32px}
+.login-box input[type=password]{width:100%;background:rgba(0,255,65,.04);border:1px solid var(--b);color:var(--text);font-family:var(--mono);font-size:1rem;padding:10px 14px;border-radius:2px;outline:none;letter-spacing:3px;margin-bottom:14px}
+.login-box input[type=password]:focus{border-color:var(--g);box-shadow:0 0 12px rgba(0,255,65,.15)}
+.btn{background:transparent;border:1px solid var(--g);color:var(--g);font-family:var(--mono);font-size:.78rem;letter-spacing:3px;padding:9px 22px;border-radius:2px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.btn:hover{background:var(--gl);box-shadow:0 0 15px rgba(0,255,65,.2)}
+.btn-red{border-color:var(--r);color:var(--r)}
+.btn-red:hover{background:rgba(255,42,42,.08);box-shadow:0 0 12px rgba(255,42,42,.15)}
+.btn-sm{padding:5px 12px;font-size:.66rem}
+
+/* SECTION HEADER */
+.sec{margin-bottom:40px}
+.sec-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--b)}
+.sec-head h2{font-family:var(--display);font-size:.9rem;letter-spacing:5px;text-transform:uppercase;color:var(--text)}
+.sec-head h2 span{color:var(--g);text-shadow:0 0 10px var(--g)}
+.sec-icon{font-size:1rem;color:var(--c);text-shadow:0 0 8px var(--c)}
+.sec-count{margin-left:auto;font-family:var(--mono);font-size:.65rem;color:var(--mid);letter-spacing:2px;background:var(--gl);border:1px solid var(--b);padding:3px 8px;border-radius:2px}
+
+/* FORM */
+.form-row{display:grid;gap:10px;margin-bottom:12px}
+.form-row.cols2{grid-template-columns:1fr 1fr}
+.form-row.cols3{grid-template-columns:2fr 1fr 1fr}
+label{font-family:var(--mono);font-size:.62rem;color:var(--mid);letter-spacing:2px;display:block;margin-bottom:4px;text-transform:uppercase}
+input[type=text],input[type=url],select,textarea{width:100%;background:rgba(0,255,65,.03);border:1px solid var(--b);color:var(--text);font-family:var(--mono);font-size:.82rem;padding:9px 12px;border-radius:2px;outline:none}
+input[type=text]:focus,input[type=url]:focus,select:focus,textarea:focus{border-color:var(--g);box-shadow:0 0 8px rgba(0,255,65,.12)}
+select option{background:#080e09}
+textarea{height:80px;resize:vertical;font-family:var(--body);font-size:.88rem}
+.form-actions{display:flex;gap:8px;margin-top:4px}
+
+/* TRACK LIST */
+.track-list{display:flex;flex-direction:column;gap:8px}
+.track-item{display:flex;align-items:center;gap:14px;background:rgba(5,14,8,.6);border:1px solid var(--b);border-radius:3px;padding:12px 16px;transition:border-color .15s}
+.track-item:hover{border-color:rgba(0,255,65,.25)}
+.track-src{font-family:var(--mono);font-size:.58rem;letter-spacing:2px;padding:2px 7px;border-radius:2px;flex-shrink:0}
+.src-soundcloud{background:rgba(255,85,0,.1);color:#ff5500;border:1px solid rgba(255,85,0,.25)}
+.src-youtube{background:rgba(255,0,0,.08);color:#ff4040;border:1px solid rgba(255,0,0,.2)}
+.src-audio{background:rgba(0,255,65,.08);color:var(--g);border:1px solid var(--b)}
+.track-info{flex:1;min-width:0}
+.track-title{font-family:var(--mono);font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-artist{font-family:var(--body);font-size:.75rem;color:var(--mid);margin-top:2px}
+.track-url{font-family:var(--mono);font-size:.58rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.track-actions{flex-shrink:0;display:flex;gap:6px}
+
+/* ANNOUNCEMENT LIST */
+.ann-item{background:rgba(5,14,8,.6);border:1px solid var(--b);border-radius:3px;padding:13px 16px;margin-bottom:8px}
+.ann-title{font-family:var(--mono);font-size:.82rem;color:var(--text);margin-bottom:4px}
+.ann-body{font-size:.84rem;color:var(--mid);font-weight:300;line-height:1.55}
+.ann-meta{font-family:var(--mono);font-size:.58rem;color:var(--dim);letter-spacing:2px;margin-top:8px}
+.pinned-badge{display:inline-block;background:rgba(0,234,255,.1);color:var(--c);border:1px solid rgba(0,234,255,.2);font-family:var(--mono);font-size:.5rem;letter-spacing:1px;padding:1px 5px;border-radius:2px;margin-left:6px}
+
+/* MEMBER TABLE */
+.t-wrap{overflow-x:auto;border:1px solid var(--b);border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead tr{background:rgba(0,255,65,.04)}
+th{font-family:var(--mono);font-size:.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--c);padding:10px 12px;text-align:left;border-bottom:1px solid rgba(0,234,255,.18)}
+td{padding:9px 12px;border-bottom:1px solid var(--b);color:var(--mid);font-weight:300}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(0,255,65,.02)}
+.empty{font-family:var(--mono);font-size:.72rem;color:var(--dim);letter-spacing:3px;padding:20px;text-align:center}
+
+/* STATUS DOT */
+.dot{width:6px;height:6px;border-radius:50%;background:var(--g);box-shadow:0 0 8px var(--g);display:inline-block;animation:dotpulse 2s infinite}
+@keyframes dotpulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;font-family:var(--mono);font-size:.75rem;letter-spacing:2px;padding:10px 18px;border-radius:3px;background:rgba(5,14,8,.95);border:1px solid var(--g);color:var(--g);box-shadow:0 0 20px rgba(0,255,65,.25);opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+#toast.err{border-color:var(--r);color:var(--r);box-shadow:0 0 20px rgba(255,42,42,.25)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/home" class="nav-logo">TriptokForge</a>
+  <span class="nav-sep">/</span>
+  <span class="nav-crumb">ADMIN</span>
+  <div class="nav-links">
+    <a href="/whitepages" class="nav-a">Whitepages</a>
+    <a href="/home" class="nav-a">Home</a>
+  </div>
+</nav>
+
+{% if not authed %}
+<!-- ══ LOGIN ══════════════════════════════════════════════════ -->
+<div class="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">VAULT-TEC</div>
+    <div class="login-sub">ADMIN TERMINAL · RESTRICTED</div>
+    <form method="POST">
+      <input type="hidden" name="action" value="login"/>
+      <input type="password" name="password" placeholder="ACCESS CODE" autofocus/>
+      <button type="submit" class="btn" style="width:100%">AUTHENTICATE</button>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<!-- ══ ADMIN PANEL ══════════════════════════════════════════════ -->
+<div class="shell">
+
+  <!-- ── WHITEPAGES PLAYER ───────────────────────────────────── -->
+  <div class="sec">
+    <div class="sec-head">
+      <span class="sec-icon">♫</span>
+      <h2>Whitepages <span>Player</span></h2>
+      <span class="sec-count" id="track-count">LOADING...</span>
+    </div>
+
+    <!-- Add track form -->
+    <div style="background:rgba(5,14,8,.6);border:1px solid var(--b);border-radius:3px;padding:18px 20px;margin-bottom:16px">
+      <div class="form-row cols2">
+        <div><label>Track Title</label><input type="text" id="wp-title" placeholder="e.g. Cyber Horizon"/></div>
+        <div><label>Artist</label><input type="text" id="wp-artist" placeholder="e.g. White Bat Audio"/></div>
+      </div>
+      <div class="form-row cols2">
+        <div>
+          <label>Source Type</label>
+          <select id="wp-type">
+            <option value="soundcloud">SoundCloud</option>
+            <option value="youtube">YouTube</option>
+            <option value="audio">Direct Audio (MP3)</option>
+          </select>
+        </div>
+        <div id="wp-url-wrap"><label>Embed / Track URL</label><input type="url" id="wp-url" placeholder="https://soundcloud.com/artist/track"/></div>
+      </div>
+      <div id="wp-url-hint" style="font-family:var(--mono);font-size:.6rem;color:var(--mid);letter-spacing:1px;margin-bottom:10px;min-height:16px"></div>
+      <div class="form-actions">
+        <button class="btn" onclick="addTrack()">+ ADD TRACK</button>
+      </div>
+    </div>
+
+    <!-- Track list -->
+    <div class="track-list" id="track-list">
+      <div class="empty">LOADING TRACKS...</div>
+    </div>
+  </div>
+
+  <!-- ── ANNOUNCEMENTS ───────────────────────────────────────── -->
+  <div class="sec">
+    <div class="sec-head">
+      <span class="sec-icon">◈</span>
+      <h2>Post <span>Announcement</span></h2>
+    </div>
+    <div style="background:rgba(5,14,8,.6);border:1px solid var(--b);border-radius:3px;padding:18px 20px;margin-bottom:16px">
+      <form method="POST">
+        <input type="hidden" name="action" value="announce"/>
+        <div class="form-row">
+          <div><label>Title</label><input type="text" name="title" required placeholder="Announcement title"/></div>
+        </div>
+        <div class="form-row">
+          <div><label>Body</label><textarea name="body" placeholder="Announcement body text..."></textarea></div>
+        </div>
+        <div class="form-actions">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.78rem;color:var(--mid)">
+            <input type="checkbox" name="pinned" style="width:auto;margin:0"/> PIN TO TOP
+          </label>
+          <button type="submit" class="btn">POST</button>
+        </div>
+      </form>
+    </div>
+    {% for ann in announcements %}
+    <div class="ann-item">
+      <div class="ann-title">{{ ann.title or ann.get('title','') }}{% if ann.pinned or ann.get('pinned') %}<span class="pinned-badge">PINNED</span>{% endif %}</div>
+      <div class="ann-body">{{ ann.body or ann.get('body','') }}</div>
+      <div class="ann-meta">{{ ann.created_at or '' }}</div>
+    </div>
+    {% else %}
+    <div class="empty">NO ANNOUNCEMENTS</div>
+    {% endfor %}
+  </div>
+
+  <!-- ── MEMBERS ─────────────────────────────────────────────── -->
+  <div class="sec">
+    <div class="sec-head">
+      <span class="sec-icon">◉</span>
+      <h2>Members <span>Registry</span></h2>
+      <span class="sec-count">{{ members|length }} OPERATORS</span>
+    </div>
+    <div class="t-wrap">
+      <table>
+        <thead><tr><th>Epic ID</th><th>Display Name</th><th>Skin</th><th>Joined</th></tr></thead>
+        <tbody>
+        {% for m in members %}
+        <tr>
+          <td style="font-family:var(--mono);font-size:.72rem">{{ m.epic_id or m.get('epic_id','') }}</td>
+          <td>{{ m.display_name or m.get('display_name','') }}</td>
+          <td style="font-family:var(--mono);font-size:.72rem;color:var(--c)">{{ m.skin_name or m.get('skin_name','—') }}</td>
+          <td style="font-family:var(--mono);font-size:.65rem;color:var(--dim)">{{ m.created_at or '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty">NO MEMBERS YET</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── STATUS ──────────────────────────────────────────────── -->
+  <div class="sec">
+    <div class="sec-head">
+      <span class="sec-icon">⬡</span>
+      <h2>System <span>Status</span></h2>
+      <span><div class="dot"></div></span>
+    </div>
+    <div style="font-family:var(--mono);font-size:.72rem;color:var(--mid);letter-spacing:2px;line-height:2">
+      <a href="/health" target="_blank" style="color:var(--g);text-decoration:none">> /health endpoint</a><br/>
+      <a href="/whitepages" target="_blank" style="color:var(--c);text-decoration:none">> /whitepages</a><br/>
+      <span style="color:var(--dim)">> session: admin_authed = true</span>
+    </div>
+  </div>
+
+</div><!-- .shell -->
+{% endif %}
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+function toast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (err ? ' err' : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className = '', 2800);
+}
+
+// ── Track type hint ─────────────────────────────────────────
+const hints = {
+  soundcloud: 'Paste a SoundCloud track or playlist URL — e.g. https://soundcloud.com/artist/track',
+  youtube:    'Paste a YouTube video or playlist URL — e.g. https://youtube.com/watch?v=... or ?list=...',
+  audio:      'Paste a direct .mp3 or .ogg URL — e.g. from Pixabay free downloads',
+};
+document.getElementById('wp-type')?.addEventListener('change', function() {
+  document.getElementById('wp-url-hint').textContent = hints[this.value] || '';
+});
+
+// ── Load tracks ──────────────────────────────────────────────
+async function loadTracks() {
+  const res  = await fetch('/api/whitepages/tracks');
+  const data = await res.json();
+  const list = document.getElementById('track-list');
+  const cnt  = document.getElementById('track-count');
+  if (!data.length) {
+    list.innerHTML = '<div class="empty">NO TRACKS — ADD ONE ABOVE</div>';
+    cnt.textContent = '0 TRACKS';
+    return;
+  }
+  cnt.textContent = data.length + ' TRACK' + (data.length !== 1 ? 'S' : '');
+  list.innerHTML = data.map(t => `
+    <div class="track-item" id="tr-${t.id}">
+      <span class="track-src src-${t.source_type}">${t.source_type.toUpperCase()}</span>
+      <div class="track-info">
+        <div class="track-title">${esc(t.title)}</div>
+        <div class="track-artist">${esc(t.artist || '—')}</div>
+        <div class="track-url">${esc(t.embed_url)}</div>
+      </div>
+      <div class="track-actions">
+        <button class="btn btn-sm btn-red" onclick="deleteTrack(${t.id})">✕ REMOVE</button>
+      </div>
+    </div>`).join('');
+}
+loadTracks();
+
+// ── Add track ────────────────────────────────────────────────
+async function addTrack() {
+  const title  = document.getElementById('wp-title').value.trim();
+  const artist = document.getElementById('wp-artist').value.trim();
+  const type   = document.getElementById('wp-type').value;
+  const url    = document.getElementById('wp-url').value.trim();
+  if (!title || !url) { toast('TITLE AND URL REQUIRED', true); return; }
+  const res  = await fetch('/api/whitepages/tracks', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({title, artist, source_type: type, embed_url: url})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    toast('TRACK ADDED — ID ' + data.id);
+    document.getElementById('wp-title').value = '';
+    document.getElementById('wp-artist').value = '';
+    document.getElementById('wp-url').value = '';
+    loadTracks();
+  } else {
+    toast(data.error || 'ERROR', true);
+  }
+}
+
+// ── Delete track ─────────────────────────────────────────────
+async function deleteTrack(id) {
+  if (!confirm('Remove this track?')) return;
+  const res  = await fetch('/api/whitepages/tracks/' + id, {method:'DELETE'});
+  const data = await res.json();
+  if (data.ok) { toast('TRACK REMOVED'); loadTracks(); }
+  else toast('DELETE FAILED', true);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

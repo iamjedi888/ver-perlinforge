@@ -316,5 +316,169 @@
 </footer>
 
 <script src="/static/js/codex-fx.js"></script>
+
+<!-- ══ VAULT MUSIC PLAYER ═════════════════════════════════════ -->
+<div id="vault-player" class="vp-bar vp-collapsed">
+  <!-- Collapsed tab -->
+  <button class="vp-tab" onclick="vpToggle()" title="Open player">
+    <span class="vp-tab-icon">♫</span>
+    <span class="vp-tab-label" id="vp-tab-label">AMBIENT FEED</span>
+    <span class="vp-tab-chevron" id="vp-chevron">▲</span>
+  </button>
+
+  <!-- Expanded panel -->
+  <div class="vp-panel" id="vp-panel">
+    <div class="vp-header">
+      <span class="vp-eyebrow">◈ WHITEPAGES AMBIENT FEED</span>
+      <div class="vp-controls">
+        <button class="vp-btn" onclick="vpPrev()" title="Previous">◄◄</button>
+        <button class="vp-btn vp-play" id="vp-play-btn" onclick="vpPlayPause()">▶ PLAY</button>
+        <button class="vp-btn" onclick="vpNext()" title="Next">►►</button>
+        <div class="vp-vol-wrap">
+          <span class="vp-vol-icon">🔊</span>
+          <input type="range" class="vp-vol" id="vp-vol" min="0" max="100" value="60" oninput="vpVolume(this.value)" title="Volume"/>
+        </div>
+        <button class="vp-btn vp-close-btn" onclick="vpToggle()" title="Collapse">▼</button>
+      </div>
+    </div>
+
+    <div class="vp-now-playing" id="vp-now-playing">
+      <span class="vp-np-label">NOW PLAYING</span>
+      <span class="vp-np-title" id="vp-np-title">—</span>
+      <span class="vp-np-artist" id="vp-np-artist">—</span>
+      <span class="vp-track-pos" id="vp-track-pos">— / —</span>
+    </div>
+
+    <!-- Embed iframe -->
+    <div class="vp-embed-wrap" id="vp-embed-wrap">
+      <div class="vp-loading" id="vp-loading">
+        <span>◈ LOADING AMBIENT FEED...</span>
+      </div>
+      <iframe id="vp-iframe" class="vp-iframe" frameborder="0" scrolling="no" allow="autoplay" allowtransparency="true"></iframe>
+    </div>
+
+    <!-- Track list -->
+    <div class="vp-tracklist" id="vp-tracklist"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  let tracks = [], idx = 0, playing = false;
+
+  // ── Fetch tracks ──────────────────────────────────────────
+  fetch('/api/whitepages/tracks')
+    .then(r => r.json())
+    .then(data => {
+      tracks = data || [];
+      renderTracklist();
+      if (tracks.length) setTrack(0);
+      else document.getElementById('vp-loading').innerHTML = '<span style="color:var(--mid)">NO TRACKS — ADD VIA ADMIN</span>';
+    })
+    .catch(() => {
+      document.getElementById('vp-loading').innerHTML = '<span style="color:var(--warn-red)">FEED OFFLINE</span>';
+    });
+
+  function setTrack(i) {
+    if (!tracks.length) return;
+    idx = ((i % tracks.length) + tracks.length) % tracks.length;
+    const t = tracks[idx];
+    document.getElementById('vp-np-title').textContent  = t.title  || '—';
+    document.getElementById('vp-np-artist').textContent = t.artist || '—';
+    document.getElementById('vp-tab-label').textContent = t.title  || 'AMBIENT FEED';
+    document.getElementById('vp-track-pos').textContent = (idx + 1) + ' / ' + tracks.length;
+    document.getElementById('vp-loading').style.display = 'none';
+
+    const iframe = document.getElementById('vp-iframe');
+    iframe.src = buildEmbedUrl(t);
+    playing = false;
+    document.getElementById('vp-play-btn').textContent = '▶ PLAY';
+
+    // Highlight active in tracklist
+    document.querySelectorAll('.vp-tli').forEach((el, i2) => {
+      el.classList.toggle('active', i2 === idx);
+    });
+  }
+
+  function buildEmbedUrl(t) {
+    if (t.source_type === 'soundcloud') {
+      const base = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(t.embed_url);
+      return base + '&color=%2300ff41&auto_play=false&buying=false&sharing=false&download=false&show_artwork=true&show_playcount=false&show_user=false&hide_related=true';
+    }
+    if (t.source_type === 'youtube') {
+      // Convert watch URLs to embed URLs
+      let url = t.embed_url;
+      const vid = url.match(/[?&]v=([^&]+)/);
+      const list = url.match(/[?&]list=([^&]+)/);
+      if (vid) return 'https://www.youtube.com/embed/' + vid[1] + (list ? '?list=' + list[1] : '') + '&enablejsapi=1';
+      if (url.includes('youtu.be/')) {
+        const id = url.split('youtu.be/')[1].split('?')[0];
+        return 'https://www.youtube.com/embed/' + id;
+      }
+      if (url.includes('/embed/')) return url;
+      return url;
+    }
+    // direct audio — wrap in data URI page
+    return 'about:blank';
+  }
+
+  function renderTracklist() {
+    const el = document.getElementById('vp-tracklist');
+    if (!tracks.length) { el.innerHTML = ''; return; }
+    el.innerHTML = tracks.map((t, i) => `
+      <div class="vp-tli${i === idx ? ' active' : ''}" onclick="setTrackPublic(${i})">
+        <span class="vp-tli-n">${i + 1}</span>
+        <span class="vp-tli-info">
+          <span class="vp-tli-title">${esc(t.title)}</span>
+          <span class="vp-tli-artist">${esc(t.artist || '')}</span>
+        </span>
+        <span class="vp-tli-src src-${esc(t.source_type)}">${esc(t.source_type)}</span>
+      </div>`).join('');
+  }
+
+  window.setTrackPublic = function(i) { setTrack(i); };
+  window.vpPrev = function() { setTrack(idx - 1); };
+  window.vpNext = function() { setTrack(idx + 1); };
+
+  window.vpPlayPause = function() {
+    const t = tracks[idx];
+    if (!t) return;
+    if (t.source_type === 'audio') {
+      // For direct audio, play via hidden audio element
+      let aud = document.getElementById('vp-audio-el');
+      if (!aud) {
+        aud = document.createElement('audio');
+        aud.id = 'vp-audio-el';
+        document.body.appendChild(aud);
+      }
+      if (aud.src !== t.embed_url) aud.src = t.embed_url;
+      const vol = parseInt(document.getElementById('vp-vol').value, 10) / 100;
+      aud.volume = vol;
+      if (playing) { aud.pause(); }
+      else { aud.play().catch(()=>{}); }
+    }
+    playing = !playing;
+    document.getElementById('vp-play-btn').textContent = playing ? '⏸ PAUSE' : '▶ PLAY';
+  };
+
+  window.vpVolume = function(v) {
+    const aud = document.getElementById('vp-audio-el');
+    if (aud) aud.volume = parseInt(v, 10) / 100;
+  };
+
+  window.vpToggle = function() {
+    const bar = document.getElementById('vault-player');
+    const chev = document.getElementById('vp-chevron');
+    const collapsed = bar.classList.toggle('vp-collapsed');
+    chev.textContent = collapsed ? '▲' : '▼';
+  };
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+})();
+</script>
 </body>
 </html>

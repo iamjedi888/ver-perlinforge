@@ -1,16 +1,574 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Community - TriptokForge</title>
-    <style>
-        body { background: #0a0a0f; color: #e8e8ea; font-family: sans-serif; padding: 40px; }
-        h1 { color: #00e5a0; }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Community — TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #07090d;
+  --panel:    #0d1018;
+  --border:   #1a2535;
+  --border2:  #243040;
+  --teal:     #00e5a0;
+  --teal-dim: rgba(0,229,160,.07);
+  --teal-glow:rgba(0,229,160,.25);
+  --blue:     #0091ff;
+  --blue-dim: rgba(0,145,255,.07);
+  --amber:    #ffaa00;
+  --text:     #c8d8e8;
+  --mid:      #7a8aa8;
+  --dim:      #3a4a60;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Rajdhani', sans-serif; line-height: 1.6;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,160,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,160,.018) 1px, transparent 1px);
+  background-size: 64px 64px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────── */
+.hero {
+  position: relative; z-index: 1;
+  padding: 80px 20px 60px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(0,229,160,.04) 0%, transparent 100%);
+}
+
+.hero::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,229,160,.3) 30%, rgba(0,145,255,.3) 70%, transparent);
+}
+
+.hero-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .58rem; letter-spacing: 4px; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 14px; display: inline-block;
+  padding: 4px 16px; border: 1px solid rgba(0,229,160,.2); border-radius: 2px;
+}
+
+.hero h1 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(28px, 5vw, 56px);
+  font-weight: 900; letter-spacing: 3px; text-transform: uppercase;
+  color: #fff; margin-bottom: 12px;
+}
+
+.hero h1 span { color: var(--teal); text-shadow: 0 0 20px var(--teal-glow); }
+
+.hero p {
+  font-size: 16px; color: var(--mid);
+  max-width: 600px; margin: 0 auto; font-weight: 300;
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+.community-wrap {
+  max-width: 1200px; margin: 0 auto;
+  padding: 52px 28px 100px;
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+  align-items: start;
+}
+
+/* ── Panel base ─────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--panel); border: 1px solid var(--border);
+  position: relative; margin-bottom: 20px;
+}
+
+.panel::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,229,160,.18), transparent);
+}
+
+.panel-head {
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+
+.panel-title {
+  font-family: 'Orbitron', monospace;
+  font-size: .62rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--teal);
+}
+
+.panel-count {
+  margin-left: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .52rem; color: var(--dim);
+  background: var(--border); padding: 2px 10px; border-radius: 10px; letter-spacing: 1px;
+}
+
+/* ── Announcements ─────────────────────────────────────────────────────── */
+.announce-list { padding: 16px 24px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+.announce-empty {
+  font-family: 'Share Tech Mono', monospace; font-size: .62rem;
+  letter-spacing: 2px; color: var(--dim); text-align: center;
+  padding: 28px; text-transform: uppercase;
+}
+
+.announce-item {
+  background: rgba(0,229,160,.03);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  padding: 16px 18px;
+  transition: border-color .15s;
+}
+
+.announce-item.pinned {
+  border-left-color: var(--amber);
+  background: rgba(255,170,0,.03);
+}
+
+.announce-item:hover { border-color: rgba(0,229,160,.3); }
+
+.announce-pin {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .5rem; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--amber); margin-bottom: 6px; display: flex; align-items: center; gap: 5px;
+}
+
+.announce-title {
+  font-family: 'Orbitron', monospace;
+  font-size: .72rem; font-weight: 700; letter-spacing: 1px;
+  color: #fff; margin-bottom: 6px;
+}
+
+.announce-body {
+  font-size: 14px; color: var(--mid); font-weight: 300; line-height: 1.6;
+}
+
+.announce-date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .5rem; letter-spacing: 2px; color: var(--dim);
+  margin-top: 8px; text-transform: uppercase;
+}
+
+/* ── Community Feed / Posts ────────────────────────────────────────────── */
+.feed-post {
+  border-bottom: 1px solid rgba(26,37,53,.7);
+  padding: 18px 24px;
+  transition: background .12s;
+}
+
+.feed-post:hover { background: rgba(0,229,160,.02); }
+
+.feed-post:last-child { border-bottom: none; }
+
+.post-meta {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+
+.post-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0,229,160,.3), rgba(0,145,255,.3));
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Orbitron', monospace; font-size: .55rem; font-weight: 700;
+  color: var(--teal); flex-shrink: 0;
+}
+
+.post-author {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .62rem; letter-spacing: 1px; color: var(--text); font-weight: 600;
+}
+
+.post-time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .5rem; color: var(--dim); letter-spacing: 1px;
+}
+
+.post-content { font-size: 14px; color: var(--mid); font-weight: 300; line-height: 1.6; }
+
+/* ── Write Post ─────────────────────────────────────────────────────────── */
+.post-composer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(0,229,160,.02);
+}
+
+.composer-row { display: flex; gap: 10px; }
+
+.composer-input {
+  flex: 1; background: rgba(0,229,160,.04);
+  border: 1px solid var(--border2); color: var(--text);
+  font-family: 'Rajdhani', sans-serif; font-size: 14px;
+  padding: 10px 14px; outline: none; border-radius: 2px; resize: none;
+  transition: border-color .15s; min-height: 52px;
+}
+
+.composer-input:focus { border-color: var(--teal); }
+.composer-input::placeholder { color: var(--dim); }
+
+.composer-btn {
+  font-family: 'Orbitron', monospace; font-size: .52rem; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  padding: 0 18px; background: var(--teal); color: #000;
+  border: none; cursor: pointer; transition: background .15s; border-radius: 2px;
+  flex-shrink: 0; align-self: flex-end; height: 40px;
+}
+
+.composer-btn:hover { background: #fff; }
+
+/* ── Members Sidebar ─────────────────────────────────────────────────────── */
+.members-list {
+  padding: 0;
+  max-height: 520px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.members-list::-webkit-scrollbar { width: 3px; }
+.members-list::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.member-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(26,37,53,.5);
+  transition: background .1s;
+}
+
+.member-row:hover { background: var(--teal-dim); }
+
+.member-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0,229,160,.25), rgba(0,145,255,.2));
+  border: 1px solid var(--border2); display: flex;
+  align-items: center; justify-content: center;
+  font-family: 'Orbitron', monospace; font-size: .5rem; font-weight: 700;
+  color: var(--teal); flex-shrink: 0;
+}
+
+.member-avatar img {
+  width: 100%; height: 100%; border-radius: 50%;
+  object-fit: cover;
+}
+
+.member-name {
+  flex: 1; min-width: 0;
+  font-size: .78rem; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);
+}
+
+.member-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--dim); flex-shrink: 0;
+}
+
+/* ── Stats Bar ────────────────────────────────────────────────────────────── */
+.stats-bar {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+}
+
+.stat-item {
+  flex: 1; text-align: center; padding: 18px 8px;
+  border-right: 1px solid var(--border);
+}
+
+.stat-item:last-child { border-right: none; }
+
+.stat-num {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px; font-weight: 900; color: var(--teal); display: block;
+  text-shadow: 0 0 10px var(--teal-glow);
+}
+
+.stat-lbl {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .5rem; letter-spacing: 2px; text-transform: uppercase; color: var(--dim);
+  display: block; margin-top: 3px;
+}
+
+/* ── Post toast ───────────────────────────────────────────────────────────── */
+#cm-toast {
+  position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+  background: var(--panel); border: 1px solid var(--teal);
+  color: var(--teal); font-family: 'Share Tech Mono', monospace;
+  font-size: .62rem; letter-spacing: 2px; padding: 12px 24px;
+  border-radius: 2px; opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+
+#cm-toast.show { opacity: 1; }
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .community-wrap { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .community-wrap { padding: 28px 14px 80px; }
+}
+</style>
 </head>
 <body>
-    {% include "_nav.html" %}
-    <h1>🌐 TriptokForge Community</h1>
-    <p>Community features coming soon!</p>
-    <p><a href="/" style="color: #00e5a0;">← Back to Home</a></p>
+
+{% include '_nav.html' %}
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">&#9734; Community Hub</div>
+  <h1>Triptok<span>Forge</span> Community</h1>
+  <p>Your home base for news, announcements, and connecting with the TriptokForge player network.</p>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-bar" style="position:relative;z-index:1;">
+  <div class="stat-item">
+    <span class="stat-num">{{ (members or [])|length }}</span>
+    <span class="stat-lbl">Members</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">{{ (announcements or [])|length }}</span>
+    <span class="stat-lbl">Announcements</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">LIVE</span>
+    <span class="stat-lbl">Status</span>
+  </div>
+</div>
+
+<!-- Main layout -->
+<div class="community-wrap">
+
+  <!-- Left: Announcements + Feed -->
+  <div class="main-col">
+
+    <!-- Announcements -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">&#9642; Announcements</span>
+        <span class="panel-count">{{ (announcements or [])|length }}</span>
+      </div>
+      <div class="announce-list">
+        {% if announcements %}
+          {% for ann in announcements %}
+            <div class="announce-item{% if ann.pinned %} pinned{% endif %}">
+              {% if ann.pinned %}
+                <div class="announce-pin">&#9733; Pinned</div>
+              {% endif %}
+              <div class="announce-title">{{ ann.title or 'Announcement' }}</div>
+              {% if ann.body %}
+                <div class="announce-body">{{ ann.body }}</div>
+              {% endif %}
+              {% if ann.created_at %}
+                <div class="announce-date">{{ ann.created_at }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="announce-empty">&#9632; No announcements yet. Check back soon.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Community Feed -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">&#9642; Community Feed</span>
+      </div>
+
+      <!-- Post composer -->
+      <div class="post-composer">
+        <div class="composer-row">
+          <textarea class="composer-input" id="postInput"
+            placeholder="Share something with the community..." rows="2"></textarea>
+          <button class="composer-btn" onclick="submitPost()">Post</button>
+        </div>
+      </div>
+
+      <!-- Posts -->
+      <div id="feedPosts">
+        <div class="feed-post" style="text-align:center;color:var(--dim);
+             font-family:'Share Tech Mono',monospace;font-size:.6rem;
+             letter-spacing:2px;padding:32px;text-transform:uppercase;">
+          &#9632; Loading feed...
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-col -->
+
+  <!-- Right: Members roster -->
+  <div class="side-col">
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">&#9642; Members</span>
+        <span class="panel-count">{{ (members or [])|length }}</span>
+      </div>
+      <div class="members-list">
+        {% if members %}
+          {% for m in members %}
+            <div class="member-row">
+              <div class="member-avatar">
+                {% if m.skin_img %}
+                  <img src="{{ m.skin_img }}" alt="{{ m.display_name }}"/>
+                {% else %}
+                  {{ (m.display_name or 'P')[:1]|upper }}
+                {% endif %}
+              </div>
+              <span class="member-name">{{ m.display_name or m.epic_id or 'Player' }}</span>
+              <span class="member-dot"></span>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div style="padding:28px;text-align:center;
+               font-family:'Share Tech Mono',monospace;font-size:.6rem;
+               letter-spacing:2px;color:var(--dim);text-transform:uppercase;">
+            No members yet
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="panel" style="padding:20px 20px 18px;">
+      <div class="panel-title" style="font-family:'Orbitron',monospace;font-size:.6rem;
+           letter-spacing:3px;color:var(--teal);margin-bottom:14px;
+           padding-bottom:10px;border-bottom:1px solid var(--border);">
+        &#9642; Quick Access
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        {% set links = [('/channels','TV Channels'),('/forge','Island Forge'),('/leaderboard','Leaderboard'),('/cardgame','Card Game'),('/whitepages','Whitepages'),('/dashboard','Dashboard')] %}
+        {% for href, label in links %}
+          <a href="{{ href }}" style="display:block;font-family:'Share Tech Mono',monospace;
+             font-size:.6rem;letter-spacing:2px;text-transform:uppercase;
+             color:var(--mid);text-decoration:none;padding:7px 12px;
+             border:1px solid transparent;border-radius:2px;transition:all .15s;"
+             onmouseover="this.style.color='var(--teal)';this.style.borderColor='rgba(0,229,160,.2)';this.style.background='var(--teal-dim)'"
+             onmouseout="this.style.color='var(--mid)';this.style.borderColor='transparent';this.style.background=''"
+          >&#9654; {{ label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div><!-- /side-col -->
+
+</div>
+
+<div id="cm-toast"></div>
+
+<script>
+function toast(msg, color) {
+  const t = document.getElementById('cm-toast');
+  t.textContent = msg;
+  t.style.borderColor = color || 'var(--teal)';
+  t.style.color = color || 'var(--teal)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function loadFeed() {
+  try {
+    const r = await fetch('/api/posts?limit=20');
+    if (!r.ok) throw new Error('no posts');
+    const posts = await r.json();
+    const el = document.getElementById('feedPosts');
+    if (!posts.length) {
+      el.innerHTML = `<div class="feed-post" style="text-align:center;color:var(--dim);
+        font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;
+        padding:32px;text-transform:uppercase;">&#9632; No posts yet &mdash; be the first!</div>`;
+      return;
+    }
+    el.innerHTML = posts.map(p => {
+      const initial = (p.display_name || 'P').charAt(0).toUpperCase();
+      const skinHtml = p.skin_img
+        ? `<img src="${esc(p.skin_img)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt=""/>`
+        : initial;
+      return `<div class="feed-post">
+        <div class="post-meta">
+          <div class="post-avatar">${skinHtml}</div>
+          <div>
+            <div class="post-author">${esc(p.display_name || 'Player')}</div>
+            <div class="post-time">${p.created_at || ''}</div>
+          </div>
+          <button onclick="likePost(${p.id}, this)" style="margin-left:auto;
+            font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:1px;
+            background:none;border:1px solid var(--border2);color:var(--dim);
+            padding:3px 10px;cursor:pointer;border-radius:2px;transition:all .15s;"
+            onmouseover="this.style.borderColor='var(--teal)';this.style.color='var(--teal)'"
+            onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--dim)'">
+            &#9825; ${p.likes || 0}
+          </button>
+        </div>
+        ${p.caption ? `<div class="post-content">${esc(p.caption)}</div>` : ''}
+        ${p.embed_url ? `<div style="margin-top:8px"><a href="${esc(p.embed_url)}" target="_blank" rel="noopener"
+          style="font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:1px;
+          color:var(--blue);text-decoration:none;">${esc(p.embed_url)}</a></div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    // Feed unavailable — silent
+  }
+}
+
+async function submitPost() {
+  const input = document.getElementById('postInput');
+  const caption = input.value.trim();
+  if (!caption) return;
+  try {
+    const r = await fetch('/api/post', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({caption})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      input.value = '';
+      toast('&#10003; Posted!');
+      loadFeed();
+    } else {
+      toast(d.error || 'Error posting', 'var(--amber)');
+    }
+  } catch(e) {
+    toast('Network error', 'var(--amber)');
+  }
+}
+
+async function likePost(id, btn) {
+  try {
+    const r = await fetch(`/api/like/${id}`, {method: 'POST'});
+    const d = await r.json();
+    if (d.ok) {
+      btn.innerHTML = `&#9829; ${d.likes}`;
+      btn.style.color = 'var(--teal)';
+      btn.style.borderColor = 'var(--teal)';
+    }
+  } catch(e) {}
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+loadFeed();
+</script>
 </body>
 </html>
