@@ -1,4 +1,4 @@
-/* TriptokForge News Styles */
+/* TriptokForge News Styles - Interest-Based */
 
 :root {
     --bg: #0a0a0f;
@@ -53,8 +53,8 @@ body {
 
 /* NEWS TICKER */
 .news-ticker-bar {
-    background: var(--red);
-    color: white;
+    background: var(--accent);
+    color: #000;
     display: flex;
     overflow: hidden;
     height: 36px;
@@ -90,37 +90,72 @@ body {
     100% { transform: translateX(-100%); }
 }
 
-/* TABS */
-.region-tabs {
-    display: flex;
-    gap: 8px;
+/* INTERESTS PANEL */
+.interests-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
     padding: 20px;
-    overflow-x: auto;
-    border-bottom: 1px solid var(--border);
+    margin: 20px;
 }
 
-.tab-btn {
-    background: rgba(0, 229, 160, 0.08);
+.interests-panel h3 {
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: var(--accent);
+}
+
+.interests-hint {
+    font-size: 12px;
+    color: var(--dim);
+    margin-bottom: 16px;
+}
+
+.interests-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.interest-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(0, 229, 160, 0.05);
     border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 20px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
     transition: all 0.2s;
 }
 
-.tab-btn:hover {
-    background: rgba(0, 229, 160, 0.15);
+.interest-checkbox:hover {
+    background: rgba(0, 229, 160, 0.1);
     border-color: var(--accent);
 }
 
-.tab-btn.active {
-    background: var(--accent);
-    color: #000;
-    border-color: var(--accent);
+.interest-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+
+.interest-checkbox label {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    user-select: none;
+}
+
+.interest-checkbox.warning {
+    background: rgba(255, 64, 96, 0.05);
+    border-color: rgba(255, 64, 96, 0.3);
+}
+
+.interest-checkbox.warning label::after {
+    content: " ⚠️";
+    font-size: 11px;
 }
 
 /* NEWS GRID */
@@ -210,7 +245,7 @@ body {
     gap: 8px;
 }
 
-.region-badge {
+.category-badge {
     background: rgba(74, 158, 255, 0.15);
     color: var(--blue);
     font-size: 10px;
@@ -257,12 +292,7 @@ body {
         grid-template-columns: 1fr;
     }
     
-    .region-tabs {
-        padding: 12px;
-    }
-    
-    .tab-btn {
-        padding: 8px 14px;
-        font-size: 12px;
+    .interests-grid {
+        grid-template-columns: 1fr;
     }
 }

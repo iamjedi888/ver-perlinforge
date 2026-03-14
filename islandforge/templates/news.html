@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TriptokForge News - Live Updates</title>
+    <title>TriptokForge News - Your Interests</title>
     <link rel="stylesheet" href="/static/css/news.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
     </div>
     
     <div class="news-ticker-bar">
-        <div class="ticker-label">BREAKING</div>
+        <div class="ticker-label">LATEST</div>
         <div class="ticker-content" id="tickerContent">
             Loading latest headlines...
         </div>
@@ -22,17 +22,16 @@
     
     <div class="news-container">
         
-        <div class="region-tabs">
-            <button class="tab-btn active" data-region="all">All News</button>
-            <button class="tab-btn" data-region="rhode_island">Rhode Island</button>
-            <button class="tab-btn" data-region="japan">Japan</button>
-            <button class="tab-btn" data-region="new_york">New York</button>
-            <button class="tab-btn" data-region="california">California</button>
-            <button class="tab-btn" data-region="hawaii">Hawaii</button>
-            <button class="tab-btn" data-region="mexico">Mexico</button>
-            <button class="tab-btn" data-region="global">World</button>
+        <!-- Interest Toggles -->
+        <div class="interests-panel">
+            <h3>📌 Your Interests</h3>
+            <p class="interests-hint">Check the topics you want to see news about</p>
+            <div class="interests-grid" id="interestsGrid">
+                <!-- Checkboxes loaded here -->
+            </div>
         </div>
         
+        <!-- News Grid -->
         <div class="news-grid" id="newsGrid">
             <!-- News cards loaded here -->
         </div>
