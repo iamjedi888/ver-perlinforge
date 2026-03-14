@@ -1,17 +1,12 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, render_template
 from oracle_db import get_channels, suggest_channel as db_suggest
-from channels_page import build_channels_page
+from channels_page import build_channels_context
 
 channels_bp = Blueprint("channels", __name__)
 
 @channels_bp.route("/channels")
 def channels():
-    logged_in = bool(session.get("user") or session.get("epic_id"))
-    return build_channels_page(
-        get_channels(),
-        portal_exit_href="/dashboard" if logged_in else "/home",
-        portal_exit_label="Dashboard" if logged_in else "Home",
-    )
+    return render_template("channels.html", **build_channels_context(get_channels()))
 
 @channels_bp.route("/api/suggest_channel", methods=["POST"])
 def suggest_channel_route():
