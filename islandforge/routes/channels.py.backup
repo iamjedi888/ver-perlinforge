@@ -2,15 +2,11 @@
 TriptokForge TV Guide Backend
 Provides channels + EPG (Electronic Program Guide) data
 """
-from flask import Blueprint, jsonify, render_template
+
+from flask import Blueprint, jsonify
 from datetime import datetime, timedelta
 
 channels_bp = Blueprint('channels', __name__)
-
-@channels_bp.route('/channels')
-def channels_page():
-    """Main TV guide page"""
-    return render_template('channels_page.html')
 
 # ═══════════════════════════════════════════════════════════════
 # CHANNEL DATABASE
@@ -22,12 +18,13 @@ CHANNELS = {
         "id": "abc_news",
         "number": 1,
         "name": "ABC News Live",
-        "platform": "youtube",
-        "stream_id": "w_Ma8oQLmSM",
+        "platform": "youtube",  # What platform hosts it
+        "stream_id": "w_Ma8oQLmSM",  # YouTube video ID
         "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/ABC_News_logo_2021.svg/320px-ABC_News_logo_2021.svg.png",
         "category": "news",
         "description": "Breaking news 24/7"
     },
+    
     "cbs_news": {
         "id": "cbs_news",
         "number": 2,
@@ -38,6 +35,7 @@ CHANNELS = {
         "category": "news",
         "description": "CBS live coverage"
     },
+    
     "nbc_news": {
         "id": "nbc_news",
         "number": 3,
@@ -48,6 +46,7 @@ CHANNELS = {
         "category": "news",
         "description": "NBC breaking news"
     },
+    
     "nhk_world": {
         "id": "nhk_world",
         "number": 11,
@@ -58,6 +57,7 @@ CHANNELS = {
         "category": "international",
         "description": "Japan news & culture"
     },
+    
     "bloomberg": {
         "id": "bloomberg",
         "number": 4,
@@ -68,6 +68,7 @@ CHANNELS = {
         "category": "business",
         "description": "Business & finance"
     },
+    
     "nasa_tv": {
         "id": "nasa_tv",
         "number": 6,
@@ -80,67 +81,114 @@ CHANNELS = {
     },
 }
 
+# ═══════════════════════════════════════════════════════════════
+# EPG SCHEDULE GENERATOR
+# Creates fake TV schedules (in real system, this comes from APIs)
+# ═══════════════════════════════════════════════════════════════
+
 def generate_epg_for_channel(channel_id, hours=12):
-    """Generate fake EPG schedule for a channel"""
-    channel = CHANNELS.get(channel_id)
-    if not channel:
-        return []
+    """
+    Generate EPG (schedule) for a channel
+    
+    Args:
+        channel_id: Which channel
+        hours: How many hours of schedule to generate
+    
+    Returns:
+        List of programs with start/end times
+    """
+    
+    # Program templates (what could be airing)
+    news_programs = [
+        {"title": "Breaking News Coverage", "duration": 60},
+        {"title": "World News Tonight", "duration": 30},
+        {"title": "Special Report", "duration": 45},
+        {"title": "Live Press Conference", "duration": 90},
+    ]
     
     schedule = []
     current_time = datetime.now().replace(minute=0, second=0, microsecond=0)
+    end_time = current_time + timedelta(hours=hours)
     
-    programs = [
-        "Morning News", "Market Watch", "Global Report", "Breaking News",
-        "Business Hour", "Evening Report", "World News", "Late Night"
-    ]
-    
-    for i in range(hours):
-        program_title = programs[i % len(programs)]
+    # Generate schedule by filling time slots
+    while current_time < end_time:
+        # Pick a random program
+        import random
+        program = random.choice(news_programs)
+        
+        # Calculate when it ends
+        program_end = current_time + timedelta(minutes=program['duration'])
+        
         schedule.append({
-            "title": f"{program_title}",
+            "title": program['title'],
             "start": current_time.isoformat(),
-            "end": (current_time + timedelta(hours=1)).isoformat(),
-            "description": f"{channel['name']} - {program_title}"
+            "end": program_end.isoformat(),
+            "duration": program['duration'],
+            "description": f"Live coverage on {CHANNELS[channel_id]['name']}"
         })
-        current_time += timedelta(hours=1)
+        
+        current_time = program_end
     
     return schedule
 
-@channels_bp.route('/api/channels')
+
+# ═══════════════════════════════════════════════════════════════
+# API ROUTES (What the frontend calls)
+# ═══════════════════════════════════════════════════════════════
+
+@channels_bp.route('/api/channels', methods=['GET'])
 def get_channels():
-    """Get all channels"""
+    """
+    GET /api/channels
+    Returns: List of all channels
+    """
     return jsonify({
-        "channels": list(CHANNELS.values())
+        "channels": list(CHANNELS.values()),
+        "total": len(CHANNELS)
     })
 
-@channels_bp.route('/api/channels/<channel_id>')
-def get_channel(channel_id):
-    """Get single channel details"""
-    channel = CHANNELS.get(channel_id)
-    if channel:
-        return jsonify(channel)
-    return jsonify({"error": "Channel not found"}), 404
 
-@channels_bp.route('/api/channels/<channel_id>/schedule')
-def get_channel_schedule(channel_id):
-    """Get schedule for a specific channel"""
-    channel = CHANNELS.get(channel_id)
-    if not channel:
+@channels_bp.route('/api/channels/<channel_id>', methods=['GET'])
+def get_channel(channel_id):
+    """
+    GET /api/channels/abc_news
+    Returns: Single channel details
+    """
+    if channel_id not in CHANNELS:
         return jsonify({"error": "Channel not found"}), 404
     
-    schedule = generate_epg_for_channel(channel_id)
+    return jsonify(CHANNELS[channel_id])
+
+
+@channels_bp.route('/api/channels/<channel_id>/schedule', methods=['GET'])
+def get_channel_schedule(channel_id):
+    """
+    GET /api/channels/abc_news/schedule
+    Returns: What's playing on this channel (EPG data)
+    """
+    if channel_id not in CHANNELS:
+        return jsonify({"error": "Channel not found"}), 404
+    
+    schedule = generate_epg_for_channel(channel_id, hours=12)
+    
     return jsonify({
-        "channel": channel,
+        "channel": CHANNELS[channel_id],
         "schedule": schedule
     })
 
-@channels_bp.route('/api/epg')
+
+@channels_bp.route('/api/epg', methods=['GET'])
 def get_full_epg():
-    """Get EPG for all channels"""
+    """
+    GET /api/epg
+    Returns: Full TV guide for all channels
+    """
     epg = {}
+    
     for channel_id in CHANNELS:
         epg[channel_id] = {
             "channel": CHANNELS[channel_id],
-            "schedule": generate_epg_for_channel(channel_id)
+            "schedule": generate_epg_for_channel(channel_id, hours=6)
         }
+    
     return jsonify(epg)

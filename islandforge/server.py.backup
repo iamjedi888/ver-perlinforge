@@ -3,20 +3,8 @@ TriptokForge Main Server
 All route logic lives in routes/ as Blueprints.
 """
 
-from dotenv import load_dotenv
-from dotenv import load_dotenv
-from dotenv import load_dotenv
 from flask import Flask, render_template
 import os
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Load environment variables from .env file
-load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev')
@@ -28,11 +16,9 @@ from routes.auth            import auth_bp
 from routes.api             import api_bp
 from routes.whitepages      import whitepages_bp
 from routes.forge           import forge_bp  # FIXED: was forge_routes
-from routes.arena            import arena_bp
 from routes.leaderboard     import leaderboard_bp
 from routes.forge_upgrades  import forge_upgrades_bp
 from routes.news            import news_bp
-from routes.dashboard      import dashboard_bp
 
 # Register blueprints (ONCE each)
 app.register_blueprint(platform_bp)
@@ -43,9 +29,7 @@ app.register_blueprint(whitepages_bp)
 app.register_blueprint(forge_bp)
 app.register_blueprint(leaderboard_bp)
 app.register_blueprint(forge_upgrades_bp)
-app.register_blueprint(arena_bp)
 app.register_blueprint(news_bp)
-app.register_blueprint(dashboard_bp)
 
 # Main routes
 @app.route('/')
