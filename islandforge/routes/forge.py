@@ -2,8 +2,10 @@
 routes/forge.py — Island Forge + Audio + Fortnite API endpoints
 Restored from server_old.py.
 """
-import io, base64, json, os, sys, traceback, secrets
+import io, base64, json, os, re, sys, traceback, secrets
+from datetime import datetime
 import urllib.parse, urllib.request
+import numpy as np
 
 from flask import Blueprint, request, jsonify, send_file, session, redirect, render_template
 
@@ -42,15 +44,96 @@ try:
 except ImportError:
     def update_member_skin(*a, **k): pass
 
+try:
+    from compression_utils import create_verse_package_zip
+except ImportError:
+    def create_verse_package_zip(*a, **k):
+        return b""
+
+try:
+    from verse_export_generator import integrate_with_forge
+    VERSE_EXPORT_AVAILABLE = True
+except ImportError:
+    VERSE_EXPORT_AVAILABLE = False
+
+    def integrate_with_forge(result_data, theme="Chapter 1", seed=0):
+        return result_data
+
 _state = {
     "heightmap_bytes": None, "layout": None, "preview_bytes": None,
     "audio_path": None, "audio_filename": None, "audio_weights": None,
+    "output_dir": None, "output_folder_name": None, "download_prefix": "Island",
+    "verse_package": None, "verse_zip_bytes": None,
 }
 DEFAULT_WEIGHTS = {
     "sub_bass":0.5,"bass":0.5,"midrange":0.5,
     "presence":0.5,"brilliance":0.5,"tempo_bpm":120.0,"duration_s":0.0,
 }
 _cosmetics_cache = None
+THEME_ALIASES = {
+    "chapter1": "Chapter 1",
+    "chapter2": "Chapter 2",
+    "chapter3": "Chapter 3",
+    "chapter4": "Chapter 4",
+    "chapter5": "Chapter 5",
+    "chapter6": "Chapter 6",
+}
+
+
+def _sanitize_world_name(value: str) -> str:
+    clean = re.sub(r'[<>:"/\\|?*#]+', " ", str(value or "")).strip()
+    clean = re.sub(r"\s+", " ", clean)
+    return clean[:64] or "Island"
+
+
+def _allocate_output_run(world_name: str) -> tuple[str, str, str]:
+    base_name = _sanitize_world_name(world_name)
+    pattern = re.compile(rf"^{re.escape(base_name)}#(\d+)$", re.IGNORECASE)
+    next_index = 1
+
+    for entry in os.listdir(OUTPUT_DIR):
+        full_path = os.path.join(OUTPUT_DIR, entry)
+        if not os.path.isdir(full_path):
+            continue
+        match = pattern.match(entry)
+        if match:
+            next_index = max(next_index, int(match.group(1)) + 1)
+
+    while True:
+        folder_name = f"{base_name}#{next_index}"
+        run_dir = os.path.join(OUTPUT_DIR, folder_name)
+        if not os.path.exists(run_dir):
+            os.makedirs(run_dir, exist_ok=False)
+            return base_name, folder_name, run_dir
+        next_index += 1
+
+
+def _write_json(path: str, payload: dict) -> None:
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+
+
+def _write_text(path: str, payload: str) -> None:
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(payload)
+
+
+def _download_name(suffix: str) -> str:
+    prefix = (_state.get("download_prefix") or "Island").strip() or "Island"
+    return f"{prefix}_{suffix}"
+
+
+def _normalize_theme_name(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "Chapter 1"
+    compact = re.sub(r"[\s_-]+", "", text).lower()
+    if compact in THEME_ALIASES:
+        return THEME_ALIASES[compact]
+    for label in THEME_ALIASES.values():
+        if text.lower() == label.lower():
+            return label
+    return "Chapter 1"
 
 # ── FORGE PAGE ───────────────────────────────────────────────
 @forge_bp.route("/forge")
@@ -64,15 +147,22 @@ def generate():
         return jsonify({"ok": False, "error": "audio_to_heightmap not available"}), 500
     try:
         data           = request.get_json(force=True)
+        island_name    = (data.get("island_name") or data.get("world_name") or "").strip()
         seed           = int(data.get("seed", 42))
         size           = int(data.get("size", 2017))
         n_plots        = int(data.get("plots", 32))
         spacing        = int(data.get("spacing", 40))
-        weights        = data.get("weights", DEFAULT_WEIGHTS)
+        incoming_weights = data.get("weights") or {}
+        weights        = DEFAULT_WEIGHTS.copy()
+        if isinstance(_state.get("audio_weights"), dict):
+            weights.update(_state["audio_weights"])
+        if isinstance(incoming_weights, dict):
+            weights.update(incoming_weights)
         water_level    = float(data.get("water_level", 0.20))
         world_wrap     = bool(data.get("world_wrap", True))
         cluster_angle  = float(data.get("cluster_angle", 135.0))
         cluster_spread = float(data.get("cluster_spread", 1.0))
+        theme_name     = _normalize_theme_name(data.get("theme"))
         ws_raw = data.get("world_size", "double_br")
         if isinstance(ws_raw, str) and ws_raw in WORLD_SIZE_PRESETS:
             world_size_cm = WORLD_SIZE_PRESETS[ws_raw]
@@ -98,17 +188,37 @@ def generate():
             plots = find_plot_positions(height, biome, n_plots, size, min_spacing=spacing, cluster_angle_deg=cluster_angle, cluster_spread=cluster_spread)
             biome = paint_farm_biome(biome, plots, size)
         layout = build_layout(height, biome, plots, size, seed, weights, water_level, world_wrap, world_size_cm)
+        run_name, output_folder_name, output_run_dir = _allocate_output_run(island_name)
+        layout["meta"]["island_name"] = run_name
+        layout["meta"]["output_folder_name"] = output_folder_name
+        layout["meta"]["generated_at"] = datetime.utcnow().isoformat(timespec="seconds") + "Z"
         if town_data:
             layout["town_data"] = town_data
             layout["town_center"] = {"pixel": town_data["center_pixel"], "world_x_cm": town_data["center_world_x"], "world_z_cm": town_data["center_world_z"]}
+
+        verse_package = {}
+        if VERSE_EXPORT_AVAILABLE:
+            verse_result = integrate_with_forge(
+                {
+                    "heightmap_normalized": height.tolist(),
+                    "biome_map": biome.tolist(),
+                    "plots_found": layout.get("plots", []),
+                    "town_center": layout.get("town_center"),
+                    "world_size_cm": world_size_cm,
+                },
+                theme=theme_name,
+                seed=seed,
+            )
+            verse_package = verse_result.get("verse_package") or {}
+
         from PIL import Image
         hm_16 = (height * 65535).astype(np.uint16)
         hm_img = Image.fromarray(hm_16)
-        hm_img.save(os.path.join(OUTPUT_DIR, f"island_{seed}_heightmap.png"))
+        heightmap_path = os.path.join(output_run_dir, "heightmap.png")
+        hm_img.save(heightmap_path)
         hm_buf = io.BytesIO(); hm_img.save(hm_buf, format="PNG")
         _state["heightmap_bytes"] = hm_buf.getvalue()
-        with open(os.path.join(OUTPUT_DIR, f"island_{seed}_layout.json"), "w") as jf:
-            json.dump(layout, jf, indent=2)
+        _write_json(os.path.join(output_run_dir, "layout.json"), layout)
         _state["layout"] = layout
         prev_size = min(size, 1009)
         if prev_size < size:
@@ -134,13 +244,73 @@ def generate():
             p_s = [(int(r*scale), int(c*scale)) for r, c in plots]
             prev_rgb = render_town_overlay(prev_rgb, s_dn, tm_dn, fm_dn, p_s, bl, lots, prev_size)
         prev_img = Image.fromarray(prev_rgb, mode="RGB")
-        prev_img.save(os.path.join(OUTPUT_DIR, f"island_{seed}_preview.png"))
+        preview_path = os.path.join(output_run_dir, "preview.png")
+        prev_img.save(preview_path)
         prev_buf = io.BytesIO(); prev_img.save(prev_buf, format="PNG")
         _state["preview_bytes"] = prev_buf.getvalue()
         prev_b64 = base64.b64encode(_state["preview_bytes"]).decode("utf-8")
         total = size * size
         biome_stats = [{"name": BIOME_NAMES.get(b, "?"), "pct": round(float(np.sum(biome == b)) / total * 100, 1), "colour": "rgb({},{},{})".format(*BIOME_COLOURS.get(b, (100,100,100)))} for b in sorted(BIOME_NAMES.keys()) if np.any(biome == b)]
-        return jsonify({"ok": True, "preview_b64": prev_b64, "plots_found": len(plots), "biome_stats": biome_stats, "verse_constants": layout["verse_constants"], "town_center": layout.get("town_center"), "meta": layout["meta"], "world_wrap": world_wrap, "water_level": water_level, "world_size_cm": world_size_cm, "saved_to": OUTPUT_DIR})
+
+        if verse_package:
+            for filename, content in verse_package.items():
+                _write_text(os.path.join(output_run_dir, filename), content)
+            verse_zip_bytes = create_verse_package_zip(verse_package, seed)
+            if verse_zip_bytes:
+                with open(os.path.join(output_run_dir, "verse_package.zip"), "wb") as handle:
+                    handle.write(verse_zip_bytes)
+                _state["verse_zip_bytes"] = verse_zip_bytes
+            else:
+                _state["verse_zip_bytes"] = None
+        else:
+            _state["verse_zip_bytes"] = None
+
+        manifest = {
+            "island_name": run_name,
+            "output_folder_name": output_folder_name,
+            "seed": seed,
+            "theme": theme_name,
+            "world_size_cm": world_size_cm,
+            "world_wrap": world_wrap,
+            "water_level": water_level,
+            "cluster_angle": cluster_angle,
+            "cluster_spread": cluster_spread,
+            "plots_found": len(plots),
+            "audio_filename": _state.get("audio_filename"),
+            "audio_weights": weights,
+            "files": {
+                "heightmap": "heightmap.png",
+                "layout": "layout.json",
+                "preview": "preview.png",
+                "verse_zip": "verse_package.zip" if _state.get("verse_zip_bytes") else "",
+                "verse_files": sorted(list(verse_package.keys())),
+            },
+            "meta": layout["meta"],
+        }
+        _write_json(os.path.join(output_run_dir, "manifest.json"), manifest)
+
+        _state["output_dir"] = output_run_dir
+        _state["output_folder_name"] = output_folder_name
+        _state["download_prefix"] = output_folder_name
+        _state["verse_package"] = verse_package or None
+
+        return jsonify({
+            "ok": True,
+            "preview_b64": prev_b64,
+            "plots_found": len(plots),
+            "biome_stats": biome_stats,
+            "verse_constants": layout["verse_constants"],
+            "verse_file_count": len(verse_package),
+            "town_center": layout.get("town_center"),
+            "meta": layout["meta"],
+            "world_wrap": world_wrap,
+            "water_level": water_level,
+            "world_size_cm": world_size_cm,
+            "saved_to": output_run_dir,
+            "output_folder_name": output_folder_name,
+            "island_name": run_name,
+            "manifest": manifest,
+        })
     except Exception as e:
         traceback.print_exc(); return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -203,17 +373,22 @@ def audio_stream(filename):
 @forge_bp.route("/download/heightmap")
 def download_heightmap():
     if not _state["heightmap_bytes"]: return "No heightmap yet", 404
-    return send_file(io.BytesIO(_state["heightmap_bytes"]), mimetype="image/png", as_attachment=True, download_name="island_heightmap.png")
+    return send_file(io.BytesIO(_state["heightmap_bytes"]), mimetype="image/png", as_attachment=True, download_name=_download_name("heightmap.png"))
 
 @forge_bp.route("/download/layout")
 def download_layout():
     if not _state["layout"]: return "No layout yet", 404
-    return send_file(io.BytesIO(json.dumps(_state["layout"],indent=2).encode()), mimetype="application/json", as_attachment=True, download_name="island_layout.json")
+    return send_file(io.BytesIO(json.dumps(_state["layout"],indent=2).encode()), mimetype="application/json", as_attachment=True, download_name=_download_name("layout.json"))
 
 @forge_bp.route("/download/preview")
 def download_preview():
     if not _state["preview_bytes"]: return "No preview yet", 404
-    return send_file(io.BytesIO(_state["preview_bytes"]), mimetype="image/png", as_attachment=True, download_name="island_preview.png")
+    return send_file(io.BytesIO(_state["preview_bytes"]), mimetype="image/png", as_attachment=True, download_name=_download_name("preview.png"))
+
+@forge_bp.route("/download/verse_package")
+def download_verse_package():
+    if not _state["verse_zip_bytes"]: return "No verse package yet", 404
+    return send_file(io.BytesIO(_state["verse_zip_bytes"]), mimetype="application/zip", as_attachment=True, download_name=_download_name("verse_package.zip"))
 
 @forge_bp.route("/random_seed")
 def random_seed():

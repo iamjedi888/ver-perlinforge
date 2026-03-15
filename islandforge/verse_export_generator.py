@@ -185,6 +185,7 @@ poi_placer_device := class(creative_device):
     
     def _generate_readme(self) -> str:
         """Generate deployment README"""
+        needs_world_partition = self.world_size_cm > 200_000
         return f"""# TriptokForge UEFN Island Package
 **Seed:** {self.seed} | **Theme:** {self.theme} | **Size:** {self.world_size_cm}cm
 
@@ -200,11 +201,13 @@ poi_placer_device := class(creative_device):
 
 ## Deployment to UEFN
 
-1. Create new UEFN project
-2. Copy all .verse files to project's Verse folder
-3. Import heightmap PNG as landscape
-4. Apply materials from landscape_config.json
-5. Build and launch
+1. Create or open the target UEFN project
+2. {"Enable World Partition in Edit -> Project Settings -> World and enable Streaming in World Settings before import" if needs_world_partition else "World Partition is optional at this size, but you can still enable it if you want streaming headroom"}
+3. Import the generated heightmap PNG as the landscape
+4. Copy all .verse files into the project's Verse folder, or extract the packaged zip there
+5. Use landscape_config.json and asset_manifest.json as the material and asset-binding checklist
+6. In the editor, assign builtin Fortnite gallery and prop assets to the generated @editable Verse slots
+7. Build and launch a session to validate cells, plots, town center, and runtime spawning
 
 All assets referenced are Epic's built-in content - **0 MB custom asset cost**
 
@@ -213,6 +216,7 @@ All assets referenced are Epic's built-in content - **0 MB custom asset cost**
 - **Foliage Spawner**: Reads biome grid, spawns trees/bushes at runtime using Epic's foliage assets
 - **POI Placer**: Builds modular structures from Epic's building galleries (walls, roofs, doors)
 - **Materials**: Uses Chapter-specific landscape materials
+- **Asset binding**: Generated Verse points to slot names; you connect those slots to builtin Fortnite assets in UEFN's editor
 
 Your island loads instantly - props spawn on startup using assets already on player devices.
 """
