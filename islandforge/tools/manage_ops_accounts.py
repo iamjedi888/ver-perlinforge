@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 
 from oracle_db import (
     STAFF_ROLE_OPTIONS,
+    authenticate_staff_account,
     create_bot_profile,
     create_staff_account,
     get_bot_profile_by_slug,
@@ -57,7 +58,8 @@ DEFAULT_COLORSTHEFORCE = {
 
 
 def _generate_password(length: int = 24) -> str:
-    alphabet = string.ascii_letters + string.digits + "!@#$%^&*-_=+?"
+    # Keep generated passwords easy to transcribe from SSH output and browser-safe.
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789-_"
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
@@ -189,6 +191,24 @@ def cmd_reset_password(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verify_login(args: argparse.Namespace) -> int:
+    username = args.username.strip().lower()
+    password = args.password or ""
+    if not password:
+        raise SystemExit("Provide --password to verify a login.")
+
+    account = authenticate_staff_account(username, password)
+    if not account:
+        print(f"Login check failed: {username}")
+        return 1
+
+    print(f"Login check passed: {username}")
+    print(f"Role: {account.get('role') or 'unknown'}")
+    print(f"Display Name: {account.get('display_name') or username}")
+    print(f"Linked Bot: {account.get('linked_bot_slug') or '-'}")
+    return 0
+
+
 def cmd_ensure_colorstheforce(args: argparse.Namespace) -> int:
     _ensure_bot_profile()
     username = (args.username or "colorstheforce").strip().lower()
@@ -259,6 +279,11 @@ def build_parser() -> argparse.ArgumentParser:
     reset_parser.add_argument("--password")
     reset_parser.add_argument("--generate-password", action="store_true")
     reset_parser.set_defaults(func=cmd_reset_password)
+
+    verify_parser = subparsers.add_parser("verify-login", help="Verify that a staff login works before using it on the site.")
+    verify_parser.add_argument("--username", required=True)
+    verify_parser.add_argument("--password", required=True)
+    verify_parser.set_defaults(func=cmd_verify_login)
 
     color_parser = subparsers.add_parser("ensure-colorstheforce", help="Ensure the default ColorsTheForce bot profile and linked bot-operator login exist.")
     color_parser.add_argument("--username", default="colorstheforce")
