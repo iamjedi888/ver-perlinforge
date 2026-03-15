@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Ops Console - TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/ops.css"/>
+</head>
+<body class="ops-page">
+{% macro role_pill(role) -%}
+  {% if role == "admin" %}pill pill-red{% elif role == "moderator" %}pill pill-amber{% else %}pill pill-blue{% endif %}
+{%- endmacro %}
+
+<nav class="ops-nav">
+  {% set brand_href = '/home' %}
+  {% set brand_tail = 'Ops Console' %}
+  {% set brand_compact = true %}
+  {% include "_brand_lockup.html" %}
+  <div class="ops-nav-spacer"></div>
+  <a href="/home" class="ops-nav-link">Site</a>
+  {% if authed %}
+  <a href="/admin" class="ops-nav-link">Legacy Admin</a>
+  <a href="/whitepages#staff-bots" class="ops-nav-link">WhitePages</a>
+  <form method="post" class="inline-form">
+    <input type="hidden" name="action" value="logout"/>
+    <button type="submit" class="ops-nav-link ops-nav-link--accent">Logout</button>
+  </form>
+  {% else %}
+  <a href="/auth/epic" class="ops-nav-link">Epic Login</a>
+  {% endif %}
+</nav>
+
+{% with flashes = get_flashed_messages(with_categories=true) %}
+  {% if flashes %}
+  <div class="flash-stack shell">
+    {% for category, message in flashes %}
+    <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+{% if not authed %}
+<main class="login-shell">
+  <section class="login-card">
+    <div class="eyebrow">OPS LOGIN</div>
+    <h1>Staff, moderator, and bot operator access.</h1>
+    <p>Use a staff username and password, or leave username blank and use the root admin password.</p>
+    <form method="post" class="stack">
+      <input type="hidden" name="action" value="login"/>
+      <label class="field">
+        <span>Staff Username</span>
+        <input type="text" name="username" placeholder="moderator or bot operator"/>
+      </label>
+      <label class="field">
+        <span>Password</span>
+        <input type="password" name="password" placeholder="Enter password" required/>
+      </label>
+      <div class="login-actions">
+        <button type="submit" class="btn btn-primary">Open Ops Console</button>
+        <a href="/home" class="btn">Back to Site</a>
+      </div>
+    </form>
+    <div class="login-note">
+      <strong>Roles:</strong> Admin manages staff, bot profiles, channels, broadcasts, and legacy modules. Moderator manages community posts. Bot Operator tunes only linked bot profiles such as <code>ColorsTheForce</code>.
+    </div>
+  </section>
+</main>
+{% else %}
+<main class="shell ops-shell">
+  <section class="hero panel" id="overview">
+    <div class="hero-copy">
+      <div class="eyebrow">TRIPTOKFORGE OPERATIONS</div>
+      <h1>Luxury lab controls for staff, mods, and house bots.</h1>
+      <p class="hero-copy-text">This is the role-aware operations deck. Admin keeps the full site-control surface. Moderators get a clean content lane. Bot operators tune persona, scope, and model choices without touching broader platform controls.</p>
+      <div class="hero-tags">
+        <span class="{{ role_pill(current_role) }}">{{ current_role_label }}</span>
+        <span class="pill">{{ current_staff_name }}</span>
+        {% if linked_bot_slug %}
+        <span class="pill pill-blue">Linked Bot: {{ linked_bot_slug }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="hero-side">
+      <div class="metric-card">
+        <span class="metric-label">Moderation Queue</span>
+        <strong class="metric-value">{{ ops_metrics.posts }}</strong>
+        <span class="metric-note">Recent editable posts</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Staff Accounts</span>
+        <strong class="metric-value">{{ ops_metrics.staff }}</strong>
+        <span class="metric-note">Role-aware access</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Bot Profiles</span>
+        <strong class="metric-value">{{ ops_metrics.bots }}</strong>
+        <span class="metric-note">Curated operator personas</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Audit Events</span>
+        <strong class="metric-value">{{ ops_metrics.audit }}</strong>
+        <span class="metric-note">Recent control-plane actions</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="ops-tabs panel">
+    <div class="panel-head">
+      <h2>Role Modules</h2>
+      <div class="tab-links">
+        <a href="#moderation" class="tab-link">Moderation</a>
+        {% if staff_permissions.staff %}<a href="#staff" class="tab-link">Staff</a>{% endif %}
+        {% if staff_permissions.bots %}<a href="#bots" class="tab-link">Bots</a>{% endif %}
+        {% if staff_permissions.admin %}<a href="#legacy" class="tab-link">Legacy Admin</a>{% endif %}
+        <a href="#audit" class="tab-link">Audit</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="ops-grid">
+    <section class="panel" id="moderation">
+      <div class="panel-head">
+        <h2>Moderation Bay</h2>
+        <span class="panel-kicker">{{ "ENABLED" if staff_permissions.moderation else "READ ONLY" }}</span>
+      </div>
+      <div class="panel-body">
+        <p class="section-copy">Moderators and admins can update or remove member posts from here. This lane is intentionally separate from channels, broadcasts, and system controls.</p>
+        {% if staff_permissions.moderation and moderation_posts %}
+        <div class="post-stack">
+          {% for post in moderation_posts %}
+          <article class="post-card">
+            <div class="post-top">
+              <div>
+                <strong>{{ post.display_name or "Unknown" }}</strong>
+                <div class="meta-line">{{ post.created_at }}{% if post.epic_id %} | {{ post.epic_id }}{% endif %}</div>
+              </div>
+              <span class="pill">{{ post.likes or 0 }} likes</span>
+            </div>
+            <form method="post" class="post-form">
+              <input type="hidden" name="action" value="post_update"/>
+              <input type="hidden" name="post_id" value="{{ post.id }}"/>
+              <label class="field">
+                <span>Caption</span>
+                <textarea name="caption">{{ post.caption or "" }}</textarea>
+              </label>
+              <label class="field">
+                <span>Embed URL</span>
+                <input type="url" name="embed_url" value="{{ post.embed_url or '' }}" placeholder="https://..."/>
+              </label>
+              <div class="row-actions">
+                <button type="submit" class="btn btn-primary">Save Post</button>
+              </div>
+            </form>
+            <form method="post" class="inline-form danger-form">
+              <input type="hidden" name="action" value="post_delete"/>
+              <input type="hidden" name="post_id" value="{{ post.id }}"/>
+              <button type="submit" class="btn btn-danger">Remove Post</button>
+            </form>
+          </article>
+          {% endfor %}
+        </div>
+        {% elif staff_permissions.moderation %}
+        <div class="empty-card">No recent posts to review.</div>
+        {% else %}
+        <div class="empty-card">This role does not have moderation controls.</div>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if staff_permissions.staff %}
+    <section class="panel" id="staff">
+      <div class="panel-head">
+        <h2>Staff Deck</h2>
+        <span class="panel-kicker">ADMIN ONLY</span>
+      </div>
+      <div class="panel-body">
+        <p class="section-copy">Create separate logins for admins, moderators, and bot operators. Bot operators can be linked to one bot profile and kept away from broader site controls.</p>
+        <div class="form-grid two">
+          <form method="post" class="form-card">
+            <input type="hidden" name="action" value="staff_create"/>
+            <h3>Create Staff Account</h3>
+            <label class="field"><span>Username</span><input type="text" name="username" required/></label>
+            <label class="field"><span>Display Name</span><input type="text" name="display_name" required/></label>
+            <label class="field"><span>Role</span>
+              <select name="role">
+                {% for role_key in role_choices %}
+                <option value="{{ role_key }}">{{ role_labels.get(role_key, role_key.title()) }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field"><span>Password</span><input type="password" name="password" required/></label>
+            <label class="field"><span>Linked Bot</span>
+              <select name="linked_bot_slug">
+                <option value="">None</option>
+                {% for bot in bot_choices %}
+                <option value="{{ bot.slug }}">{{ bot.display_name }} ({{ bot.slug }})</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="toggle"><input type="checkbox" name="active" checked/> Active</label>
+            <div class="row-actions"><button type="submit" class="btn btn-primary">Create Staff Login</button></div>
+          </form>
+
+          <form method="post" class="form-card">
+            <input type="hidden" name="action" value="staff_update"/>
+            <input type="hidden" name="staff_id" value="{{ edit_staff.id if edit_staff else '' }}"/>
+            <h3>Edit Staff Account</h3>
+            <label class="field"><span>Username</span><input type="text" name="username" value="{{ edit_staff.username if edit_staff else '' }}" required/></label>
+            <label class="field"><span>Display Name</span><input type="text" name="display_name" value="{{ edit_staff.display_name if edit_staff else '' }}" required/></label>
+            <label class="field"><span>Role</span>
+              <select name="role">
+                {% for role_key in role_choices %}
+                <option value="{{ role_key }}" {% if edit_staff and edit_staff.role == role_key %}selected{% endif %}>{{ role_labels.get(role_key, role_key.title()) }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field"><span>Reset Password</span><input type="password" name="password" placeholder="Leave blank to keep current"/></label>
+            <label class="field"><span>Linked Bot</span>
+              <select name="linked_bot_slug">
+                <option value="">None</option>
+                {% for bot in bot_choices %}
+                <option value="{{ bot.slug }}" {% if edit_staff and edit_staff.linked_bot_slug == bot.slug %}selected{% endif %}>{{ bot.display_name }} ({{ bot.slug }})</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="toggle"><input type="checkbox" name="active" {% if edit_staff and edit_staff.active %}checked{% endif %}/> Active</label>
+            <div class="row-actions">
+              <button type="submit" class="btn btn-primary" {% if not edit_staff %}disabled{% endif %}>Save Staff</button>
+            </div>
+            <p class="helper-text">Select a staff row below to load it into this editor.</p>
+          </form>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Username</th><th>Display</th><th>Role</th><th>Linked Bot</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {% for staff in staff_accounts %}
+              <tr>
+                <td>{{ staff.username }}</td>
+                <td>{{ staff.display_name }}</td>
+                <td><span class="{{ role_pill(staff.role) }}">{{ role_labels.get(staff.role, staff.role.title()) }}</span></td>
+                <td>{{ staff.linked_bot_slug or "None" }}</td>
+                <td>{{ "Active" if staff.active else "Disabled" }}</td>
+                <td class="actions-cell">
+                  <a href="/ops?edit_staff={{ staff.id }}#staff" class="btn">Edit</a>
+                  <form method="post" class="inline-form">
+                    <input type="hidden" name="action" value="staff_delete"/>
+                    <input type="hidden" name="staff_id" value="{{ staff.id }}"/>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6">No staff accounts yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    {% if staff_permissions.bots %}
+    <section class="panel" id="bots">
+      <div class="panel-head">
+        <h2>Bot Workshop</h2>
+        <span class="panel-kicker">{{ "ADMIN + BOT OPS" if current_role == "admin" else "LINKED BOT ONLY" }}</span>
+      </div>
+      <div class="panel-body">
+        <p class="section-copy">Tune scope, tone, language, moderation surfaces, and provider/model selections for house bots like <code>ColorsTheForce</code>. Provider choices are curated from official vendor model catalogs and docs, not scraped live at runtime.</p>
+
+        {% if current_role == "admin" %}
+        <form method="post" class="form-card provider-form" data-provider-form>
+          <input type="hidden" name="action" value="bot_profile_create"/>
+          <h3>Create Bot Profile</h3>
+          <div class="form-grid two">
+            <label class="field"><span>Slug</span><input type="text" name="slug" placeholder="colorstheforce" required/></label>
+            <label class="field"><span>Display Name</span><input type="text" name="display_name" placeholder="ColorsTheForce" required/></label>
+            <label class="field"><span>Badge</span><input type="text" name="badge_label" value="AI Operator"/></label>
+            <label class="field"><span>Role Label</span><input type="text" name="role_label" value="Operator"/></label>
+            <label class="field field-span-2"><span>Bio</span><textarea name="bio" placeholder="What this bot does on the site."></textarea></label>
+            <label class="field"><span>Tone</span><input type="text" name="tone" value="Calm, high-signal, premium console operator"/></label>
+            <label class="field"><span>Language</span><input type="text" name="language_profile" value="American English"/></label>
+            <label class="field"><span>LLM Provider</span>
+              <select name="llm_provider" data-provider-select>
+                <option value="">Select provider</option>
+                {% for provider in llm_provider_catalog %}
+                <option value="{{ provider.provider }}">{{ provider.provider }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field"><span>LLM Model</span>
+              <select name="llm_model" data-model-select data-current-model=""></select>
+            </label>
+            <label class="field"><span>LLM Family</span><input type="text" name="llm_family" data-family-input value=""/></label>
+            <label class="field field-span-2"><span>Scope</span><textarea name="scope_text" placeholder="One specialty per line"></textarea></label>
+            <label class="field field-span-2"><span>Surfaces</span><textarea name="surfaces_text" placeholder="Community moderation&#10;Member guidance"></textarea></label>
+            <label class="field field-span-2"><span>System Prompt Guardrails</span><textarea name="system_prompt" placeholder="Clear labeling, no impersonation, approval rules."></textarea></label>
+          </div>
+          <div class="provider-notes" data-provider-meta></div>
+          <label class="toggle"><input type="checkbox" name="active" checked/> Active</label>
+          <div class="row-actions"><button type="submit" class="btn btn-primary">Create Bot Profile</button></div>
+        </form>
+        {% endif %}
+
+        <form method="post" class="form-card provider-form" data-provider-form>
+          <input type="hidden" name="action" value="bot_profile_update"/>
+          <input type="hidden" name="bot_id" value="{{ edit_bot.id if edit_bot else '' }}"/>
+          <h3>{{ "Edit Bot Profile" if edit_bot else "Select a Bot Profile" }}</h3>
+          <div class="form-grid two">
+            <label class="field"><span>Slug</span><input type="text" name="slug" value="{{ edit_bot.slug if edit_bot else '' }}" {% if current_role == "bot_operator" %}readonly{% endif %} required/></label>
+            <label class="field"><span>Display Name</span><input type="text" name="display_name" value="{{ edit_bot.display_name if edit_bot else '' }}" required/></label>
+            <label class="field"><span>Badge</span><input type="text" name="badge_label" value="{{ edit_bot.badge_label if edit_bot else 'AI Moderator' }}"/></label>
+            <label class="field"><span>Role Label</span><input type="text" name="role_label" value="{{ edit_bot.role_label if edit_bot else 'Moderator' }}"/></label>
+            <label class="field field-span-2"><span>Bio</span><textarea name="bio">{{ edit_bot.bio if edit_bot else '' }}</textarea></label>
+            <label class="field"><span>Tone</span><input type="text" name="tone" value="{{ edit_bot.tone if edit_bot else '' }}"/></label>
+            <label class="field"><span>Language</span><input type="text" name="language_profile" value="{{ edit_bot.language_profile if edit_bot else 'American English' }}"/></label>
+            <label class="field"><span>LLM Provider</span>
+              <select name="llm_provider" data-provider-select>
+                <option value="">Select provider</option>
+                {% for provider in llm_provider_catalog %}
+                <option value="{{ provider.provider }}" {% if edit_bot and edit_bot.llm_provider == provider.provider %}selected{% endif %}>{{ provider.provider }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field"><span>LLM Model</span>
+              <select name="llm_model" data-model-select data-current-model="{{ edit_bot.llm_model if edit_bot else '' }}"></select>
+            </label>
+            <label class="field"><span>LLM Family</span><input type="text" name="llm_family" data-family-input value="{{ edit_bot.llm_family if edit_bot else '' }}"/></label>
+            <label class="field field-span-2"><span>Scope</span><textarea name="scope_text">{{ edit_bot.scope_text if edit_bot else '' }}</textarea></label>
+            <label class="field field-span-2"><span>Surfaces</span><textarea name="surfaces_text">{{ edit_bot.surfaces_text if edit_bot else '' }}</textarea></label>
+            <label class="field field-span-2"><span>System Prompt Guardrails</span><textarea name="system_prompt">{{ edit_bot.system_prompt if edit_bot else '' }}</textarea></label>
+          </div>
+          <div class="provider-notes" data-provider-meta></div>
+          <label class="toggle"><input type="checkbox" name="active" {% if edit_bot and edit_bot.active %}checked{% endif %}/> Active</label>
+          <div class="row-actions">
+            <button type="submit" class="btn btn-primary" {% if not edit_bot %}disabled{% endif %}>Save Bot Profile</button>
+            {% if current_role == "admin" and edit_bot %}
+            <button type="submit" form="bot-delete-form" class="btn btn-danger">Delete Bot</button>
+            {% endif %}
+          </div>
+          <p class="helper-text">Pick a bot card below to load it into this editor.</p>
+        </form>
+        {% if current_role == "admin" and edit_bot %}
+        <form method="post" class="inline-form" id="bot-delete-form">
+          <input type="hidden" name="action" value="bot_profile_delete"/>
+          <input type="hidden" name="bot_id" value="{{ edit_bot.id }}"/>
+        </form>
+        {% endif %}
+
+        <div class="bot-grid">
+          {% for bot in bot_profiles %}
+          <article class="bot-card">
+            <div class="bot-top">
+              <div>
+                <strong>{{ bot.display_name }}</strong>
+                <div class="meta-line">{{ bot.slug }} | {{ bot.badge_label }}</div>
+              </div>
+              <span class="pill {% if bot.active %}pill-blue{% else %}pill-red{% endif %}">{{ "Active" if bot.active else "Paused" }}</span>
+            </div>
+            <p>{{ bot.bio }}</p>
+            <div class="bot-meta">
+              <span>{{ bot.llm_provider or "No provider" }}</span>
+              <span>{{ bot.llm_model or "No model" }}</span>
+            </div>
+            <a href="/ops?edit_bot={{ bot.id }}#bots" class="btn">Open Profile</a>
+          </article>
+          {% else %}
+          <div class="empty-card">No bot profiles available to this role.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    {% if staff_permissions.admin %}
+    <section class="panel" id="legacy">
+      <div class="panel-head">
+        <h2>Legacy Admin Bridge</h2>
+        <span class="panel-kicker">FULL SITE CONTROL</span>
+      </div>
+      <div class="panel-body">
+        <p class="section-copy">Channels, broadcasts, announcements, and system surfaces still live in the existing admin shell. This bridge keeps the new role-aware console separate from the older full-control modules.</p>
+        <div class="link-grid">
+          {% for item in legacy_admin_links %}
+          <a href="{{ item.href }}" class="link-card">
+            <strong>{{ item.label }}</strong>
+            <span>Open {{ item.label|lower }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="panel" id="audit">
+      <div class="panel-head">
+        <h2>Audit Rail</h2>
+        <span class="panel-kicker">LAST 40 EVENTS</span>
+      </div>
+      <div class="panel-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>When</th><th>Actor</th><th>Role</th><th>Action</th><th>Target</th><th>Detail</th></tr>
+            </thead>
+            <tbody>
+              {% for row in audit_rows %}
+              <tr>
+                <td>{{ row.created_at }}</td>
+                <td>{{ row.actor_username }}</td>
+                <td>{{ row.actor_role }}</td>
+                <td>{{ row.action }}</td>
+                <td>{{ row.target_type }}{% if row.target_ref %}: {{ row.target_ref }}{% endif %}</td>
+                <td>{{ row.detail }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6">No audit events yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+{% endif %}
+
+<script id="llm-provider-catalog" type="application/json">{{ llm_provider_catalog|tojson }}</script>
+<script src="/static/js/ops.js"></script>
+</body>
+</html>

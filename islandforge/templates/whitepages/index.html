@@ -31,6 +31,7 @@
     <a href="#repo-privacy" class="nav-a">Repo Privacy</a>
     <a href="#epic-approval" class="nav-a">Epic Approval</a>
     <a href="#colorstheforce" class="nav-a">ColorsTheForce</a>
+    <a href="#staff-bots" class="nav-a">Staff + Bots</a>
     <a href="#forge-runbook" class="nav-a">Forge</a>
     <a href="#workspace-audit" class="nav-a">Audit</a>
     <a href="#routes" class="nav-a">API</a>
@@ -77,6 +78,7 @@
     <a href="#island-forge" class="sb-a"><span class="ic">&#9650;</span>Island Forge</a>
     <a href="#forge-runbook" class="sb-a"><span class="ic">&#9998;</span>Forge Runbook</a>
     <a href="#colorstheforce" class="sb-a"><span class="ic">&#9787;</span>ColorsTheForce</a>
+    <a href="#staff-bots" class="sb-a"><span class="ic">&#9873;</span>Staff + Bots</a>
   </div>
   <div class="sb-group">
     <div class="sb-glabel">Roadmap</div>
@@ -391,7 +393,7 @@
       </ul>
       <h3>How it should be operated</h3>
       <ul>
-        <li>Use the normal admin/operator login to post as ColorsTheForce.</li>
+        <li>Use the dedicated <code>/ops</code> staff console with either an admin account or a linked bot-operator account.</li>
         <li>Do not create a fake public human-style password for it.</li>
         <li>Allow manual post, edit, and draft generation through admin.</li>
         <li>Require human approval for destructive or high-impact actions.</li>
@@ -406,6 +408,44 @@
     <div class="callout green"><div class="callout-icon">&#9787;</div><div><div class="c-title">First release target</div><p>Post-only AI moderator with admin-triggered drafts, admin approval before publish, and a clearly labeled public profile.</p></div></div>
     <div class="prose">
       <p>Reference notes: <code>templates/whitepages/COLORSTHEFORCE_PROFILE.md</code> and <code>config/bot_profiles.example.json</code></p>
+    </div>
+  </section>
+
+  <section class="doc" id="staff-bots">
+    <div class="dh"><div class="dh-num">09C</div><div><h2>Staff + Bot <span>Operations</span></h2><p>Role-aware ops model for admins, moderators, and bot operators, plus the curated LLM provider catalog used in the site console.</p></div></div>
+    <div class="prose">
+      <h3>Role split</h3>
+      <ul>
+        <li><strong>Admin:</strong> full operations control, including staff accounts, bot profiles, channels, broadcasts, announcements, and legacy admin modules.</li>
+        <li><strong>Moderator:</strong> community-post moderation only. This role can edit or remove posts without touching channels, bot settings, or sitewide UI controls.</li>
+        <li><strong>Bot Operator:</strong> can tune a linked bot profile such as <code>ColorsTheForce</code> without receiving the rest of the admin surface.</li>
+      </ul>
+      <h3>Ops surface</h3>
+      <ul>
+        <li><code>/ops</code> is the role-aware login and dashboard for staff accounts.</li>
+        <li>The old <code>/admin</code> route remains the legacy full-control console and should stay admin-only.</li>
+        <li>Leave the username blank and use the root admin password only as a fallback, not as the long-term staff model.</li>
+      </ul>
+      <h3>Provider catalog design</h3>
+      <ul>
+        <li>Provider and model dropdowns are curated from official vendor documentation rather than scraped live at runtime.</li>
+        <li>This keeps the site stable, readable, and safe to edit from the admin surface.</li>
+        <li>Good current anchors for bot selection are Google Vertex AI, IBM watsonx.ai, NVIDIA NIM, Meta Llama, and Hugging Face provider routing.</li>
+      </ul>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Provider</th><th>Best use inside TriptokForge</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Google Vertex AI</td><td>Fast moderation summaries, multimodal helpers, general-purpose site copilots</td><td>Strong hosted model surface and current Gemini family coverage.</td></tr>
+        <tr><td>IBM watsonx.ai</td><td>Governed enterprise-style operations and policy-heavy assistants</td><td>Useful when the emphasis is control, business process, and documented model governance.</td></tr>
+        <tr><td>NVIDIA NIM</td><td>In-house accelerated inference and future on-OCI bot workloads</td><td>Best fit if you want the bot runtime closer to your own stack instead of only SaaS APIs.</td></tr>
+        <tr><td>Meta Llama</td><td>Open-weight bot deployment paths</td><td>Usually consumed through another host or your own infrastructure.</td></tr>
+        <tr><td>Hugging Face</td><td>Provider brokering and OSS model experimentation</td><td>Good catalog layer, not a single-model answer by itself.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout green"><div class="callout-icon">&#9873;</div><div><div class="c-title">Implementation note</div><p>The site now has a dedicated ops-console direction: admins keep full privileges, moderators stay constrained to post cleanup, and bot operators can maintain linked bot profiles without receiving the rest of the control plane.</p></div></div>
+    <div class="prose">
+      <p>Reference note: <code>templates/whitepages/STAFF_BOT_OPERATIONS.md</code></p>
     </div>
   </section>
 

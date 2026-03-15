@@ -87,10 +87,10 @@ def run_tests(base_url: str) -> int:
     checks.append(
         {
             "name": "admin_login",
-            "path": "/admin",
+            "path": "/ops",
             "method": "GET",
-            "validate": lambda s, h, b: s == 200 and "admin password" in b.lower(),
-            "detail": "admin login screen",
+            "validate": lambda s, h, b: s == 200 and ("ops login" in b.lower() or "staff username" in b.lower()),
+            "detail": "ops login screen",
         }
     )
     checks.append(

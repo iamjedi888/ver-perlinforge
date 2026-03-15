@@ -12,28 +12,44 @@ from flask import (
 )
 import os
 from oracle_db import (
+    authenticate_staff_account,
     create_site_broadcast,
     create_channel,
+    create_staff_account,
+    create_bot_profile,
+    delete_bot_profile,
     delete_channel,
+    delete_post,
+    delete_staff_account,
     delete_site_broadcast,
     get_all_members,
     get_announcements,
     get_audio_tracks,
+    get_bot_profile,
+    get_bot_profiles,
     get_channel,
     get_channels,
     get_member_islands,
     get_member_room,
     get_member_tickets,
+    get_operator_audit_log,
     get_posts,
     get_recent_islands,
     get_site_broadcast,
     get_site_broadcasts,
+    get_staff_account,
+    get_staff_accounts,
     get_wp_tracks,
+    log_operator_event,
     post_announcement,
     set_site_broadcast_active,
     status,
+    STAFF_ROLE_OPTIONS,
     update_channel,
+    update_post,
+    update_staff_account,
     update_site_broadcast,
+    update_bot_profile,
     approve_channel,
 )
 
@@ -79,6 +95,48 @@ BROADCAST_DISMISS_MODES = [
     "manual",
     "persistent",
 ]
+STAFF_ROLE_LABELS = {
+    "admin": "Admin",
+    "moderator": "Moderator",
+    "bot_operator": "Bot Operator",
+}
+BOT_PROVIDER_CATALOG = [
+    {
+        "provider": "Google Vertex AI",
+        "family": "Gemini",
+        "models": ["Gemini 2.5 Pro", "Gemini 2.5 Flash", "Gemini 2.5 Flash-Lite"],
+        "notes": "Strong multimodal and reasoning surface for ops copilots and moderation summaries.",
+        "source": "https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models",
+    },
+    {
+        "provider": "IBM watsonx.ai",
+        "family": "Granite + partner models",
+        "models": ["Granite 3.3 8B Instruct", "Granite Guardian", "Meta Llama family on watsonx"],
+        "notes": "Enterprise governance posture with Granite and partner-hosted model options.",
+        "source": "https://www.ibm.com/products/watsonx-ai",
+    },
+    {
+        "provider": "NVIDIA NIM",
+        "family": "Nemotron + partner models",
+        "models": ["Nemotron Nano", "Nemotron Mini", "Llama 3.3 Nemotron Super"],
+        "notes": "Good fit if you want in-house accelerated inference and safety microservices.",
+        "source": "https://docs.nvidia.com/nim/large-language-models/latest/supported-models.html",
+    },
+    {
+        "provider": "Meta Llama",
+        "family": "Llama",
+        "models": ["Llama 4 Scout", "Llama 4 Maverick", "Llama 3.3"],
+        "notes": "Open-weight family often deployed through another provider or your own stack.",
+        "source": "https://www.llama.com",
+    },
+    {
+        "provider": "Hugging Face",
+        "family": "Inference Providers / model hub",
+        "models": ["Provider gateway", "Hosted OSS catalog", "Custom model routing"],
+        "notes": "Best as a flexible model catalog and provider broker rather than a single model family.",
+        "source": "https://huggingface.co/docs/inference-providers/index",
+    },
+]
 CHANNEL_AUTO_TOKENS = {
     "",
     "auto",
@@ -87,6 +145,57 @@ CHANNEL_AUTO_TOKENS = {
     "detect",
     "suggested",
 }
+
+
+def _staff_role() -> str:
+    if session.get("staff_role"):
+        return str(session.get("staff_role") or "")
+    if session.get("admin_authed"):
+        return "admin"
+    return ""
+
+
+def _staff_name() -> str:
+    return (
+        session.get("staff_name")
+        or session.get("display_name")
+        or session.get("staff_username")
+        or "Operator"
+    )
+
+
+def _staff_permissions(role: str | None = None) -> dict:
+    role = role or _staff_role()
+    return {
+        "admin": role == "admin",
+        "moderation": role in {"admin", "moderator"},
+        "channels": role == "admin",
+        "broadcasts": role == "admin",
+        "announcements": role == "admin",
+        "staff": role == "admin",
+        "bots": role in {"admin", "bot_operator"},
+        "system": role == "admin",
+        "members": role == "admin",
+    }
+
+
+def _staff_authed() -> bool:
+    return bool(_staff_role())
+
+
+def _set_staff_session(account: dict):
+    role = str(account.get("role") or "moderator")
+    session["admin_authed"] = role == "admin"
+    session["staff_role"] = role
+    session["staff_name"] = account.get("display_name") or account.get("username") or STAFF_ROLE_LABELS.get(role, "Operator")
+    session["staff_username"] = account.get("username") or ""
+    session["staff_id"] = int(account.get("id") or 0)
+    session["linked_bot_slug"] = account.get("linked_bot_slug") or ""
+
+
+def _clear_staff_session():
+    for key in ("admin_authed", "staff_role", "staff_name", "staff_username", "staff_id", "linked_bot_slug"):
+        session.pop(key, None)
 
 ESPORTS_SECTIONS = [
     {
@@ -598,6 +707,35 @@ def _admin_redirect(anchor="overview", edit_channel=None, edit_broadcast=None):
     target = url_for("platform.admin", **params) if params else url_for("platform.admin")
     return redirect(f"{target}#{anchor}")
 
+
+def _ops_redirect(anchor="overview", edit_staff=None, edit_bot=None):
+    params = {}
+    if edit_staff is not None:
+        params["edit_staff"] = edit_staff
+    if edit_bot is not None:
+        params["edit_bot"] = edit_bot
+    target = url_for("platform.ops", **params) if params else url_for("platform.ops")
+    return redirect(f"{target}#{anchor}" if anchor else target)
+
+
+def _operator_username() -> str:
+    return (
+        session.get("staff_username")
+        or session.get("display_name")
+        or session.get("epic_id")
+        or "root-admin"
+    )
+
+
+def _can_manage_bot_profile(role: str, linked_bot_slug: str, bot_profile: dict | None) -> bool:
+    if not bot_profile:
+        return False
+    if role == "admin":
+        return True
+    if role == "bot_operator":
+        return bool(linked_bot_slug and linked_bot_slug == (bot_profile.get("slug") or ""))
+    return False
+
 @platform_bp.route("/")
 @platform_bp.route("/home")
 def home():
@@ -756,6 +894,294 @@ def dashboard():
 def privacy():
     return render_template("privacy.html")
 
+@platform_bp.route("/ops", methods=["GET", "POST"])
+def ops():
+    authed = _staff_authed()
+    role = _staff_role()
+    linked_bot_slug = str(session.get("linked_bot_slug") or "")
+    permissions = _staff_permissions(role)
+
+    if request.method == "POST":
+        action = (request.form.get("action") or "").strip()
+
+        if action == "login":
+            username = (request.form.get("username") or "").strip()
+            password = request.form.get("password") or ""
+            account = None
+            if username:
+                account = authenticate_staff_account(username, password)
+            elif password == ADMIN_PASSWORD:
+                account = {
+                    "id": 0,
+                    "username": "root-admin",
+                    "display_name": "Root Admin",
+                    "role": "admin",
+                    "linked_bot_slug": "",
+                    "active": 1,
+                }
+            if not account:
+                flash("Wrong username or password.", "error")
+                return _ops_redirect("login")
+            _set_staff_session(account)
+            log_operator_event(
+                _operator_username(),
+                _staff_role(),
+                "ops_login",
+                "session",
+                account.get("username") or "root-admin",
+                "Ops console login",
+            )
+            flash(f"{STAFF_ROLE_LABELS.get(_staff_role(), 'Operator')} session opened.", "success")
+            return _ops_redirect("overview")
+
+        if action == "logout":
+            if authed:
+                log_operator_event(
+                    _operator_username(),
+                    role or "admin",
+                    "ops_logout",
+                    "session",
+                    session.get("staff_username") or "root-admin",
+                    "Ops console logout",
+                )
+            _clear_staff_session()
+            flash("Ops session closed.", "success")
+            return _ops_redirect("login")
+
+        if not authed:
+            return Response("Unauthorized", 403)
+
+        role = _staff_role()
+        linked_bot_slug = str(session.get("linked_bot_slug") or "")
+        permissions = _staff_permissions(role)
+        actor_username = _operator_username()
+        actor_role = role or "admin"
+
+        if action == "post_update":
+            if not permissions["moderation"]:
+                flash("Moderation access required.", "error")
+                return _ops_redirect("moderation")
+            post_id = _to_int(request.form.get("post_id"))
+            caption = (request.form.get("caption") or "").strip()
+            embed_url = (request.form.get("embed_url") or "").strip()
+            if not post_id or not caption and not embed_url:
+                flash("Post update requires a post and at least one field.", "error")
+                return _ops_redirect("moderation")
+            if update_post(post_id, caption, embed_url):
+                log_operator_event(actor_username, actor_role, "post_update", "post", str(post_id), "Edited post content")
+                flash("Post updated.", "success")
+            else:
+                flash("Post update failed.", "error")
+            return _ops_redirect("moderation")
+
+        if action == "post_delete":
+            if not permissions["moderation"]:
+                flash("Moderation access required.", "error")
+                return _ops_redirect("moderation")
+            post_id = _to_int(request.form.get("post_id"))
+            if post_id and delete_post(post_id):
+                log_operator_event(actor_username, actor_role, "post_delete", "post", str(post_id), "Removed community post")
+                flash("Post removed.", "success")
+            else:
+                flash("Post removal failed.", "error")
+            return _ops_redirect("moderation")
+
+        if action == "staff_create":
+            if not permissions["staff"]:
+                flash("Admin staff controls required.", "error")
+                return _ops_redirect("staff")
+            username = (request.form.get("username") or "").strip().lower()
+            display_name = (request.form.get("display_name") or "").strip()
+            new_role = (request.form.get("role") or "moderator").strip().lower()
+            password = request.form.get("password") or ""
+            linked_slug = (request.form.get("linked_bot_slug") or "").strip().lower()
+            if create_staff_account(username, display_name, new_role, password, linked_bot_slug=linked_slug, active=_is_checked(request.form.get("active"))):
+                log_operator_event(actor_username, actor_role, "staff_create", "staff", username, f"role={new_role}")
+                flash("Staff account created.", "success")
+            else:
+                flash("Staff account creation failed. Check username/password.", "error")
+            return _ops_redirect("staff")
+
+        if action == "staff_update":
+            if not permissions["staff"]:
+                flash("Admin staff controls required.", "error")
+                return _ops_redirect("staff")
+            staff_id = _to_int(request.form.get("staff_id"))
+            username = (request.form.get("username") or "").strip().lower()
+            display_name = (request.form.get("display_name") or "").strip()
+            new_role = (request.form.get("role") or "moderator").strip().lower()
+            password = request.form.get("password") or ""
+            linked_slug = (request.form.get("linked_bot_slug") or "").strip().lower()
+            if update_staff_account(staff_id, username, display_name, new_role, password=password, linked_bot_slug=linked_slug, active=_is_checked(request.form.get("active"))):
+                log_operator_event(actor_username, actor_role, "staff_update", "staff", username or str(staff_id), f"role={new_role}")
+                flash("Staff account updated.", "success")
+            else:
+                flash("Staff account update failed.", "error")
+            return _ops_redirect("staff", edit_staff=staff_id)
+
+        if action == "staff_delete":
+            if not permissions["staff"]:
+                flash("Admin staff controls required.", "error")
+                return _ops_redirect("staff")
+            staff_id = _to_int(request.form.get("staff_id"))
+            if staff_id and staff_id == _to_int(session.get("staff_id")):
+                flash("Use logout instead of deleting the account in your current session.", "error")
+                return _ops_redirect("staff")
+            target = get_staff_account(staff_id) if staff_id else None
+            if staff_id and delete_staff_account(staff_id):
+                log_operator_event(actor_username, actor_role, "staff_delete", "staff", (target or {}).get("username") or str(staff_id), "Removed staff account")
+                flash("Staff account removed.", "success")
+            else:
+                flash("Staff account removal failed.", "error")
+            return _ops_redirect("staff")
+
+        if action == "bot_profile_create":
+            if role != "admin":
+                flash("Admin bot controls required.", "error")
+                return _ops_redirect("bots")
+            provider = (request.form.get("llm_provider") or "").strip()
+            catalog_row = next((item for item in BOT_PROVIDER_CATALOG if item["provider"] == provider), None)
+            llm_family = (request.form.get("llm_family") or (catalog_row or {}).get("family") or "").strip()
+            slug = (request.form.get("slug") or "").strip().lower()
+            display_name = (request.form.get("display_name") or "").strip()
+            if create_bot_profile(
+                slug=slug,
+                display_name=display_name,
+                badge_label=(request.form.get("badge_label") or "").strip() or "AI Operator",
+                role_label=(request.form.get("role_label") or "").strip() or "Operator",
+                bio=(request.form.get("bio") or "").strip(),
+                tone=(request.form.get("tone") or "").strip(),
+                language_profile=(request.form.get("language_profile") or "").strip() or "American English",
+                llm_provider=provider,
+                llm_model=(request.form.get("llm_model") or "").strip(),
+                llm_family=llm_family,
+                scope_text=(request.form.get("scope_text") or "").strip(),
+                surfaces_text=(request.form.get("surfaces_text") or "").strip(),
+                system_prompt=(request.form.get("system_prompt") or "").strip(),
+                active=_is_checked(request.form.get("active")),
+            ):
+                log_operator_event(actor_username, actor_role, "bot_create", "bot", slug, provider or "unassigned")
+                flash("Bot profile created.", "success")
+            else:
+                flash("Bot profile creation failed.", "error")
+            return _ops_redirect("bots")
+
+        if action == "bot_profile_update":
+            bot_id = _to_int(request.form.get("bot_id"))
+            target_bot = get_bot_profile(bot_id) if bot_id else None
+            if not _can_manage_bot_profile(role, linked_bot_slug, target_bot):
+                flash("You do not have access to that bot profile.", "error")
+                return _ops_redirect("bots")
+            provider = (request.form.get("llm_provider") or "").strip()
+            catalog_row = next((item for item in BOT_PROVIDER_CATALOG if item["provider"] == provider), None)
+            llm_family = (request.form.get("llm_family") or (catalog_row or {}).get("family") or "").strip()
+            submitted_slug = (request.form.get("slug") or "").strip().lower()
+            safe_slug = target_bot.get("slug") if role == "bot_operator" else submitted_slug
+            if update_bot_profile(
+                bot_id=bot_id,
+                slug=safe_slug,
+                display_name=(request.form.get("display_name") or "").strip(),
+                badge_label=(request.form.get("badge_label") or "").strip() or "AI Operator",
+                role_label=(request.form.get("role_label") or "").strip() or "Operator",
+                bio=(request.form.get("bio") or "").strip(),
+                tone=(request.form.get("tone") or "").strip(),
+                language_profile=(request.form.get("language_profile") or "").strip() or "American English",
+                llm_provider=provider,
+                llm_model=(request.form.get("llm_model") or "").strip(),
+                llm_family=llm_family,
+                scope_text=(request.form.get("scope_text") or "").strip(),
+                surfaces_text=(request.form.get("surfaces_text") or "").strip(),
+                system_prompt=(request.form.get("system_prompt") or "").strip(),
+                active=_is_checked(request.form.get("active")),
+            ):
+                log_operator_event(actor_username, actor_role, "bot_update", "bot", safe_slug or str(bot_id), provider or "unassigned")
+                flash("Bot profile updated.", "success")
+            else:
+                flash("Bot profile update failed.", "error")
+            return _ops_redirect("bots", edit_bot=bot_id)
+
+        if action == "bot_profile_delete":
+            if role != "admin":
+                flash("Admin bot controls required.", "error")
+                return _ops_redirect("bots")
+            bot_id = _to_int(request.form.get("bot_id"))
+            target_bot = get_bot_profile(bot_id) if bot_id else None
+            if bot_id and delete_bot_profile(bot_id):
+                log_operator_event(actor_username, actor_role, "bot_delete", "bot", (target_bot or {}).get("slug") or str(bot_id), "Removed bot profile")
+                flash("Bot profile removed.", "success")
+            else:
+                flash("Bot profile removal failed.", "error")
+            return _ops_redirect("bots")
+
+        flash("Unknown ops action.", "error")
+        return _ops_redirect("overview")
+
+    posts = []
+    staff_accounts = []
+    bot_profiles = []
+    audit_rows = []
+    if authed and permissions["moderation"]:
+        posts = get_posts(limit=60, approved_only=False) or []
+    if authed and permissions["staff"]:
+        staff_accounts = get_staff_accounts() or []
+    if authed and permissions["bots"]:
+        bot_profiles = get_bot_profiles() or []
+    elif authed and role == "bot_operator":
+        bot_profiles = get_bot_profiles() or []
+
+    if authed:
+        audit_rows = get_operator_audit_log(limit=40) or []
+
+    if role == "bot_operator" and linked_bot_slug:
+        bot_profiles = [item for item in bot_profiles if (item.get("slug") or "") == linked_bot_slug]
+
+    edit_staff_id = _to_int(request.args.get("edit_staff"))
+    edit_staff = get_staff_account(edit_staff_id) if authed and permissions["staff"] and edit_staff_id else None
+
+    edit_bot_id = _to_int(request.args.get("edit_bot"))
+    edit_bot = get_bot_profile(edit_bot_id) if authed and edit_bot_id else None
+    if edit_bot and not _can_manage_bot_profile(role, linked_bot_slug, edit_bot):
+        edit_bot = None
+    if authed and role == "bot_operator" and not edit_bot and bot_profiles:
+        edit_bot = bot_profiles[0]
+
+    bot_choices = [{"slug": item.get("slug") or "", "display_name": item.get("display_name") or item.get("slug") or "Bot"} for item in (get_bot_profiles() or [])]
+    ops_metrics = {
+        "posts": len(posts),
+        "staff": len(staff_accounts),
+        "bots": len(bot_profiles),
+        "audit": len(audit_rows),
+    }
+    legacy_admin_links = [
+        {"label": "Channel Editor", "href": "/admin#channel-editor"},
+        {"label": "Broadcasts", "href": "/admin#broadcasts"},
+        {"label": "Announcements", "href": "/admin#announcements"},
+        {"label": "Catalog", "href": "/admin#catalog"},
+    ]
+
+    return render_template(
+        "ops.html",
+        authed=authed,
+        current_role=role,
+        current_role_label=STAFF_ROLE_LABELS.get(role, "Admin" if authed else "Guest"),
+        current_staff_name=_staff_name() if authed else "",
+        current_staff_username=session.get("staff_username") or "",
+        linked_bot_slug=linked_bot_slug,
+        staff_permissions=permissions,
+        moderation_posts=posts,
+        staff_accounts=staff_accounts,
+        bot_profiles=bot_profiles,
+        edit_staff=edit_staff,
+        edit_bot=edit_bot,
+        bot_choices=bot_choices,
+        audit_rows=audit_rows,
+        ops_metrics=ops_metrics,
+        llm_provider_catalog=BOT_PROVIDER_CATALOG,
+        role_choices=STAFF_ROLE_OPTIONS,
+        role_labels=STAFF_ROLE_LABELS,
+        legacy_admin_links=legacy_admin_links,
+    )
+
 @platform_bp.route("/admin", methods=["GET","POST"])
 def admin():
     authed = bool(session.get("admin_authed"))
@@ -763,14 +1189,23 @@ def admin():
         action = request.form.get("action")
         if action == "login":
             if request.form.get("password") == ADMIN_PASSWORD:
-                session["admin_authed"] = True
+                _set_staff_session(
+                    {
+                        "id": 0,
+                        "username": "root-admin",
+                        "display_name": "Root Admin",
+                        "role": "admin",
+                        "linked_bot_slug": "",
+                        "active": 1,
+                    }
+                )
                 flash("Admin session opened.", "success")
                 return _admin_redirect("overview")
             else:
                 flash("Wrong admin password.", "error")
                 return _admin_redirect("login")
         if action == "logout":
-            session.pop("admin_authed", None)
+            _clear_staff_session()
             flash("Admin session closed.", "success")
             return _admin_redirect("login")
         if not authed:

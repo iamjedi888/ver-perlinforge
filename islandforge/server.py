@@ -34,6 +34,7 @@ PUBLIC_PREFIXES = (
     "/static/",
     "/auth/",
     "/admin",
+    "/ops",
 )
 
 PROTECTED_PAGE_ROOTS = (
@@ -91,7 +92,7 @@ def _epic_logged_in() -> bool:
 
 
 def _admin_logged_in() -> bool:
-    return bool(session.get("admin_authed"))
+    return bool(session.get("admin_authed") or session.get("staff_role"))
 
 
 def _has_portal_access() -> bool:
@@ -105,10 +106,11 @@ def _is_public_path(path: str) -> bool:
     return any(normalized.startswith(prefix) for prefix in PUBLIC_PREFIXES)
 
 try:
-    from oracle_db import init_schema, ensure_channel_schema, get_site_broadcasts
+    from oracle_db import init_schema, ensure_channel_schema, ensure_ops_schema, get_site_broadcasts
 except ImportError:
     init_schema = None
     ensure_channel_schema = None
+    ensure_ops_schema = None
     get_site_broadcasts = None
 
 if init_schema is not None:
@@ -116,6 +118,8 @@ if init_schema is not None:
         init_schema()
         if ensure_channel_schema is not None:
             ensure_channel_schema()
+        if ensure_ops_schema is not None:
+            ensure_ops_schema()
     except Exception as exc:
         print(f"[server] schema init skipped: {exc}")
 
@@ -135,8 +139,8 @@ def inject_portal_nav():
         exit_href = "/dashboard"
         exit_label = "Dashboard"
     elif admin_authed:
-        exit_href = "/admin"
-        exit_label = "Admin"
+        exit_href = "/ops"
+        exit_label = "Ops"
     else:
         exit_href = "/home"
         exit_label = "Home"

@@ -38,6 +38,7 @@ import os
 import json
 import time
 import hashlib
+import hmac
 import traceback
 from datetime import datetime
 
@@ -256,6 +257,49 @@ CREATE TABLE wp_tracks (
     active       NUMBER(1)     DEFAULT 1,
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE staff_accounts (
+    id             NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username       VARCHAR2(64)  NOT NULL UNIQUE,
+    display_name   VARCHAR2(128) NOT NULL,
+    role           VARCHAR2(32)  DEFAULT 'moderator',
+    password_hash  VARCHAR2(512) NOT NULL,
+    linked_bot_slug VARCHAR2(64),
+    active         NUMBER(1)     DEFAULT 1,
+    created_at     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bot_profiles (
+    id              NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    slug            VARCHAR2(64)  NOT NULL UNIQUE,
+    display_name    VARCHAR2(128) NOT NULL,
+    badge_label     VARCHAR2(64),
+    role_label      VARCHAR2(64),
+    bio             VARCHAR2(1024),
+    tone            VARCHAR2(256),
+    language_profile VARCHAR2(128),
+    llm_provider    VARCHAR2(64),
+    llm_model       VARCHAR2(128),
+    llm_family      VARCHAR2(128),
+    scope_text      CLOB,
+    surfaces_text   CLOB,
+    system_prompt   CLOB,
+    active          NUMBER(1)     DEFAULT 1,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE operator_audit_log (
+    id             NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    actor_username VARCHAR2(64),
+    actor_role     VARCHAR2(32),
+    action         VARCHAR2(64)  NOT NULL,
+    target_type    VARCHAR2(64),
+    target_ref     VARCHAR2(256),
+    detail         VARCHAR2(1024),
+    created_at     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 def init_schema():
@@ -419,6 +463,848 @@ def ensure_channel_schema():
         return True
     except Exception as e:
         print(f"[oracle_db] ensure_channel_schema error: {e}")
+        return False
+
+
+_ops_schema_checked = False
+STAFF_ROLE_OPTIONS = ("admin", "moderator", "bot_operator")
+
+
+def _hash_password(password: str, salt_hex: str | None = None, iterations: int = 240000) -> str:
+    password = str(password or "")
+    salt = bytes.fromhex(salt_hex) if salt_hex else os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return f"pbkdf2_sha256${iterations}${salt.hex()}${digest.hex()}"
+
+
+def _verify_password(password: str, stored_hash: str) -> bool:
+    text = str(stored_hash or "")
+    try:
+        algorithm, iterations_text, salt_hex, _ = text.split("$", 3)
+    except ValueError:
+        return False
+    if algorithm != "pbkdf2_sha256":
+        return False
+    compare_hash = _hash_password(password, salt_hex=salt_hex, iterations=int(iterations_text))
+    return hmac.compare_digest(compare_hash, text)
+
+
+def _normalize_text_lines(value) -> list[str]:
+    if isinstance(value, list):
+        items = [str(item or "").strip() for item in value]
+    else:
+        raw = str(value or "").strip()
+        if not raw:
+            return []
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                items = [str(item or "").strip() for item in parsed]
+            else:
+                items = [line.strip() for line in raw.splitlines()]
+        except Exception:
+            items = [line.strip() for line in raw.splitlines()]
+    seen = set()
+    rows = []
+    for item in items:
+        if not item or item in seen:
+            continue
+        seen.add(item)
+        rows.append(item)
+    return rows
+
+
+def _ops_text_to_blob(value) -> str:
+    return "\n".join(_normalize_text_lines(value))
+
+
+def ensure_ops_schema():
+    global _ops_schema_checked
+    if _ops_schema_checked or not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        for stmt in (
+            """
+            CREATE TABLE staff_accounts (
+                id             NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                username       VARCHAR2(64) NOT NULL UNIQUE,
+                display_name   VARCHAR2(128) NOT NULL,
+                role           VARCHAR2(32) DEFAULT 'moderator',
+                password_hash  VARCHAR2(512) NOT NULL,
+                linked_bot_slug VARCHAR2(64),
+                active         NUMBER(1) DEFAULT 1,
+                created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            """
+            CREATE TABLE bot_profiles (
+                id              NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                slug            VARCHAR2(64) NOT NULL UNIQUE,
+                display_name    VARCHAR2(128) NOT NULL,
+                badge_label     VARCHAR2(64),
+                role_label      VARCHAR2(64),
+                bio             VARCHAR2(1024),
+                tone            VARCHAR2(256),
+                language_profile VARCHAR2(128),
+                llm_provider    VARCHAR2(64),
+                llm_model       VARCHAR2(128),
+                llm_family      VARCHAR2(128),
+                scope_text      CLOB,
+                surfaces_text   CLOB,
+                system_prompt   CLOB,
+                active          NUMBER(1) DEFAULT 1,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            """
+            CREATE TABLE operator_audit_log (
+                id             NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                actor_username VARCHAR2(64),
+                actor_role     VARCHAR2(32),
+                action         VARCHAR2(64) NOT NULL,
+                target_type    VARCHAR2(64),
+                target_ref     VARCHAR2(256),
+                detail         VARCHAR2(1024),
+                created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+        ):
+            try:
+                cur.execute(stmt)
+            except Exception as e:
+                if "ORA-00955" not in str(e):
+                    print(f"[oracle_db] ops schema warning: {e}")
+
+        cur.execute(
+            "SELECT COUNT(*) FROM bot_profiles WHERE slug = :slug",
+            {"slug": "colorstheforce"},
+        )
+        row = cur.fetchone()
+        if not row or int(row[0] or 0) == 0:
+            cur.execute(
+                """
+                INSERT INTO bot_profiles (
+                    slug, display_name, badge_label, role_label, bio, tone, language_profile,
+                    llm_provider, llm_model, llm_family, scope_text, surfaces_text, system_prompt, active
+                )
+                VALUES (
+                    :slug, :display_name, :badge_label, :role_label, :bio, :tone, :language_profile,
+                    :llm_provider, :llm_model, :llm_family, :scope_text, :surfaces_text, :system_prompt, 1
+                )
+                """,
+                {
+                    "slug": "colorstheforce",
+                    "display_name": "ColorsTheForce",
+                    "badge_label": "AI Moderator",
+                    "role_label": "Moderator",
+                    "bio": "In-house AI moderator profile for platform guidance, member signal summaries, and community-safe operator assistance.",
+                    "tone": "Calm, high-signal, American English, respectful, esports- and builder-literate.",
+                    "language_profile": "American English",
+                    "llm_provider": "Google Vertex AI",
+                    "llm_model": "Gemini 2.5 Flash",
+                    "llm_family": "Gemini",
+                    "scope_text": "Fortnite and UEFN builder guidance\nCode and computer languages\nHuman communication and moderation tone\nAnimals, nature, and sponsorship-aware brand posture",
+                    "surfaces_text": "Community moderation\nMember guidance\nChannel curation notes\nWhitePages summaries",
+                    "system_prompt": "Speak as ColorsTheForce, a clearly labeled TriptokForge AI Moderator. Never claim to be an official Epic, Nintendo, or Microsoft representative. Keep guidance safe, concise, and operational.",
+                },
+            )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        _ops_schema_checked = True
+        return True
+    except Exception as e:
+        print(f"[oracle_db] ensure_ops_schema error: {e}")
+        return False
+
+
+def log_operator_event(actor_username, actor_role, action, target_type="", target_ref="", detail=""):
+    if not db_available():
+        items = _json_load("operator_audit_log.json", [])
+        items.insert(
+            0,
+            {
+                "id": int(time.time() * 1000),
+                "actor_username": actor_username,
+                "actor_role": actor_role,
+                "action": action,
+                "target_type": target_type,
+                "target_ref": target_ref,
+                "detail": detail,
+                "created_at": datetime.utcnow().isoformat(),
+            },
+        )
+        _json_save("operator_audit_log.json", items[:200])
+        return True
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO operator_audit_log (
+                actor_username, actor_role, action, target_type, target_ref, detail
+            )
+            VALUES (
+                :actor_username, :actor_role, :action, :target_type, :target_ref, :detail
+            )
+            """,
+            {
+                "actor_username": actor_username,
+                "actor_role": actor_role,
+                "action": action,
+                "target_type": target_type,
+                "target_ref": target_ref,
+                "detail": (detail or "")[:1024],
+            },
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"[oracle_db] log_operator_event error: {e}")
+        return False
+
+
+def get_operator_audit_log(limit=60):
+    if not db_available():
+        return _json_load("operator_audit_log.json", [])[:limit]
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, actor_username, actor_role, action, target_type, target_ref, detail, created_at
+              FROM operator_audit_log
+             ORDER BY created_at DESC
+             FETCH FIRST :limit ROWS ONLY
+            """,
+            {"limit": limit},
+        )
+        rows = []
+        for row in cur.fetchall():
+            rows.append(
+                {
+                    "id": row[0],
+                    "actor_username": row[1] or "",
+                    "actor_role": row[2] or "",
+                    "action": row[3] or "",
+                    "target_type": row[4] or "",
+                    "target_ref": row[5] or "",
+                    "detail": row[6] or "",
+                    "created_at": row[7].isoformat() if hasattr(row[7], "isoformat") else str(row[7] or ""),
+                }
+            )
+        cur.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        print(f"[oracle_db] get_operator_audit_log error: {e}")
+        return []
+
+
+def get_staff_accounts():
+    if not db_available():
+        return _json_load("staff_accounts.json", [])
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, username, display_name, role, linked_bot_slug, active, created_at, updated_at
+              FROM staff_accounts
+             ORDER BY role, username
+            """
+        )
+        rows = []
+        for row in cur.fetchall():
+            rows.append(
+                {
+                    "id": row[0],
+                    "username": row[1] or "",
+                    "display_name": row[2] or "",
+                    "role": row[3] or "moderator",
+                    "linked_bot_slug": row[4] or "",
+                    "active": int(row[5] or 0),
+                    "created_at": row[6].isoformat() if hasattr(row[6], "isoformat") else str(row[6] or ""),
+                    "updated_at": row[7].isoformat() if hasattr(row[7], "isoformat") else str(row[7] or ""),
+                }
+            )
+        cur.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        print(f"[oracle_db] get_staff_accounts error: {e}")
+        return []
+
+
+def get_staff_account(staff_id):
+    if not db_available():
+        items = _json_load("staff_accounts.json", [])
+        return next((item for item in items if int(item.get("id") or 0) == int(staff_id or 0)), None)
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, username, display_name, role, linked_bot_slug, active, created_at, updated_at
+              FROM staff_accounts
+             WHERE id = :id
+            """,
+            {"id": staff_id},
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return None
+        return {
+            "id": row[0],
+            "username": row[1] or "",
+            "display_name": row[2] or "",
+            "role": row[3] or "moderator",
+            "linked_bot_slug": row[4] or "",
+            "active": int(row[5] or 0),
+            "created_at": row[6].isoformat() if hasattr(row[6], "isoformat") else str(row[6] or ""),
+            "updated_at": row[7].isoformat() if hasattr(row[7], "isoformat") else str(row[7] or ""),
+        }
+    except Exception as e:
+        print(f"[oracle_db] get_staff_account error: {e}")
+        return None
+
+
+def authenticate_staff_account(username, password):
+    username = str(username or "").strip().lower()
+    if not username or not password:
+        return None
+    if not db_available():
+        for account in _json_load("staff_accounts.json", []):
+            if str(account.get("username") or "").strip().lower() != username:
+                continue
+            if not int(account.get("active") or 0):
+                return None
+            if _verify_password(password, account.get("password_hash") or ""):
+                return account
+        return None
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, username, display_name, role, password_hash, linked_bot_slug, active
+              FROM staff_accounts
+             WHERE LOWER(username) = :username
+            """,
+            {"username": username},
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row or int(row[6] or 0) != 1:
+            return None
+        if not _verify_password(password, row[4] or ""):
+            return None
+        return {
+            "id": row[0],
+            "username": row[1] or "",
+            "display_name": row[2] or "",
+            "role": row[3] or "moderator",
+            "linked_bot_slug": row[5] or "",
+            "active": int(row[6] or 0),
+        }
+    except Exception as e:
+        print(f"[oracle_db] authenticate_staff_account error: {e}")
+        return None
+
+
+def create_staff_account(username, display_name, role, password, linked_bot_slug="", active=1):
+    role = (role or "moderator").strip().lower()
+    if role not in STAFF_ROLE_OPTIONS:
+        role = "moderator"
+    username = str(username or "").strip().lower()
+    display_name = str(display_name or username).strip()
+    if not username or not password:
+        return False
+    password_hash = _hash_password(password)
+    if not db_available():
+        items = _json_load("staff_accounts.json", [])
+        if any(str(item.get("username") or "").strip().lower() == username for item in items):
+            return False
+        items.append(
+            {
+                "id": int(time.time() * 1000),
+                "username": username,
+                "display_name": display_name,
+                "role": role,
+                "password_hash": password_hash,
+                "linked_bot_slug": (linked_bot_slug or "").strip(),
+                "active": 1 if active else 0,
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat(),
+            }
+        )
+        _json_save("staff_accounts.json", items)
+        return True
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO staff_accounts (
+                username, display_name, role, password_hash, linked_bot_slug, active
+            )
+            VALUES (
+                :username, :display_name, :role, :password_hash, :linked_bot_slug, :active
+            )
+            """,
+            {
+                "username": username,
+                "display_name": display_name,
+                "role": role,
+                "password_hash": password_hash,
+                "linked_bot_slug": (linked_bot_slug or "").strip(),
+                "active": 1 if active else 0,
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] create_staff_account error: {e}")
+        return False
+
+
+def update_staff_account(staff_id, username, display_name, role, password="", linked_bot_slug="", active=1):
+    role = (role or "moderator").strip().lower()
+    if role not in STAFF_ROLE_OPTIONS:
+        role = "moderator"
+    username = str(username or "").strip().lower()
+    display_name = str(display_name or username).strip()
+    if not username:
+        return False
+    if not db_available():
+        items = _json_load("staff_accounts.json", [])
+        for item in items:
+            if int(item.get("id") or 0) != int(staff_id or 0):
+                continue
+            item["username"] = username
+            item["display_name"] = display_name
+            item["role"] = role
+            item["linked_bot_slug"] = (linked_bot_slug or "").strip()
+            item["active"] = 1 if active else 0
+            item["updated_at"] = datetime.utcnow().isoformat()
+            if password:
+                item["password_hash"] = _hash_password(password)
+            _json_save("staff_accounts.json", items)
+            return True
+        return False
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        params = {
+            "id": staff_id,
+            "username": username,
+            "display_name": display_name,
+            "role": role,
+            "linked_bot_slug": (linked_bot_slug or "").strip(),
+            "active": 1 if active else 0,
+        }
+        if password:
+            params["password_hash"] = _hash_password(password)
+            cur.execute(
+                """
+                UPDATE staff_accounts
+                   SET username = :username,
+                       display_name = :display_name,
+                       role = :role,
+                       password_hash = :password_hash,
+                       linked_bot_slug = :linked_bot_slug,
+                       active = :active,
+                       updated_at = CURRENT_TIMESTAMP
+                 WHERE id = :id
+                """,
+                params,
+            )
+        else:
+            cur.execute(
+                """
+                UPDATE staff_accounts
+                   SET username = :username,
+                       display_name = :display_name,
+                       role = :role,
+                       linked_bot_slug = :linked_bot_slug,
+                       active = :active,
+                       updated_at = CURRENT_TIMESTAMP
+                 WHERE id = :id
+                """,
+                params,
+            )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] update_staff_account error: {e}")
+        return False
+
+
+def delete_staff_account(staff_id):
+    if not db_available():
+        items = [item for item in _json_load("staff_accounts.json", []) if int(item.get("id") or 0) != int(staff_id or 0)]
+        _json_save("staff_accounts.json", items)
+        return True
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM staff_accounts WHERE id = :id", {"id": staff_id})
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] delete_staff_account error: {e}")
+        return False
+
+
+def get_bot_profiles():
+    default_rows = [
+        {
+            "id": 0,
+            "slug": "colorstheforce",
+            "display_name": "ColorsTheForce",
+            "badge_label": "AI Moderator",
+            "role_label": "Moderator",
+            "bio": "In-house AI moderator profile for platform guidance, member signal summaries, and community-safe operator assistance.",
+            "tone": "Calm, high-signal, American English, respectful, esports- and builder-literate.",
+            "language_profile": "American English",
+            "llm_provider": "Google Vertex AI",
+            "llm_model": "Gemini 2.5 Flash",
+            "llm_family": "Gemini",
+            "scope_text": "Fortnite and UEFN builder guidance\nCode and computer languages\nHuman communication and moderation tone\nAnimals, nature, and sponsorship-aware brand posture",
+            "surfaces_text": "Community moderation\nMember guidance\nChannel curation notes\nWhitePages summaries",
+            "system_prompt": "Speak as ColorsTheForce, a clearly labeled TriptokForge AI Moderator. Never claim to be an official Epic, Nintendo, or Microsoft representative.",
+            "active": 1,
+            "created_at": "",
+            "updated_at": "",
+        }
+    ]
+    if not db_available():
+        items = _json_load("bot_profiles.json", [])
+        return items or default_rows
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, slug, display_name, badge_label, role_label, bio, tone, language_profile,
+                   llm_provider, llm_model, llm_family, scope_text, surfaces_text, system_prompt,
+                   active, created_at, updated_at
+              FROM bot_profiles
+             ORDER BY active DESC, slug
+            """
+        )
+        rows = []
+        for row in cur.fetchall():
+            rows.append(
+                {
+                    "id": row[0],
+                    "slug": row[1] or "",
+                    "display_name": row[2] or "",
+                    "badge_label": row[3] or "",
+                    "role_label": row[4] or "",
+                    "bio": row[5] or "",
+                    "tone": row[6] or "",
+                    "language_profile": row[7] or "",
+                    "llm_provider": row[8] or "",
+                    "llm_model": row[9] or "",
+                    "llm_family": row[10] or "",
+                    "scope_text": row[11] or "",
+                    "surfaces_text": row[12] or "",
+                    "system_prompt": row[13] or "",
+                    "active": int(row[14] or 0),
+                    "created_at": row[15].isoformat() if hasattr(row[15], "isoformat") else str(row[15] or ""),
+                    "updated_at": row[16].isoformat() if hasattr(row[16], "isoformat") else str(row[16] or ""),
+                }
+            )
+        cur.close()
+        conn.close()
+        return rows or default_rows
+    except Exception as e:
+        print(f"[oracle_db] get_bot_profiles error: {e}")
+        return default_rows
+
+
+def get_bot_profile(bot_id):
+    if not db_available():
+        items = _json_load("bot_profiles.json", [])
+        return next((item for item in items if int(item.get("id") or 0) == int(bot_id or 0)), None)
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, slug, display_name, badge_label, role_label, bio, tone, language_profile,
+                   llm_provider, llm_model, llm_family, scope_text, surfaces_text, system_prompt,
+                   active, created_at, updated_at
+              FROM bot_profiles
+             WHERE id = :id
+            """,
+            {"id": bot_id},
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return None
+        return {
+            "id": row[0],
+            "slug": row[1] or "",
+            "display_name": row[2] or "",
+            "badge_label": row[3] or "",
+            "role_label": row[4] or "",
+            "bio": row[5] or "",
+            "tone": row[6] or "",
+            "language_profile": row[7] or "",
+            "llm_provider": row[8] or "",
+            "llm_model": row[9] or "",
+            "llm_family": row[10] or "",
+            "scope_text": row[11] or "",
+            "surfaces_text": row[12] or "",
+            "system_prompt": row[13] or "",
+            "active": int(row[14] or 0),
+            "created_at": row[15].isoformat() if hasattr(row[15], "isoformat") else str(row[15] or ""),
+            "updated_at": row[16].isoformat() if hasattr(row[16], "isoformat") else str(row[16] or ""),
+        }
+    except Exception as e:
+        print(f"[oracle_db] get_bot_profile error: {e}")
+        return None
+
+
+def create_bot_profile(
+    slug,
+    display_name,
+    badge_label="AI Operator",
+    role_label="Operator",
+    bio="",
+    tone="",
+    language_profile="American English",
+    llm_provider="",
+    llm_model="",
+    llm_family="",
+    scope_text="",
+    surfaces_text="",
+    system_prompt="",
+    active=1,
+):
+    slug = str(slug or "").strip().lower()
+    display_name = str(display_name or "").strip()
+    if not slug or not display_name:
+        return False
+    if not db_available():
+        items = _json_load("bot_profiles.json", [])
+        if any(str(item.get("slug") or "").strip().lower() == slug for item in items):
+            return False
+        items.append(
+            {
+                "id": int(time.time() * 1000),
+                "slug": slug,
+                "display_name": display_name,
+                "badge_label": badge_label,
+                "role_label": role_label,
+                "bio": bio,
+                "tone": tone,
+                "language_profile": language_profile,
+                "llm_provider": llm_provider,
+                "llm_model": llm_model,
+                "llm_family": llm_family,
+                "scope_text": _ops_text_to_blob(scope_text),
+                "surfaces_text": _ops_text_to_blob(surfaces_text),
+                "system_prompt": system_prompt,
+                "active": 1 if active else 0,
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat(),
+            }
+        )
+        _json_save("bot_profiles.json", items)
+        return True
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO bot_profiles (
+                slug, display_name, badge_label, role_label, bio, tone, language_profile,
+                llm_provider, llm_model, llm_family, scope_text, surfaces_text, system_prompt, active
+            )
+            VALUES (
+                :slug, :display_name, :badge_label, :role_label, :bio, :tone, :language_profile,
+                :llm_provider, :llm_model, :llm_family, :scope_text, :surfaces_text, :system_prompt, :active
+            )
+            """,
+            {
+                "slug": slug,
+                "display_name": display_name,
+                "badge_label": badge_label,
+                "role_label": role_label,
+                "bio": bio,
+                "tone": tone,
+                "language_profile": language_profile,
+                "llm_provider": llm_provider,
+                "llm_model": llm_model,
+                "llm_family": llm_family,
+                "scope_text": _ops_text_to_blob(scope_text),
+                "surfaces_text": _ops_text_to_blob(surfaces_text),
+                "system_prompt": system_prompt,
+                "active": 1 if active else 0,
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] create_bot_profile error: {e}")
+        return False
+
+
+def update_bot_profile(
+    bot_id,
+    slug,
+    display_name,
+    badge_label="AI Operator",
+    role_label="Operator",
+    bio="",
+    tone="",
+    language_profile="American English",
+    llm_provider="",
+    llm_model="",
+    llm_family="",
+    scope_text="",
+    surfaces_text="",
+    system_prompt="",
+    active=1,
+):
+    slug = str(slug or "").strip().lower()
+    display_name = str(display_name or "").strip()
+    if not slug or not display_name:
+        return False
+    if not db_available():
+        items = _json_load("bot_profiles.json", [])
+        for item in items:
+            if int(item.get("id") or 0) != int(bot_id or 0):
+                continue
+            item.update(
+                {
+                    "slug": slug,
+                    "display_name": display_name,
+                    "badge_label": badge_label,
+                    "role_label": role_label,
+                    "bio": bio,
+                    "tone": tone,
+                    "language_profile": language_profile,
+                    "llm_provider": llm_provider,
+                    "llm_model": llm_model,
+                    "llm_family": llm_family,
+                    "scope_text": _ops_text_to_blob(scope_text),
+                    "surfaces_text": _ops_text_to_blob(surfaces_text),
+                    "system_prompt": system_prompt,
+                    "active": 1 if active else 0,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            )
+            _json_save("bot_profiles.json", items)
+            return True
+        return False
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE bot_profiles
+               SET slug = :slug,
+                   display_name = :display_name,
+                   badge_label = :badge_label,
+                   role_label = :role_label,
+                   bio = :bio,
+                   tone = :tone,
+                   language_profile = :language_profile,
+                   llm_provider = :llm_provider,
+                   llm_model = :llm_model,
+                   llm_family = :llm_family,
+                   scope_text = :scope_text,
+                   surfaces_text = :surfaces_text,
+                   system_prompt = :system_prompt,
+                   active = :active,
+                   updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id
+            """,
+            {
+                "id": bot_id,
+                "slug": slug,
+                "display_name": display_name,
+                "badge_label": badge_label,
+                "role_label": role_label,
+                "bio": bio,
+                "tone": tone,
+                "language_profile": language_profile,
+                "llm_provider": llm_provider,
+                "llm_model": llm_model,
+                "llm_family": llm_family,
+                "scope_text": _ops_text_to_blob(scope_text),
+                "surfaces_text": _ops_text_to_blob(surfaces_text),
+                "system_prompt": system_prompt,
+                "active": 1 if active else 0,
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] update_bot_profile error: {e}")
+        return False
+
+
+def delete_bot_profile(bot_id):
+    if not db_available():
+        items = [item for item in _json_load("bot_profiles.json", []) if int(item.get("id") or 0) != int(bot_id or 0)]
+        _json_save("bot_profiles.json", items)
+        return True
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM bot_profiles WHERE id = :id", {"id": bot_id})
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] delete_bot_profile error: {e}")
         return False
 
 
@@ -1028,6 +1914,35 @@ def like_post(post_id):
         return True
     except Exception as e:
         print(f"[oracle_db] like_post error: {e}")
+        return False
+
+def update_post(post_id, caption, embed_url):
+    """Update a community post."""
+    caption = str(caption or "").strip()[:1000]
+    embed_url = str(embed_url or "").strip()[:1024]
+    if not caption and not embed_url:
+        return False
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute(
+            """
+            UPDATE posts
+               SET caption = :caption,
+                   embed_url = :embed_url
+             WHERE id = :id
+            """,
+            {"caption": caption, "embed_url": embed_url, "id": post_id},
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] update_post error: {e}")
         return False
 
 def delete_post(post_id):
