@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Arena - TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/arena.css"/>
+<script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+</head>
+<body>
+
+{% include "_nav.html" %}
+
+<main class="arena-page">
+  <section class="arena-hero">
+    <div class="arena-hero__copy">
+      <span class="arena-kicker">Esports / Arena Deck</span>
+      <h1>Roam the broadcast room.</h1>
+      <p>
+        A console-native spectator space for TriptokForge: theater screen up front, leaderboard wall to the left,
+        concession counter behind the seating, and a right-rail ops stack that keeps tournaments, channels, and replay plans in one place.
+      </p>
+      <div class="arena-hero__actions">
+        <a href="/channels" class="arena-btn arena-btn--primary">Open live channels</a>
+        <a href="/leaderboard" class="arena-btn arena-btn--secondary">Open leaderboard</a>
+        <a href="/esports" class="arena-btn arena-btn--ghost">Back to esports</a>
+      </div>
+    </div>
+    <div class="arena-hero__metrics">
+      <article>
+        <strong>{{ members_total }}</strong>
+        <span>ranked members</span>
+      </article>
+      <article>
+        <strong>{{ arena_channel_total }}</strong>
+        <span>arena feeds</span>
+      </article>
+      <article>
+        <strong>{{ announcement_total }}</strong>
+        <span>ops signals</span>
+      </article>
+    </div>
+  </section>
+
+  <section class="arena-layout">
+    <div class="arena-stage-shell">
+      <div class="arena-toolbar">
+        <div class="arena-toolbar__group">
+          <button type="button" class="arena-focus-btn" data-focus-target="entry">Entry</button>
+          <button type="button" class="arena-focus-btn" data-focus-target="leaderboard">Leaderboard</button>
+          <button type="button" class="arena-focus-btn" data-focus-target="screen">Screen</button>
+          <button type="button" class="arena-focus-btn" data-focus-target="counter">Counter</button>
+        </div>
+        <div class="arena-toolbar__group">
+          <button type="button" class="arena-focus-btn arena-focus-btn--accent" data-scene-action="fullscreen">Fullscreen</button>
+        </div>
+      </div>
+
+      <div class="arena-scene-wrap" id="arenaViewport">
+        <div class="arena-status">
+          <span class="arena-status__label">Camera</span>
+          <strong id="arenaStatusText">Entry</strong>
+          <span class="arena-status__hint">WASD + mouse or use focus buttons</span>
+        </div>
+
+        <a-scene
+          id="arenaScene"
+          embedded
+          renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true"
+          vr-mode-ui="enabled: false"
+          loading-screen="enabled: false"
+          background="color: #04070d"
+        >
+          <a-entity light="type: ambient; intensity: 0.68; color: #92d8ff"></a-entity>
+          <a-entity light="type: point; intensity: 1.4; distance: 28; color: #ff9a2e" position="0 7.8 6.6"></a-entity>
+          <a-entity light="type: point; intensity: 1.1; distance: 22; color: #16d6ff" position="-8 5 -6"></a-entity>
+          <a-entity light="type: point; intensity: 0.9; distance: 18; color: #00e5a0" position="7 4 -1"></a-entity>
+
+          <a-entity id="cameraRig" position="0 1.65 8.4" rotation="0 0 0">
+            <a-entity
+              camera
+              look-controls="pointerLockEnabled: false"
+              wasd-controls="acceleration: 18"
+              cursor="rayOrigin: mouse"
+              raycaster="objects: .focus-node"
+            ></a-entity>
+          </a-entity>
+
+          <a-sky color="#05070c"></a-sky>
+
+          <a-plane position="0 0 -1.6" rotation="-90 0 0" width="22" height="28" color="#0a111b" material="metalness: 0.24; roughness: 0.62"></a-plane>
+          <a-plane position="0 8 -1.6" rotation="90 0 0" width="22" height="28" color="#0b1018" material="metalness: 0.18; roughness: 0.76"></a-plane>
+          <a-plane position="0 4 -12" width="22" height="8" color="#111a27" material="metalness: 0.32; roughness: 0.68"></a-plane>
+          <a-plane position="-11 4 -1.6" rotation="0 90 0" width="28" height="8" color="#0d1622"></a-plane>
+          <a-plane position="11 4 -1.6" rotation="0 -90 0" width="28" height="8" color="#0d1622"></a-plane>
+
+          <a-plane position="0 0.02 -1.6" rotation="-90 0 0" width="20" height="24" color="#08131b" material="metalness: 0.48; roughness: 0.44"></a-plane>
+          <a-box position="0 0.35 9.8" width="22" height="0.7" depth="1.8" color="#101722"></a-box>
+
+          <a-plane position="0 4.1 -11.96" width="8.6" height="4.7" color="#050a12" material="emissive: #0f2438; emissiveIntensity: 0.38"></a-plane>
+          <a-plane position="0 6.65 -11.9" width="8.2" height="0.26" color="#ff8e1f" material="emissive: #ff8e1f; emissiveIntensity: 1.4"></a-plane>
+          <a-plane position="0 1.65 -11.9" width="8.2" height="0.14" color="#14c8ff" material="emissive: #14c8ff; emissiveIntensity: 1.2"></a-plane>
+          <a-entity id="arenaScreenTitle" position="0 4.95 -11.86" text="value: Forge Finals Theater; align: center; color: #f8fbff; width: 7.5; wrapCount: 16; font: mozillavr" material="shader: flat"></a-entity>
+          <a-entity id="arenaScreenCopy" position="0 3.7 -11.86" text="value: Initializing arena deck.; align: center; color: #8dc4e8; width: 7.7; wrapCount: 36; font: mozillavr" material="shader: flat"></a-entity>
+          <a-entity id="arenaTickerText" position="0 2.15 -11.86" text="value: Arena deck online; align: center; color: #ffaa32; width: 7.6; wrapCount: 38; font: mozillavr" material="shader: flat"></a-entity>
+
+          <a-plane position="-8.6 3.55 -6.9" rotation="0 32 0" width="4.9" height="5.3" color="#081019" material="emissive: #0b2a23; emissiveIntensity: 0.22"></a-plane>
+          <a-plane position="-8.55 6.05 -6.82" rotation="0 32 0" width="4.6" height="0.2" color="#00e5a0" material="emissive: #00e5a0; emissiveIntensity: 1.2"></a-plane>
+          <a-entity position="-8.58 5.55 -6.8" rotation="0 32 0" text="value: LIVE LEADERBOARD; align: left; color: #ffffff; width: 5.3; wrapCount: 18; font: mozillavr"></a-entity>
+          <a-entity id="arenaLeaderboardText" position="-8.52 4.32 -6.78" rotation="0 32 0" text="value: Booting board...; align: left; color: #9dfad9; width: 5.1; wrapCount: 24; lineHeight: 46; font: mozillavr"></a-entity>
+
+          <a-box position="0 1.1 7.2" width="7.6" height="1.4" depth="1.5" color="#262b31" material="metalness: 0.5; roughness: 0.45"></a-box>
+          <a-box position="0 1.85 6.65" width="7.8" height="0.18" depth="0.18" color="#ff8e1f" material="emissive: #ff8e1f; emissiveIntensity: 1.05"></a-box>
+          <a-box position="-1.8 2.1 6.8" width="1.15" height="0.72" depth="0.7" color="#c53030" material="metalness: 0.22; roughness: 0.52"></a-box>
+          <a-box position="-1.8 2.72 6.8" width="0.86" height="0.54" depth="0.52" color="#fff6d9"></a-box>
+          <a-cylinder position="-0.7 2.2 6.72" radius="0.12" height="0.42" color="#ffd87a"></a-cylinder>
+          <a-cylinder position="-0.3 2.2 6.72" radius="0.12" height="0.42" color="#ffd87a"></a-cylinder>
+          <a-cylinder position="0.1 2.2 6.72" radius="0.12" height="0.42" color="#ffd87a"></a-cylinder>
+          <a-cylinder position="0.5 2.2 6.72" radius="0.12" height="0.42" color="#ffd87a"></a-cylinder>
+          <a-entity id="arenaSignalText" position="2.35 2.6 6.55" text="value: Concession signal live.; align: left; color: #9fd1ea; width: 3.7; wrapCount: 22; font: mozillavr"></a-entity>
+
+          <a-box position="7.9 2.7 -5.6" width="0.18" height="5.2" depth="11" color="#00b5ff" material="emissive: #00b5ff; emissiveIntensity: 0.4"></a-box>
+          <a-box position="-7.9 2.7 -5.6" width="0.18" height="5.2" depth="11" color="#00e5a0" material="emissive: #00e5a0; emissiveIntensity: 0.34"></a-box>
+          <a-box position="0 0.07 -6.1" width="9.2" height="0.14" depth="0.24" color="#ff8e1f" material="emissive: #ff8e1f; emissiveIntensity: 0.92"></a-box>
+          <a-box position="0 0.07 -1.15" width="9.2" height="0.14" depth="0.24" color="#1bd4ff" material="emissive: #1bd4ff; emissiveIntensity: 0.84"></a-box>
+          <a-box position="0 0.07 3.7" width="9.2" height="0.14" depth="0.24" color="#ff8e1f" material="emissive: #ff8e1f; emissiveIntensity: 0.92"></a-box>
+
+          <a-entity id="seatField"></a-entity>
+
+          <a-cylinder class="focus-node" data-focus-target="entry" position="0 0.28 8.55" radius="0.32" height="0.12" color="#14c8ff" material="emissive: #14c8ff; emissiveIntensity: 1.2"></a-cylinder>
+          <a-cylinder class="focus-node" data-focus-target="leaderboard" position="-6.05 0.28 -4.4" radius="0.32" height="0.12" color="#00e5a0" material="emissive: #00e5a0; emissiveIntensity: 1.2"></a-cylinder>
+          <a-cylinder class="focus-node" data-focus-target="screen" position="0 0.28 -2.3" radius="0.32" height="0.12" color="#ffaa32" material="emissive: #ffaa32; emissiveIntensity: 1.2"></a-cylinder>
+          <a-cylinder class="focus-node" data-focus-target="counter" position="0 0.28 5.4" radius="0.32" height="0.12" color="#ffaa32" material="emissive: #ffaa32; emissiveIntensity: 1.2"></a-cylinder>
+        </a-scene>
+      </div>
+    </div>
+
+    <aside class="arena-rail">
+      <section class="rail-card rail-card--feature">
+        <span class="rail-eyebrow">Scene Notes</span>
+        <h2>Ironman UI x JDM pit lane x esports theater.</h2>
+        <p>
+          The scene uses A-Frame primitives now so it is fast to iterate and always renderable.
+          The asset locker on this page points to the Fab and Megascans packs to swap in once exported and optimized.
+        </p>
+        <div class="rail-chip-row">
+          <span class="rail-chip">roamable</span>
+          <span class="rail-chip">spectator first</span>
+          <span class="rail-chip">console feel</span>
+        </div>
+      </section>
+
+      <section class="rail-card">
+        <div class="rail-card__head">
+          <span class="rail-eyebrow">Arena Modules</span>
+          <span class="rail-clock" id="arenaClock">--:-- ET</span>
+        </div>
+        <div class="module-list">
+          {% for item in arena_modules %}
+          <article class="module-card arena-focusable" data-focus-target="{{ 'screen' if loop.index0 % 2 == 0 else 'leaderboard' }}">
+            <span class="module-card__status">{{ item.status }}</span>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.copy }}</p>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="rail-card">
+        <div class="rail-card__head">
+          <div>
+            <span class="rail-eyebrow">Leaderboard Pull</span>
+            <h2>Top players in room</h2>
+          </div>
+          <button type="button" class="arena-link-btn" data-focus-target="leaderboard">Focus board</button>
+        </div>
+        <div class="board-list">
+          {% for row in leaderboard_rows %}
+          <article class="board-row arena-focusable" data-focus-target="leaderboard">
+            <span class="board-row__rank">#{{ row.rank }}</span>
+            <div>
+              <strong>{{ row.display_name }}</strong>
+              <span>{{ row.ranked_division }}</span>
+            </div>
+            <div class="board-row__stats">
+              <span>{{ row.wins }}W</span>
+              <span>{{ "%.2f"|format(row.kd) }} KD</span>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="rail-card">
+        <div class="rail-card__head">
+          <div>
+            <span class="rail-eyebrow">Tournament Ops</span>
+            <h2>Launch lanes</h2>
+          </div>
+          <button type="button" class="arena-link-btn" data-focus-target="screen">Focus screen</button>
+        </div>
+        <div class="lane-list">
+          {% for lane in tournament_lanes %}
+          <article class="lane-card arena-focusable" data-focus-target="screen">
+            <span class="lane-card__meta">{{ lane.format }} / {{ lane.cadence }}</span>
+            <h3>{{ lane.name }}</h3>
+            <p>{{ lane.copy }}</p>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="rail-card">
+        <div class="rail-card__head">
+          <div>
+            <span class="rail-eyebrow">Watch Deck</span>
+            <h2>Channel handoff</h2>
+          </div>
+          <a href="/channels" class="arena-link-btn">Open guide</a>
+        </div>
+        {% if arena_channels %}
+        <div class="signal-list">
+          {% for channel in arena_channels %}
+          <article class="signal-card arena-focusable" data-focus-target="{{ 'screen' if loop.index <= 2 else 'counter' }}">
+            <strong>{{ channel.name }}</strong>
+            <p>{{ channel.description or "Arena-ready feed slot." }}</p>
+            <span>{{ channel.category or "Arena" }}</span>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="arena-empty">No arena-tagged channels are seeded yet.</div>
+        {% endif %}
+      </section>
+
+      <section class="rail-card">
+        <div class="rail-card__head">
+          <div>
+            <span class="rail-eyebrow">Signal Stack</span>
+            <h2>Ops + recap notes</h2>
+          </div>
+          <button type="button" class="arena-link-btn" data-focus-target="counter">Focus counter</button>
+        </div>
+        <div class="signal-list">
+          {% for item in announcements %}
+          <article class="signal-card arena-focusable" data-focus-target="counter">
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.body or "No body text yet." }}</p>
+            <span>{{ item.posted_by or "System" }}</span>
+          </article>
+          {% endfor %}
+          {% for post in featured_posts %}
+          <article class="signal-card arena-focusable" data-focus-target="screen">
+            <strong>{{ post.caption }}</strong>
+            <p>{{ post.embed_url or "Replay-ready social slot for highlights, clips, or event promos." }}</p>
+            <span>{{ post.platform }}</span>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="rail-card">
+        <div class="rail-card__head">
+          <div>
+            <span class="rail-eyebrow">Fab Source Locker</span>
+            <h2>High-quality asset targets</h2>
+          </div>
+        </div>
+        <p class="rail-note">
+          Fab listings are linked directly here for acquisition and export. The scene uses procedural stand-ins for now because Fab does not expose anonymous direct GLB URLs for live hotlinking.
+        </p>
+        <div class="asset-list">
+          {% for asset in asset_refs %}
+          <a class="asset-link" href="{{ asset.url }}" target="_blank" rel="noreferrer">
+            <span class="asset-link__slot">{{ asset.slot }}</span>
+            <strong>{{ asset.title }}</strong>
+            <span class="asset-link__source">{{ asset.source }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </section>
+    </aside>
+  </section>
+</main>
+
+{% include "_site_footer.html" %}
+
+<script id="arena-data" type="application/json">{{ scene_payload|tojson }}</script>
+<script src="/static/js/arena.js"></script>
+</body>
+</html>

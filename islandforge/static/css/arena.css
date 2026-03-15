@@ -1,0 +1,542 @@
+:root {
+  --arena-bg: #05070d;
+  --arena-bg-2: #090d15;
+  --arena-panel: rgba(12, 17, 26, 0.92);
+  --arena-panel-2: rgba(17, 24, 35, 0.96);
+  --arena-line: rgba(45, 60, 83, 0.92);
+  --arena-text: #dce8f5;
+  --arena-mid: #92a8bc;
+  --arena-dim: #5e7189;
+  --arena-teal: #00e5a0;
+  --arena-cyan: #14c8ff;
+  --arena-orange: #ff9a2e;
+  --arena-red: #ff5c68;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top right, rgba(20, 200, 255, 0.12), transparent 30%),
+    radial-gradient(circle at top left, rgba(0, 229, 160, 0.08), transparent 24%),
+    linear-gradient(180deg, #05070d 0%, #090d15 38%, #06080d 100%);
+  color: var(--arena-text);
+  font-family: "Rajdhani", sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 90px 90px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.arena-page {
+  position: relative;
+  z-index: 1;
+  max-width: 1580px;
+  margin: 0 auto;
+  padding: 26px 20px 72px;
+}
+
+.arena-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 360px);
+  gap: 18px;
+  padding: 24px 26px;
+  border: 1px solid var(--arena-line);
+  border-radius: 30px;
+  background:
+    linear-gradient(145deg, rgba(20, 200, 255, 0.08), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 154, 46, 0.16), transparent 32%),
+    var(--arena-panel);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+}
+
+.arena-kicker,
+.rail-eyebrow {
+  display: inline-block;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--arena-teal);
+}
+
+.arena-hero h1 {
+  margin: 12px 0 14px;
+  font-family: "Orbitron", monospace;
+  font-size: clamp(2rem, 5vw, 4.8rem);
+  line-height: 0.92;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.arena-hero p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--arena-mid);
+  font-size: 1.05rem;
+  line-height: 1.58;
+}
+
+.arena-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.arena-btn,
+.arena-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.arena-btn:hover,
+.arena-link-btn:hover,
+.arena-focus-btn:hover {
+  transform: translateY(-1px);
+}
+
+.arena-btn--primary {
+  background: var(--arena-orange);
+  color: #1d0f00;
+  border-color: var(--arena-orange);
+}
+
+.arena-btn--secondary {
+  background: rgba(20, 200, 255, 0.12);
+  color: var(--arena-cyan);
+  border-color: rgba(20, 200, 255, 0.28);
+}
+
+.arena-btn--ghost,
+.arena-link-btn {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--arena-mid);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.arena-hero__metrics {
+  display: grid;
+  gap: 12px;
+}
+
+.arena-hero__metrics article {
+  padding: 18px 18px 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.arena-hero__metrics strong {
+  display: block;
+  font-family: "Orbitron", monospace;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  letter-spacing: 0.08em;
+}
+
+.arena-hero__metrics span {
+  display: block;
+  margin-top: 8px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--arena-dim);
+}
+
+.arena-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) 390px;
+  gap: 18px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+.arena-stage-shell {
+  position: sticky;
+  top: 72px;
+}
+
+.arena-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.arena-toolbar__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.arena-focus-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--arena-mid);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.arena-focus-btn--accent,
+.arena-focus-btn.is-active {
+  color: #fff;
+  border-color: rgba(255, 154, 46, 0.36);
+  background: rgba(255, 154, 46, 0.15);
+}
+
+.arena-scene-wrap {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--arena-line);
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(20, 200, 255, 0.05), rgba(0, 0, 0, 0)),
+    var(--arena-panel-2);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+  min-height: min(78dvh, 900px);
+}
+
+.arena-scene-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
+.arena-status {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 5;
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(7, 10, 15, 0.74);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.arena-status__label,
+.arena-status__hint,
+.rail-note,
+.signal-card span,
+.board-row span,
+.module-card__status,
+.lane-card__meta,
+.asset-link__slot,
+.asset-link__source {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.arena-status strong {
+  font-family: "Orbitron", monospace;
+  font-size: 0.88rem;
+  letter-spacing: 0.12em;
+}
+
+.arena-status__hint {
+  color: var(--arena-dim);
+}
+
+#arenaScene {
+  width: 100%;
+  height: min(78dvh, 900px);
+}
+
+.arena-rail {
+  max-height: calc(100dvh - 90px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.arena-rail::-webkit-scrollbar {
+  width: 8px;
+}
+
+.arena-rail::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.rail-card {
+  padding: 20px;
+  border: 1px solid var(--arena-line);
+  border-radius: 24px;
+  background: var(--arena-panel);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+}
+
+.rail-card + .rail-card {
+  margin-top: 14px;
+}
+
+.rail-card--feature {
+  background:
+    linear-gradient(145deg, rgba(255, 154, 46, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(20, 200, 255, 0.08), rgba(0, 0, 0, 0)),
+    var(--arena-panel);
+}
+
+.rail-card h2,
+.rail-card h3,
+.module-card h3,
+.lane-card h3,
+.signal-card strong,
+.asset-link strong,
+.board-row strong {
+  margin: 0;
+}
+
+.rail-card h2 {
+  margin-top: 10px;
+  font-family: "Orbitron", monospace;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rail-card p,
+.module-card p,
+.lane-card p,
+.signal-card p {
+  color: var(--arena-mid);
+  line-height: 1.5;
+}
+
+.rail-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rail-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.rail-chip {
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.54rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--arena-mid);
+}
+
+.rail-clock {
+  color: var(--arena-orange);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.module-list,
+.lane-list,
+.signal-list,
+.asset-list,
+.board-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.module-card,
+.lane-card,
+.signal-card,
+.board-row,
+.asset-link {
+  display: block;
+  padding: 14px 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.arena-focusable {
+  cursor: pointer;
+}
+
+.module-card:hover,
+.lane-card:hover,
+.signal-card:hover,
+.board-row:hover,
+.asset-link:hover,
+.arena-focusable.is-targeted {
+  transform: translateY(-2px);
+  border-color: rgba(255, 154, 46, 0.28);
+  background: rgba(255, 154, 46, 0.08);
+}
+
+.module-card__status {
+  color: var(--arena-orange);
+}
+
+.module-card h3,
+.lane-card h3,
+.signal-card strong,
+.asset-link strong {
+  margin-top: 8px;
+  font-family: "Orbitron", monospace;
+  font-size: 0.96rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.board-row__rank {
+  min-width: 48px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(20, 200, 255, 0.12);
+  color: var(--arena-cyan);
+  text-align: center;
+}
+
+.board-row div span,
+.signal-card span,
+.asset-link__slot,
+.asset-link__source {
+  display: block;
+  margin-top: 6px;
+  color: var(--arena-dim);
+}
+
+.board-row__stats {
+  text-align: right;
+}
+
+.board-row__stats span {
+  margin-top: 3px;
+}
+
+.asset-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.asset-link strong {
+  display: block;
+}
+
+.asset-link__slot {
+  color: var(--arena-cyan);
+}
+
+.arena-empty {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--arena-mid);
+}
+
+@media (max-width: 1240px) {
+  .arena-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .arena-stage-shell {
+    position: static;
+  }
+
+  .arena-rail {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 860px) {
+  .arena-page {
+    padding: 18px 12px 54px;
+  }
+
+  .arena-hero {
+    grid-template-columns: 1fr;
+    padding: 20px 18px;
+    border-radius: 24px;
+  }
+
+  .arena-toolbar {
+    display: grid;
+  }
+
+  .arena-status {
+    right: 14px;
+    left: 14px;
+  }
+
+  .rail-card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .rail-card__head {
+    display: grid;
+  }
+
+  .board-row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .board-row__stats {
+    grid-column: 1 / -1;
+    text-align: left;
+    display: flex;
+    gap: 14px;
+  }
+}

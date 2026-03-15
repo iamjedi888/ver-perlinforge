@@ -50,36 +50,48 @@ ESPORTS_SECTIONS = [
         "title": "Arena",
         "status": "Active build",
         "copy": "Competitive hub for ranked ladders, customs, scrims, replay review, and watch-party routing.",
+        "href": "/arena",
+        "cta": "Open arena",
     },
     {
         "slug": "tournaments",
         "title": "Tournaments",
         "status": "Planned ops",
         "copy": "Bracketed events, finals nights, creator cups, rulesets, prize messaging, and admin check-in flow.",
+        "href": "#tournaments",
+        "cta": "Open lanes",
     },
     {
         "slug": "watch",
         "title": "Watch",
         "status": "Live now",
         "copy": "Pull the existing channels rail, replay feeds, and arena watchlist into one esports surface.",
+        "href": "/channels",
+        "cta": "Open watch",
     },
     {
         "slug": "leaderboards",
         "title": "Leaderboards",
         "status": "Live now",
         "copy": "Member stats, ranked divisions, and global Fortnite snapshots already exist and should route through esports.",
+        "href": "/leaderboard",
+        "cta": "Open board",
     },
     {
         "slug": "teams",
         "title": "Teams + Calendar",
         "status": "Next up",
         "copy": "Squad finder, team cards, match calendar, check-in windows, and season schedules.",
+        "href": "#ideas",
+        "cta": "View ideas",
     },
     {
         "slug": "rewards",
         "title": "Rewards + Replay Lab",
         "status": "Next up",
         "copy": "Prize vault, ticket rewards, VOD study rooms, featured clips, and coaching-style breakdowns.",
+        "href": "#roadmap",
+        "cta": "View roadmap",
     },
 ]
 
@@ -137,6 +149,84 @@ ESPORTS_ROADMAP = [
     },
 ]
 
+ARENA_MODULES = [
+    {
+        "title": "Arena Floor",
+        "status": "Live now",
+        "copy": "Roamable spectator room with theater screen, leaderboard wall, concession counter, and quick-focus camera presets.",
+    },
+    {
+        "title": "Tournament Ops",
+        "status": "Next",
+        "copy": "Check-in desk, lane schedule, bracket state, and admin-driven finals-night messaging.",
+    },
+    {
+        "title": "Replay Lab",
+        "status": "Next",
+        "copy": "Film room for VOD review, clip callouts, and coaching overlays tied back to feed and channels.",
+    },
+    {
+        "title": "Broadcast Booth",
+        "status": "Later",
+        "copy": "Caster desk, sponsor loops, match cards, and presentation controls that feel like a premium console deck.",
+    },
+    {
+        "title": "Team Garage",
+        "status": "Later",
+        "copy": "Roster bays, team identity, squad schedule, and private prep surfaces for customs and cup nights.",
+    },
+    {
+        "title": "Prize Vault",
+        "status": "Later",
+        "copy": "Reward tracks, ticket sinks, featured drops, and finals-night unlock messaging.",
+    },
+]
+
+ARENA_ASSET_REFERENCES = [
+    {
+        "title": "Theater Interior",
+        "slot": "Auditorium shell",
+        "source": "Fab",
+        "url": "https://www.fab.com/listings/72f2981d-e02f-4641-9fb6-5bbb0fb9d5ef",
+    },
+    {
+        "title": "Ultimate Cinema & Movie Theater - Auditorium, Lobby & Snacks",
+        "slot": "Full premium theater pass",
+        "source": "Fab",
+        "url": "https://www.fab.com/listings/7efdc1c8-0d4d-4ff2-bf99-d4a374d018dd",
+    },
+    {
+        "title": "Movie Theater Pack - Realistic Movie Theater Props",
+        "slot": "Seats and screen props",
+        "source": "Fab",
+        "url": "https://www.fab.com/listings/110c753b-78d2-4028-8a4d-3b196bae136c",
+    },
+    {
+        "title": "Stylized Popcorn Machine / Cart - Game Ready",
+        "slot": "Concession counter hero prop",
+        "source": "Fab",
+        "url": "https://www.fab.com/listings/6b850edd-ea1a-4840-915a-027de4aa71fe",
+    },
+    {
+        "title": "Sci-Fi Wall Display Panel - Modular Futuristic Screen",
+        "slot": "Leaderboard wall upgrade",
+        "source": "Fab",
+        "url": "https://www.fab.com/listings/6f9d35eb-0ddd-48d9-96fa-60d8955f5c10",
+    },
+    {
+        "title": "Unfinished Building",
+        "slot": "Exterior arena shell",
+        "source": "Fab / Quixel Megascans",
+        "url": "https://www.fab.com/listings/25f2e7e5-5cca-48a5-99a3-35c38b8240ac",
+    },
+    {
+        "title": "Abandoned Warehouse",
+        "slot": "Mechanic pit exterior",
+        "source": "Fab",
+        "url": "https://www.fab.com/listings/eb6fd9a2-9658-42cb-966c-90e5099b4aa3",
+    },
+]
+
 def serve_index():
     return send_from_directory(ROOT, "index.html")
 
@@ -159,6 +249,39 @@ def _short_id(value):
     if len(value) <= 18:
         return value
     return f"{value[:8]}...{value[-6:]}"
+
+
+def _safe_float(value, default=0.0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _top_member_rows(members=None, limit=8):
+    rows = []
+    pool = members if members is not None else (get_all_members() or [])
+    ranked = sorted(
+        pool,
+        key=lambda member: (
+            _to_int(member.get("wins"), 0),
+            _safe_float(member.get("kd"), 0.0),
+            _to_int(member.get("tickets"), 0),
+        ),
+        reverse=True,
+    )[:limit]
+    for index, member in enumerate(ranked, start=1):
+        rows.append(
+            {
+                "rank": index,
+                "display_name": (member.get("display_name") or "Unknown")[:24],
+                "wins": _to_int(member.get("wins"), 0),
+                "kd": round(_safe_float(member.get("kd"), 0.0), 2),
+                "tickets": _to_int(member.get("tickets"), 0),
+                "ranked_division": (member.get("ranked_division") or "Forge Open")[:28],
+            }
+        )
+    return rows
 
 
 def _channel_payload(form):
@@ -232,6 +355,62 @@ def esports():
         tournament_lanes=TOURNAMENT_LANES,
         subsection_ideas=ESPORTS_SUBSECTION_IDEAS,
         esports_roadmap=ESPORTS_ROADMAP,
+    )
+
+
+@platform_bp.route("/arena")
+def arena():
+    members = get_all_members() or []
+    announcements = get_announcements() or []
+    channels = get_channels() or []
+    posts = get_posts(limit=10) or []
+    arena_channels = [
+        channel for channel in channels
+        if (channel.get("category") or "") in {"Esports", "Fortnite Competitive", "Creative / UEFN"}
+    ][:6]
+    featured_channel = arena_channels[0] if arena_channels else {}
+    leaderboard_rows = _top_member_rows(members, limit=8)
+    ticker_lines = [item.get("title") for item in announcements[:4] if item.get("title")]
+    if not ticker_lines:
+        ticker_lines = [
+            "Arena deck live",
+            "Tournament lanes staged",
+            "Leaderboard wall synced",
+            "Replay lab planned",
+        ]
+    featured_posts = [
+        {
+            "caption": (post.get("caption") or "Arena update")[:72],
+            "platform": (post.get("platform") or "Feed")[:24],
+            "embed_url": post.get("embed_url") or "",
+        }
+        for post in posts
+        if post.get("caption") or post.get("embed_url")
+    ][:4]
+    scene_payload = {
+        "leaderboard": leaderboard_rows[:5],
+        "ticker": ticker_lines,
+        "feature_title": featured_channel.get("name") or "Forge Finals Theater",
+        "feature_copy": (
+            featured_channel.get("description")
+            or "Live match review, watch-party routing, and event night replays sit on the main screen."
+        ),
+        "announcement_lines": ticker_lines[:3],
+    }
+    return render_template(
+        "arena.html",
+        leaderboard_rows=leaderboard_rows,
+        announcements=announcements[:5],
+        arena_channels=arena_channels,
+        featured_channel=featured_channel,
+        featured_posts=featured_posts,
+        tournament_lanes=TOURNAMENT_LANES,
+        arena_modules=ARENA_MODULES,
+        asset_refs=ARENA_ASSET_REFERENCES,
+        scene_payload=scene_payload,
+        members_total=len(members),
+        announcement_total=len(announcements),
+        arena_channel_total=len(arena_channels),
     )
 
 @platform_bp.route("/dashboard")

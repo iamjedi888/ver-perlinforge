@@ -47,6 +47,7 @@
     <a href="#overview" class="sb-a active"><span class="ic">&#9672;</span>Overview</a>
     <a href="#architecture" class="sb-a"><span class="ic">&#9633;</span>Architecture</a>
     <a href="#channels" class="sb-a"><span class="ic">&#9658;</span>Channels</a>
+    <a href="#arena" class="sb-a"><span class="ic">&#9654;</span>Arena</a>
   </div>
   <div class="sb-group">
     <div class="sb-glabel">Deploy</div>
@@ -100,6 +101,7 @@
         <li>Epic Games OAuth flow is wired and ready for approved production keys.</li>
         <li>Island Forge generates UEFN terrain from uploaded audio analysis.</li>
         <li>Channels provides a multi-category embedded guide with suggestions.</li>
+        <li>Arena now has a dedicated A-Frame spectator deck at <code>/arena</code> with leaderboard, theater, and ops-rail concepts.</li>
         <li>Community and feed routes support social posts, updates, and member identity.</li>
         <li>Oracle Autonomous Database stores members, posts, islands, and channels.</li>
         <li>OCI Object Storage serves public media and generated assets.</li>
@@ -176,6 +178,7 @@
         <tr><td><span class="method get">GET</span></td><td><code>/gallery</code></td><td>Saved island gallery.</td></tr>
         <tr><td><span class="method get">GET</span></td><td><code>/feed</code></td><td>Clip and social feed.</td></tr>
         <tr><td><span class="method get">GET</span></td><td><code>/channels</code></td><td>Live channels guide.</td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/arena</code></td><td>Roamable A-Frame esports arena deck with leaderboard and theater layout.</td></tr>
         <tr><td><span class="method get">GET</span></td><td><code>/community</code></td><td>Members, announcements, and community views.</td></tr>
         <tr><td><span class="method get">GET</span></td><td><code>/dashboard</code></td><td>Member dashboard after Epic login.</td></tr>
         <tr><td><span class="method get">GET</span></td><td><code>/admin</code></td><td>Admin panel behind password gate.</td></tr>
@@ -221,8 +224,21 @@
     </div>
   </section>
 
+  <section class="doc" id="arena">
+    <div class="dh"><div class="dh-num">08</div><div><h2>Arena <span>Deck</span></h2><p>Dedicated esports spectator environment built as a roamable A-Frame page under the main esports section.</p></div></div>
+    <div class="prose">
+      <ul>
+        <li><code>/arena</code> is now the first real arena surface instead of only a note inside <code>/esports</code>.</li>
+        <li>The room layout is theater screen front and center, leaderboard wall on the left, and concession counter behind the seating.</li>
+        <li>The scene uses procedural stand-ins for speed while the right-rail asset locker points to Fab and Megascans source packs for future swaps.</li>
+        <li>The right rail should grow into tournaments, replay lab, broadcast booth, team garage, and prize vault subsections.</li>
+      </ul>
+      <p>Reference note: <code>templates/whitepages/ARENA_ROADMAP.md</code></p>
+    </div>
+  </section>
+
   <section class="doc" id="epic-oauth">
-    <div class="dh"><div class="dh-num">08</div><div><h2>Epic <span>OAuth</span></h2><p>Brand approval remains the final production gate. The app is already configured to read everything from environment variables.</p></div></div>
+    <div class="dh"><div class="dh-num">09</div><div><h2>Epic <span>OAuth</span></h2><p>Brand approval remains the final production gate. The app is already configured to read everything from environment variables.</p></div></div>
     <div class="callout red"><div class="callout-icon">&#9889;</div><div><div class="c-title">Pending approval</div><p>When Epic approves the production setup, populate the approved client ID, client secret, deployment ID, and base URL in the systemd environment, then restart <code>islandforge</code>.</p></div></div>
     <div class="prose">
       <h3>Current handoff</h3>
@@ -235,7 +251,7 @@
   </section>
 
   <section class="doc" id="verse">
-    <div class="dh"><div class="dh-num">09</div><div><h2>Verse <span>Architecture</span></h2><p>Tarkov-Lite systems in Verse for UEFN using immutable player data and stateful UI overlays.</p></div></div>
+    <div class="dh"><div class="dh-num">10</div><div><h2>Verse <span>Architecture</span></h2><p>Tarkov-Lite systems in Verse for UEFN using immutable player data and stateful UI overlays.</p></div></div>
     <div class="prose">
       <h3>Core patterns</h3>
       <ul>
@@ -250,7 +266,7 @@
   </section>
 
   <section class="doc" id="verse-files">
-    <div class="dh"><div class="dh-num">10</div><div><h2>Verse File <span>Reference</span></h2><p>Primary files tracked for the current extraction MMO systems.</p></div></div>
+    <div class="dh"><div class="dh-num">11</div><div><h2>Verse File <span>Reference</span></h2><p>Primary files tracked for the current extraction MMO systems.</p></div></div>
     <div class="fg">
       <div class="fc done"><div class="fc-top"><span class="fc-name">player_data.verse</span><span class="fc-st st-done">DONE</span></div><div class="fc-desc">Persistence model for currencies, inventory, levels, and plots.</div></div>
       <div class="fc done"><div class="fc-top"><span class="fc-name">persistence_manager.verse</span><span class="fc-st st-done">DONE</span></div><div class="fc-desc">Join and leave hooks, new player init, and protection rules.</div></div>
@@ -268,7 +284,7 @@
   </section>
 
   <section class="doc" id="island-forge">
-    <div class="dh"><div class="dh-num">11</div><div><h2>Island <span>Forge</span></h2><p>Audio-to-heightmap workflow for UEFN island generation.</p></div></div>
+    <div class="dh"><div class="dh-num">12</div><div><h2>Island <span>Forge</span></h2><p>Audio-to-heightmap workflow for UEFN island generation.</p></div></div>
     <div class="steps">
       <div class="step"><div class="step-n">01</div><div class="step-b"><strong>Upload</strong><p>Audio is compressed and prepared for analysis before generation begins.</p></div></div>
       <div class="step"><div class="step-n">02</div><div class="step-b"><strong>Analysis</strong><p>Bass, mids, and highs are separated into terrain-driving signals.</p></div></div>
@@ -281,7 +297,7 @@
   </section>
 
   <section class="doc" id="roadmap">
-    <div class="dh"><div class="dh-num">12</div><div><h2>Roadmap <span>Now / Next / Later</span></h2><p>Short-term execution order for site polish, platform readiness, and deeper game systems.</p></div></div>
+    <div class="dh"><div class="dh-num">13</div><div><h2>Roadmap <span>Now / Next / Later</span></h2><p>Short-term execution order for site polish, platform readiness, and deeper game systems.</p></div></div>
     <div class="fg">
       <div class="fc done"><div class="fc-top"><span class="fc-name">Now</span><span class="fc-st st-done">ACTIVE</span></div><div class="fc-desc">Lock the MMO backbone: finalize <code>player_data</code>, keep <code>player_repository</code> atomic, and keep deployment predictable from GitHub main to Oracle.</div></div>
       <div class="fc wip"><div class="fc-top"><span class="fc-name">Next</span><span class="fc-st st-todo">QUEUE</span></div><div class="fc-desc">Build the combat spine with abilities, NPC routing, XP, and quest hooks while continuing WhitePages expansion and Epic production readiness.</div></div>
@@ -290,7 +306,7 @@
   </section>
 
   <section class="doc" id="tarkov">
-    <div class="dh"><div class="dh-num">13</div><div><h2>Tarkov-Lite <span>Vision</span></h2><p>Persistent extraction MMO inside Fortnite with risk, insurance, progression, and evolving world systems.</p></div></div>
+    <div class="dh"><div class="dh-num">14</div><div><h2>Tarkov-Lite <span>Vision</span></h2><p>Persistent extraction MMO inside Fortnite with risk, insurance, progression, and evolving world systems.</p></div></div>
     <div class="prose">
       <p>Players stage from a safe hub, run extraction zones for materials and kills, and decide whether to bank progress or press deeper for better loot.</p>
       <h3>Economy loop</h3>
@@ -305,7 +321,7 @@
   </section>
 
   <section class="doc" id="tarkov-systems">
-    <div class="dh"><div class="dh-num">14</div><div><h2>Game <span>Systems</span></h2><p>Core gameplay systems that define the extraction loop and long-term progression.</p></div></div>
+    <div class="dh"><div class="dh-num">15</div><div><h2>Game <span>Systems</span></h2><p>Core gameplay systems that define the extraction loop and long-term progression.</p></div></div>
     <div class="prose">
       <h3>Death penalty</h3>
       <ul>
@@ -323,7 +339,7 @@
   </section>
 
   <section class="doc" id="tarkov-zones">
-    <div class="dh"><div class="dh-num">15</div><div><h2>Zone <span>Tiers</span></h2><p>Progression path from onboarding to endgame risk.</p></div></div>
+    <div class="dh"><div class="dh-num">16</div><div><h2>Zone <span>Tiers</span></h2><p>Progression path from onboarding to endgame risk.</p></div></div>
     <div class="zones">
       <div class="zone frontier"><div class="z-tier">Tier 01</div><div class="z-name">Frontier</div><div class="z-desc">Starter zone with low risk and clean onboarding.</div></div>
       <div class="zone wildlands"><div class="z-tier">Tier 02</div><div class="z-name">Wildlands</div><div class="z-desc">Mid-tier PvPvE with more pressure and stronger rewards.</div></div>
