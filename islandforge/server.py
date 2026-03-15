@@ -15,6 +15,27 @@ except ImportError:
 if load_dotenv is not None:
     load_dotenv()
 
+DISALLOWED_HOSTING_ENV_KEYS = (
+    "VERCEL",
+    "CF_PAGES",
+    "CF_PAGES_BRANCH",
+)
+
+
+def _assert_supported_hosting():
+    if os.environ.get("ALLOW_NON_ORACLE_DEPLOY") == "1":
+        return
+    detected = [key for key in DISALLOWED_HOSTING_ENV_KEYS if os.environ.get(key)]
+    if not detected:
+        return
+    raise RuntimeError(
+        "TriptokForge is configured for Oracle-hosted deployment only. "
+        "Disconnect Vercel/Cloudflare Git deploys or set ALLOW_NON_ORACLE_DEPLOY=1 explicitly."
+    )
+
+
+_assert_supported_hosting()
+
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")

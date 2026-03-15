@@ -31,6 +31,7 @@
     <a href="#repo-privacy" class="nav-a">Repo Privacy</a>
     <a href="#github-vault" class="nav-a">GitHub Vault</a>
     <a href="#epic-approval" class="nav-a">Epic Approval</a>
+    <a href="#branding" class="nav-a">Branding</a>
     <a href="#colorstheforce" class="nav-a">ColorsTheForce</a>
     <a href="#staff-bots" class="nav-a">Staff + Bots</a>
     <a href="#forge-runbook" class="nav-a">Forge</a>
@@ -67,6 +68,7 @@
     <a href="#workspace-audit" class="sb-a"><span class="ic">&#9881;</span>Workspace Audit</a>
     <a href="#epic-oauth" class="sb-a"><span class="ic">&#9889;</span>Epic OAuth <span class="sb-tag tag-wip">PENDING</span></a>
     <a href="#epic-approval" class="sb-a"><span class="ic">&#10003;</span>Approval Day</a>
+    <a href="#branding" class="sb-a"><span class="ic">&#9873;</span>Branding</a>
   </div>
   <div class="sb-group">
     <div class="sb-glabel">API &amp; Data</div>
@@ -216,6 +218,7 @@
         <li>Keep your personal account as the only write-capable maintainer unless you intentionally add collaborators.</li>
         <li>Give the Oracle VM a single <strong>read-only deploy key</strong> for this repository.</li>
         <li>Use an SSH remote on Oracle instead of a public HTTPS clone.</li>
+        <li>Disconnect Vercel and Cloudflare Git integrations if they are still attached to this GitHub repository.</li>
       </ul>
       <h3>Why this is the right model</h3>
       <ul>
@@ -226,7 +229,7 @@
     </div>
     <div class="callout green"><div class="callout-icon">&#128274;</div><div><div class="c-title">Recommended control</div><p>Keep the site repo private and let Oracle pull with a read-only deploy key. Do not use a public repo just to make deploys easier.</p></div></div>
     <div class="prose">
-      <p>Reference note: <code>templates/whitepages/GITHUB_PRIVATE_DEPLOY.md</code></p>
+      <p>Reference notes: <code>templates/whitepages/GITHUB_PRIVATE_DEPLOY.md</code> and <code>templates/whitepages/EXTERNAL_DEPLOY_LOCKDOWN.md</code></p>
     </div>
   </section>
 
@@ -416,8 +419,35 @@
     </div>
   </section>
 
+  <section class="doc" id="branding">
+    <div class="dh"><div class="dh-num">09B</div><div><h2>Epic <span>Branding</span></h2><p>Use Epic marks narrowly, factually, and only from the official asset pack. Epic is part of how TriptokForge got here, but it is not the site's primary brand.</p></div></div>
+    <div class="steps">
+      <div class="step"><div class="step-n">01</div><div class="step-b"><strong>Start from official assets</strong><p>Use the local Epic shield pack in <code>files/photos/epicgames/epicgames-logos/</code> or refresh it from Epic's brand portal before public use.</p></div></div>
+      <div class="step"><div class="step-n">02</div><div class="step-b"><strong>Keep the mark factual</strong><p>Use Epic marks only on Epic-specific surfaces like login, approval guidance, or compliance notes. Do not let the Epic mark replace the TriptokForge lockup.</p></div></div>
+      <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Review before publish</strong><p>Cross-check the live brand portal and Epic policy before shipping any new usage, especially after domain approval or any change to the auth flow.</p></div></div>
+    </div>
+    <div class="prose">
+      <h3>Local asset pack</h3>
+      <ul>
+        <li><code>EG-Shield-2023-logo-Black.svg</code></li>
+        <li><code>EG-Shield-2023-logo-White.svg</code></li>
+        <li>PNG, PDF, and EPS versions are also stored in the same local folder for design and print workflows.</li>
+      </ul>
+      <h3>Implementation rule</h3>
+      <ul>
+        <li>Do not put Epic marks into the main site lockup, favicon, or footer identity stack.</li>
+        <li>Keep Epic marks on factual Epic-related UI and compliance surfaces only.</li>
+        <li>Use the official disclaimer and policy language required by Epic where that fan-content boundary applies.</li>
+      </ul>
+    </div>
+    <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Brand boundary</div><p>TriptokForge should look like TriptokForge. Epic branding can confirm platform relationship and approval context, but it should not visually read as co-ownership or a site re-skin.</p></div></div>
+    <div class="prose">
+      <p>Reference note: <code>templates/whitepages/EPIC_BRANDING.md</code></p>
+    </div>
+  </section>
+
   <section class="doc" id="colorstheforce">
-    <div class="dh"><div class="dh-num">09B</div><div><h2>ColorsTheForce <span>Profile</span></h2><p>In-house AI moderator/operator profile for announcements, member guidance, platform summaries, and future moderation assistance.</p></div></div>
+    <div class="dh"><div class="dh-num">09C</div><div><h2>ColorsTheForce <span>Profile</span></h2><p>In-house AI moderator/operator profile for announcements, member guidance, platform summaries, and future moderation assistance.</p></div></div>
     <div class="prose">
       <h3>What it is</h3>
       <ul>
@@ -448,7 +478,7 @@
   </section>
 
   <section class="doc" id="staff-bots">
-    <div class="dh"><div class="dh-num">09C</div><div><h2>Staff + Bot <span>Operations</span></h2><p>Role-aware ops model for admins, moderators, and bot operators, plus the curated LLM provider catalog used in the site console.</p></div></div>
+    <div class="dh"><div class="dh-num">09D</div><div><h2>Staff + Bot <span>Operations</span></h2><p>Role-aware ops model for admins, moderators, and bot operators, plus the curated LLM provider catalog used in the site console.</p></div></div>
     <div class="prose">
       <h3>Role split</h3>
       <ul>
@@ -461,6 +491,7 @@
       <ul>
         <li><code>/ops</code> is the role-aware login and dashboard for staff accounts.</li>
         <li>The top-level <code>Profile Factory</code> creates <code>Admin</code>, <code>Moderator</code>, <code>User</code>, or <code>Bot</code> profiles from one module.</li>
+        <li>The <code>Bot Draft Queue</code> now keeps house bots in a draft -&gt; review -&gt; publish lane instead of letting them post directly to live surfaces.</li>
         <li>The old <code>/admin</code> route remains the legacy full-control console and should stay admin-only.</li>
         <li>Leave the username blank and use the root admin password only as a fallback, not as the long-term staff model.</li>
       </ul>
@@ -481,7 +512,7 @@
         <tr><td>Hugging Face</td><td>Provider brokering and OSS model experimentation</td><td>Good catalog layer, not a single-model answer by itself.</td></tr>
       </tbody>
     </table></div>
-    <div class="callout green"><div class="callout-icon">&#9873;</div><div><div class="c-title">Implementation note</div><p>The site now has a dedicated ops-console direction: admins keep full privileges, moderators stay constrained to post cleanup, and bot operators can maintain linked bot profiles without receiving the rest of the control plane.</p></div></div>
+    <div class="callout green"><div class="callout-icon">&#9873;</div><div><div class="c-title">Implementation note</div><p>The site now has a dedicated ops-console direction: admins keep full privileges, moderators stay constrained to post cleanup, bot operators can maintain linked bot profiles, and house-bot drafts route through approval before they can publish to announcements or sitewide broadcasts.</p></div></div>
     <div class="prose">
       <p>Reference note: <code>templates/whitepages/STAFF_BOT_OPERATIONS.md</code></p>
     </div>

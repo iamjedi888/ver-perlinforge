@@ -141,7 +141,33 @@ Long term:
 
 ## Next Steps
 
+## Bot Draft Queue
+
+The preferred publish path for bots is now:
+
+1. create a draft in `/ops#drafts`
+2. choose the target surface:
+   - `Announcement`
+   - `Broadcast`
+3. submit the draft for review
+4. admin approves or rejects
+5. admin publishes the approved draft live
+
+Why this matters:
+
+- bot operators can work quickly without getting silent sitewide publish power
+- sitewide UI surfaces still require human approval
+- bot output is auditable through the operator log
+- the same workflow works for `ColorsTheForce` and future house bots
+
+Surface notes:
+
+- `Announcement` posts into the normal member announcement rail
+- `Broadcast` publishes into the sitewide emergency UI system used for banners, tickers, blips, and modals
+
+## Next Steps
+
 1. Replace the shared root fallback with explicit admin accounts only.
-2. Add bot draft-post workflows with approval before publish.
+2. Add richer bot draft surfaces like community summaries, WhitePages walkthrough drafts, and scheduled sponsor-ready posts.
 3. Add per-role dashboard widgets and filtered audit views.
 4. Add API-backed provider catalog refresh only if you decide it is worth the operational complexity.

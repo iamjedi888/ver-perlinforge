@@ -291,6 +291,26 @@ CREATE TABLE bot_profiles (
     updated_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE bot_drafts (
+    id              NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    bot_slug        VARCHAR2(64)  NOT NULL,
+    title           VARCHAR2(256) NOT NULL,
+    body            CLOB,
+    target_surface  VARCHAR2(32)  DEFAULT 'announcement',
+    status          VARCHAR2(32)  DEFAULT 'draft',
+    payload_json    CLOB,
+    created_by      VARCHAR2(64),
+    reviewed_by     VARCHAR2(64),
+    published_by    VARCHAR2(64),
+    review_note     VARCHAR2(1024),
+    published_ref   VARCHAR2(256),
+    submitted_at    TIMESTAMP,
+    reviewed_at     TIMESTAMP,
+    published_at    TIMESTAMP,
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE operator_audit_log (
     id             NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     actor_username VARCHAR2(64),
@@ -479,6 +499,8 @@ STAFF_PERMISSION_KEYS = (
     "system",
     "members",
 )
+BOT_DRAFT_SURFACE_OPTIONS = ("announcement", "broadcast")
+BOT_DRAFT_STATUS_OPTIONS = ("draft", "pending_review", "approved", "rejected", "published")
 
 
 def _hash_password(password: str, salt_hex: str | None = None, iterations: int = 240000) -> str:
@@ -552,6 +574,78 @@ def _permission_overrides_to_blob(value) -> str:
     return json.dumps(normalized, separators=(",", ":")) if normalized else ""
 
 
+def _normalize_bot_draft_surface(value: str) -> str:
+    surface = str(value or "announcement").strip().lower()
+    return surface if surface in BOT_DRAFT_SURFACE_OPTIONS else "announcement"
+
+
+def _normalize_bot_draft_status(value: str) -> str:
+    status = str(value or "draft").strip().lower()
+    return status if status in BOT_DRAFT_STATUS_OPTIONS else "draft"
+
+
+def _normalize_bot_draft_payload(value) -> dict:
+    if isinstance(value, dict):
+        raw = value
+    elif not value:
+        raw = {}
+    else:
+        try:
+            raw = json.loads(str(value))
+        except Exception:
+            raw = {}
+    try:
+        duration_seconds = float(raw.get("duration_seconds") or 8.0)
+    except Exception:
+        duration_seconds = 8.0
+    try:
+        priority = int(raw.get("priority") or 0)
+    except Exception:
+        priority = 0
+    return {
+        "pinned": 1 if bool(raw.get("pinned")) else 0,
+        "variant": str(raw.get("variant") or "info")[:24] or "info",
+        "display_mode": str(raw.get("display_mode") or "banner")[:24] or "banner",
+        "dismiss_mode": str(raw.get("dismiss_mode") or "manual")[:24] or "manual",
+        "duration_seconds": duration_seconds,
+        "cta_label": str(raw.get("cta_label") or "")[:64],
+        "cta_href": str(raw.get("cta_href") or "")[:512],
+        "closable": 1 if bool(raw.get("closable")) else 0,
+        "active": 1 if bool(raw.get("active")) else 0,
+        "priority": priority,
+    }
+
+
+def _bot_draft_payload_to_blob(value) -> str:
+    return json.dumps(_normalize_bot_draft_payload(value), separators=(",", ":"))
+
+
+def _bot_draft_row_to_dict(record: dict) -> dict:
+    payload = _normalize_bot_draft_payload(record.get("payload_json"))
+    record["bot_slug"] = str(record.get("bot_slug") or "").strip().lower()
+    record["target_surface"] = _normalize_bot_draft_surface(record.get("target_surface"))
+    record["status"] = _normalize_bot_draft_status(record.get("status"))
+    record["body"] = record.get("body") or ""
+    record["created_by"] = record.get("created_by") or ""
+    record["reviewed_by"] = record.get("reviewed_by") or ""
+    record["published_by"] = record.get("published_by") or ""
+    record["review_note"] = record.get("review_note") or ""
+    record["published_ref"] = record.get("published_ref") or ""
+    record["payload"] = payload
+    record["payload_json"] = _bot_draft_payload_to_blob(payload)
+    record["pinned"] = int(payload.get("pinned") or 0)
+    record["variant"] = payload.get("variant") or "info"
+    record["display_mode"] = payload.get("display_mode") or "banner"
+    record["dismiss_mode"] = payload.get("dismiss_mode") or "manual"
+    record["duration_seconds"] = float(payload.get("duration_seconds") or 8.0)
+    record["cta_label"] = payload.get("cta_label") or ""
+    record["cta_href"] = payload.get("cta_href") or ""
+    record["closable"] = int(payload.get("closable") or 0)
+    record["active"] = int(payload.get("active") or 0)
+    record["priority"] = int(payload.get("priority") or 0)
+    return record
+
+
 def ensure_ops_schema():
     global _ops_schema_checked
     if _ops_schema_checked or not db_available():
@@ -591,6 +685,27 @@ def ensure_ops_schema():
                 surfaces_text   CLOB,
                 system_prompt   CLOB,
                 active          NUMBER(1) DEFAULT 1,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            """
+            CREATE TABLE bot_drafts (
+                id              NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                bot_slug        VARCHAR2(64) NOT NULL,
+                title           VARCHAR2(256) NOT NULL,
+                body            CLOB,
+                target_surface  VARCHAR2(32) DEFAULT 'announcement',
+                status          VARCHAR2(32) DEFAULT 'draft',
+                payload_json    CLOB,
+                created_by      VARCHAR2(64),
+                reviewed_by     VARCHAR2(64),
+                published_by    VARCHAR2(64),
+                review_note     VARCHAR2(1024),
+                published_ref   VARCHAR2(256),
+                submitted_at    TIMESTAMP,
+                reviewed_at     TIMESTAMP,
+                published_at    TIMESTAMP,
                 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -1156,6 +1271,56 @@ def get_bot_profile(bot_id):
         return None
 
 
+def get_bot_profile_by_slug(bot_slug):
+    bot_slug = str(bot_slug or "").strip().lower()
+    if not bot_slug:
+        return None
+    if not db_available():
+        items = get_bot_profiles() or []
+        return next((item for item in items if str(item.get("slug") or "").strip().lower() == bot_slug), None)
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, slug, display_name, badge_label, role_label, bio, tone, language_profile,
+                   llm_provider, llm_model, llm_family, scope_text, surfaces_text, system_prompt,
+                   active, created_at, updated_at
+              FROM bot_profiles
+             WHERE LOWER(slug) = :slug
+            """,
+            {"slug": bot_slug},
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return None
+        return {
+            "id": row[0],
+            "slug": row[1] or "",
+            "display_name": row[2] or "",
+            "badge_label": row[3] or "",
+            "role_label": row[4] or "",
+            "bio": row[5] or "",
+            "tone": row[6] or "",
+            "language_profile": row[7] or "",
+            "llm_provider": row[8] or "",
+            "llm_model": row[9] or "",
+            "llm_family": row[10] or "",
+            "scope_text": row[11] or "",
+            "surfaces_text": row[12] or "",
+            "system_prompt": row[13] or "",
+            "active": int(row[14] or 0),
+            "created_at": row[15].isoformat() if hasattr(row[15], "isoformat") else str(row[15] or ""),
+            "updated_at": row[16].isoformat() if hasattr(row[16], "isoformat") else str(row[16] or ""),
+        }
+    except Exception as e:
+        print(f"[oracle_db] get_bot_profile_by_slug error: {e}")
+        return None
+
+
 def create_bot_profile(
     slug,
     display_name,
@@ -1368,6 +1533,407 @@ def delete_bot_profile(bot_id):
 # ═══════════════════════════════════════════════════════════════════════════════
 # MEMBER OPERATIONS
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def create_bot_draft(bot_slug, title, body="", target_surface="announcement", payload_json=None, created_by="", status="draft"):
+    bot_slug = str(bot_slug or "").strip().lower()
+    title = str(title or "").strip()
+    if not bot_slug or not title:
+        return False
+    target_surface = _normalize_bot_draft_surface(target_surface)
+    status = _normalize_bot_draft_status(status)
+    payload_blob = _bot_draft_payload_to_blob(payload_json)
+    if not db_available():
+        items = _json_load("bot_drafts.json", [])
+        items.insert(
+            0,
+            _bot_draft_row_to_dict(
+                {
+                    "id": int(time.time() * 1000),
+                    "bot_slug": bot_slug,
+                    "title": title[:256],
+                    "body": body,
+                    "target_surface": target_surface,
+                    "status": status,
+                    "payload_json": payload_blob,
+                    "created_by": created_by[:64],
+                    "reviewed_by": "",
+                    "published_by": "",
+                    "review_note": "",
+                    "published_ref": "",
+                    "submitted_at": datetime.utcnow().isoformat() if status == "pending_review" else "",
+                    "reviewed_at": "",
+                    "published_at": "",
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            ),
+        )
+        _json_save("bot_drafts.json", items)
+        return True
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO bot_drafts (
+                bot_slug, title, body, target_surface, status, payload_json, created_by, submitted_at
+            )
+            VALUES (
+                :bot_slug, :title, :body, :target_surface, :status, :payload_json, :created_by,
+                CASE WHEN :status = 'pending_review' THEN CURRENT_TIMESTAMP ELSE NULL END
+            )
+            """,
+            {
+                "bot_slug": bot_slug,
+                "title": title[:256],
+                "body": body,
+                "target_surface": target_surface,
+                "status": status,
+                "payload_json": payload_blob,
+                "created_by": created_by[:64],
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] create_bot_draft error: {e}")
+        return False
+
+
+def get_bot_draft(draft_id):
+    if not draft_id:
+        return None
+    if not db_available():
+        items = _json_load("bot_drafts.json", [])
+        item = next((item for item in items if int(item.get("id") or 0) == int(draft_id or 0)), None)
+        return _bot_draft_row_to_dict(dict(item)) if item else None
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, bot_slug, title, body, target_surface, status, payload_json,
+                   created_by, reviewed_by, published_by, review_note, published_ref,
+                   submitted_at, reviewed_at, published_at, created_at, updated_at
+              FROM bot_drafts
+             WHERE id = :id
+            """,
+            {"id": draft_id},
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return None
+        cols = [
+            "id", "bot_slug", "title", "body", "target_surface", "status", "payload_json",
+            "created_by", "reviewed_by", "published_by", "review_note", "published_ref",
+            "submitted_at", "reviewed_at", "published_at", "created_at", "updated_at",
+        ]
+        record = dict(zip(cols, row))
+        for key in ("submitted_at", "reviewed_at", "published_at", "created_at", "updated_at"):
+            value = record.get(key)
+            record[key] = value.isoformat() if hasattr(value, "isoformat") else str(value or "")
+        return _bot_draft_row_to_dict(record)
+    except Exception as e:
+        print(f"[oracle_db] get_bot_draft error: {e}")
+        return None
+
+
+def get_bot_drafts(status=None, bot_slug="", limit=80):
+    status = _normalize_bot_draft_status(status) if status else ""
+    bot_slug = str(bot_slug or "").strip().lower()
+    if not db_available():
+        items = [_bot_draft_row_to_dict(dict(item)) for item in _json_load("bot_drafts.json", [])]
+        rows = []
+        for item in items:
+            if status and item.get("status") != status:
+                continue
+            if bot_slug and item.get("bot_slug") != bot_slug:
+                continue
+            rows.append(item)
+        rows.sort(key=lambda item: (item.get("updated_at") or item.get("created_at") or ""), reverse=True)
+        return rows[:limit]
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        sql = """
+            SELECT id, bot_slug, title, body, target_surface, status, payload_json,
+                   created_by, reviewed_by, published_by, review_note, published_ref,
+                   submitted_at, reviewed_at, published_at, created_at, updated_at
+              FROM bot_drafts
+        """
+        clauses = []
+        params = {"limit": limit}
+        if status:
+            clauses.append("status = :status")
+            params["status"] = status
+        if bot_slug:
+            clauses.append("LOWER(bot_slug) = :bot_slug")
+            params["bot_slug"] = bot_slug
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY updated_at DESC, created_at DESC FETCH FIRST :limit ROWS ONLY"
+        cur.execute(sql, params)
+        cols = [
+            "id", "bot_slug", "title", "body", "target_surface", "status", "payload_json",
+            "created_by", "reviewed_by", "published_by", "review_note", "published_ref",
+            "submitted_at", "reviewed_at", "published_at", "created_at", "updated_at",
+        ]
+        rows = []
+        for row in cur.fetchall():
+            record = dict(zip(cols, row))
+            for key in ("submitted_at", "reviewed_at", "published_at", "created_at", "updated_at"):
+                value = record.get(key)
+                record[key] = value.isoformat() if hasattr(value, "isoformat") else str(value or "")
+            rows.append(_bot_draft_row_to_dict(record))
+        cur.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        print(f"[oracle_db] get_bot_drafts error: {e}")
+        return []
+
+
+def update_bot_draft(draft_id, bot_slug, title, body="", target_surface="announcement", payload_json=None, review_note=None):
+    draft = get_bot_draft(draft_id)
+    if not draft:
+        return False
+    bot_slug = str(bot_slug or "").strip().lower()
+    title = str(title or "").strip()
+    if not bot_slug or not title:
+        return False
+    target_surface = _normalize_bot_draft_surface(target_surface)
+    payload_blob = _bot_draft_payload_to_blob(payload_json)
+    if review_note is None:
+        review_note = draft.get("review_note") or ""
+    if not db_available():
+        items = _json_load("bot_drafts.json", [])
+        for item in items:
+            if int(item.get("id") or 0) != int(draft_id or 0):
+                continue
+            item.update(
+                _bot_draft_row_to_dict(
+                    {
+                        **item,
+                        "bot_slug": bot_slug,
+                        "title": title[:256],
+                        "body": body,
+                        "target_surface": target_surface,
+                        "payload_json": payload_blob,
+                        "review_note": str(review_note or "")[:1024],
+                        "updated_at": datetime.utcnow().isoformat(),
+                    }
+                )
+            )
+            _json_save("bot_drafts.json", items)
+            return True
+        return False
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE bot_drafts
+               SET bot_slug = :bot_slug,
+                   title = :title,
+                   body = :body,
+                   target_surface = :target_surface,
+                   payload_json = :payload_json,
+                   review_note = :review_note,
+                   updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id
+            """,
+            {
+                "id": draft_id,
+                "bot_slug": bot_slug,
+                "title": title[:256],
+                "body": body,
+                "target_surface": target_surface,
+                "payload_json": payload_blob,
+                "review_note": str(review_note or "")[:1024],
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] update_bot_draft error: {e}")
+        return False
+
+
+def delete_bot_draft(draft_id):
+    if not draft_id:
+        return False
+    if not db_available():
+        items = [item for item in _json_load("bot_drafts.json", []) if int(item.get("id") or 0) != int(draft_id or 0)]
+        _json_save("bot_drafts.json", items)
+        return True
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM bot_drafts WHERE id = :id", {"id": draft_id})
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] delete_bot_draft error: {e}")
+        return False
+
+
+def transition_bot_draft(draft_id, status, actor="", review_note=None):
+    status = _normalize_bot_draft_status(status)
+    draft = get_bot_draft(draft_id)
+    if not draft:
+        return False
+    review_note = draft.get("review_note") if review_note is None else str(review_note or "")[:1024]
+    now_iso = datetime.utcnow().isoformat()
+    if not db_available():
+        items = _json_load("bot_drafts.json", [])
+        for item in items:
+            if int(item.get("id") or 0) != int(draft_id or 0):
+                continue
+            item["status"] = status
+            item["review_note"] = review_note or ""
+            item["updated_at"] = now_iso
+            if status == "pending_review":
+                item["submitted_at"] = now_iso
+            if status in {"approved", "rejected"}:
+                item["reviewed_by"] = str(actor or "")[:64]
+                item["reviewed_at"] = now_iso
+            _json_save("bot_drafts.json", items)
+            return True
+        return False
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE bot_drafts
+               SET status = :status,
+                   review_note = :review_note,
+                   reviewed_by = CASE WHEN :status IN ('approved', 'rejected') THEN :actor ELSE reviewed_by END,
+                   submitted_at = CASE WHEN :status = 'pending_review' THEN CURRENT_TIMESTAMP ELSE submitted_at END,
+                   reviewed_at = CASE WHEN :status IN ('approved', 'rejected') THEN CURRENT_TIMESTAMP ELSE reviewed_at END,
+                   updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id
+            """,
+            {
+                "id": draft_id,
+                "status": status,
+                "review_note": str(review_note or "")[:1024],
+                "actor": str(actor or "")[:64],
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] transition_bot_draft error: {e}")
+        return False
+
+
+def publish_bot_draft(draft_id, published_by=""):
+    draft = get_bot_draft(draft_id)
+    if not draft or draft.get("status") != "approved":
+        return False
+    bot_profile = get_bot_profile_by_slug(draft.get("bot_slug"))
+    author_name = (bot_profile or {}).get("display_name") or draft.get("bot_slug") or "Bot"
+    payload = _normalize_bot_draft_payload(draft.get("payload_json"))
+    title = str(draft.get("title") or "").strip()
+    body = draft.get("body") or ""
+    if not title:
+        return False
+
+    published_ref = ""
+    if draft.get("target_surface") == "broadcast":
+        created = create_site_broadcast(
+            title=title[:128],
+            body=body[:1024],
+            variant=payload.get("variant") or "info",
+            display_mode=payload.get("display_mode") or "banner",
+            dismiss_mode=payload.get("dismiss_mode") or "manual",
+            duration_seconds=payload.get("duration_seconds") or 8.0,
+            cta_label=payload.get("cta_label") or "",
+            cta_href=payload.get("cta_href") or "",
+            closable=payload.get("closable"),
+            active=payload.get("active"),
+            created_by=author_name,
+            priority=payload.get("priority") or 0,
+        )
+        if not created:
+            return False
+        published_ref = f"broadcast:{title[:96]}"
+    else:
+        created = post_announcement(
+            title=title[:256],
+            body=body[:4000],
+            posted_by=author_name,
+            pinned=bool(payload.get("pinned")),
+        )
+        if not created:
+            return False
+        published_ref = f"announcement:{title[:96]}"
+
+    if not db_available():
+        items = _json_load("bot_drafts.json", [])
+        now_iso = datetime.utcnow().isoformat()
+        for item in items:
+            if int(item.get("id") or 0) != int(draft_id or 0):
+                continue
+            item["status"] = "published"
+            item["published_by"] = str(published_by or "")[:64]
+            item["published_ref"] = published_ref
+            item["published_at"] = now_iso
+            item["updated_at"] = now_iso
+            _json_save("bot_drafts.json", items)
+            return True
+        return False
+
+    try:
+        ensure_ops_schema()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE bot_drafts
+               SET status = 'published',
+                   published_by = :published_by,
+                   published_ref = :published_ref,
+                   published_at = CURRENT_TIMESTAMP,
+                   updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id
+            """,
+            {
+                "id": draft_id,
+                "published_by": str(published_by or "")[:64],
+                "published_ref": published_ref[:256],
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close()
+        conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] publish_bot_draft error: {e}")
+        return False
+
 
 def upsert_member(epic_id, display_name, avatar_url="", skin_id="", skin_name="", skin_img=""):
     """Insert or update a member record."""

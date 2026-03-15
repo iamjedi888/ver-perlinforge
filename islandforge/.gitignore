@@ -71,3 +71,8 @@ patch_*.py
 
 # Node (if ever added)
 node_modules/
+
+# External deploy platforms (keep Oracle as the only live deploy target)
+.vercel/
+.wrangler/
+.cloudflare/

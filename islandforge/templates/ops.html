@@ -12,6 +12,9 @@
 {% macro role_pill(role) -%}
   {% if role == "admin" %}pill pill-red{% elif role == "moderator" %}pill pill-amber{% else %}pill pill-blue{% endif %}
 {%- endmacro %}
+{% macro draft_status_pill(status) -%}
+  {% if status == "rejected" %}pill pill-red{% elif status == "pending_review" %}pill pill-amber{% elif status in ("approved", "published") %}pill pill-blue{% else %}pill{% endif %}
+{%- endmacro %}
 
 <nav class="ops-nav">
   {% set brand_href = '/home' %}
@@ -100,6 +103,11 @@
         <span class="metric-note">Curated operator personas</span>
       </div>
       <div class="metric-card">
+        <span class="metric-label">Pending Drafts</span>
+        <strong class="metric-value">{{ ops_metrics.pending_drafts }}</strong>
+        <span class="metric-note">Waiting for admin review</span>
+      </div>
+      <div class="metric-card">
         <span class="metric-label">Audit Events</span>
         <strong class="metric-value">{{ ops_metrics.audit }}</strong>
         <span class="metric-note">Recent control-plane actions</span>
@@ -115,6 +123,7 @@
         <a href="#moderation" class="tab-link">Moderation</a>
         {% if staff_permissions.staff %}<a href="#staff" class="tab-link">Staff</a>{% endif %}
         {% if staff_permissions.bots %}<a href="#bots" class="tab-link">Bots</a>{% endif %}
+        {% if staff_permissions.bots %}<a href="#drafts" class="tab-link">Draft Queue</a>{% endif %}
         {% if staff_permissions.admin %}<a href="#legacy" class="tab-link">Legacy Admin</a>{% endif %}
         <a href="#audit" class="tab-link">Audit</a>
       </div>
@@ -476,6 +485,205 @@
           {% else %}
           <div class="empty-card">No bot profiles available to this role.</div>
           {% endfor %}
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    {% if staff_permissions.bots %}
+    <section class="panel" id="drafts">
+      <div class="panel-head">
+        <h2>Bot Draft Queue</h2>
+        <span class="panel-kicker">{{ "ADMIN REVIEW FLOW" if current_role == "admin" else "LINKED BOT LANE" }}</span>
+      </div>
+      <div class="panel-body">
+        <p class="section-copy">House bots do not post straight to the site. They draft into this lane first, then admin reviews and publishes into announcements or sitewide emergency UI. That keeps the bot useful without giving it silent control-plane power.</p>
+
+        <div class="draft-summary-grid">
+          {% for status_key, status_label in bot_draft_statuses.items() %}
+          <article class="summary-tile">
+            <strong>{{ draft_counts.get(status_key, 0) }}</strong>
+            <span>{{ status_label }}</span>
+          </article>
+          {% endfor %}
+        </div>
+
+        <form method="post" class="form-card draft-form" data-draft-form>
+          <input type="hidden" name="action" value="{{ 'bot_draft_update' if edit_draft else 'bot_draft_create' }}"/>
+          <input type="hidden" name="draft_id" value="{{ edit_draft.id if edit_draft else '' }}"/>
+          <h3>{{ "Edit Bot Draft" if edit_draft else "Compose Bot Draft" }}</h3>
+          <div class="form-grid two">
+            <label class="field">
+              <span>Bot Profile</span>
+              <select name="bot_slug">
+                {% for bot in draft_bot_choices %}
+                <option value="{{ bot.slug }}" {% if (edit_draft and edit_draft.bot_slug == bot.slug) or (not edit_draft and draft_bot_choices|length == 1 and loop.first) %}selected{% endif %}>{{ bot.display_name }} ({{ bot.slug }})</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Target Surface</span>
+              <select name="target_surface" data-surface-select>
+                {% for surface_key, surface_label in bot_draft_surfaces %}
+                <option value="{{ surface_key }}" {% if (edit_draft and edit_draft.target_surface == surface_key) or (not edit_draft and surface_key == 'announcement') %}selected{% endif %}>{{ surface_label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field field-span-2">
+              <span>Title</span>
+              <input type="text" name="title" value="{{ edit_draft.title if edit_draft else '' }}" placeholder="Patch note, daily signal, safety notice, or sponsor-ready update" required/>
+            </label>
+            <label class="field field-span-2">
+              <span>Body</span>
+              <textarea name="body" placeholder="Write the bot copy here.">{{ edit_draft.body if edit_draft else '' }}</textarea>
+            </label>
+            <label class="field field-span-2">
+              <span>Review Note</span>
+              <textarea name="review_note" placeholder="Optional admin/operator note about why this should go live or what still needs tuning.">{{ edit_draft.review_note if edit_draft else '' }}</textarea>
+            </label>
+          </div>
+
+          <div class="surface-panel" data-surface-panel="announcement">
+            <div class="surface-panel__head">
+              <strong>Announcement Options</strong>
+              <span>Use this for member-visible updates inside the normal announcement rail.</span>
+            </div>
+            <label class="toggle"><input type="checkbox" name="pinned" {% if edit_draft and edit_draft.pinned %}checked{% endif %}/> Pin announcement</label>
+          </div>
+
+          <div class="surface-panel" data-surface-panel="broadcast">
+            <div class="surface-panel__head">
+              <strong>Broadcast Options</strong>
+              <span>Use this for ticker, banner, blip, or modal emergency UI. These publish into the same sitewide system used by admin.</span>
+            </div>
+            <div class="form-grid two">
+              <label class="field"><span>Variant</span>
+                <select name="variant">
+                  {% for variant in ['info', 'success', 'warning', 'critical'] %}
+                  <option value="{{ variant }}" {% if edit_draft and edit_draft.variant == variant %}selected{% elif not edit_draft and variant == 'info' %}selected{% endif %}>{{ variant|title }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field"><span>Display Mode</span>
+                <select name="display_mode">
+                  {% for mode in ['banner', 'ticker', 'blip', 'modal'] %}
+                  <option value="{{ mode }}" {% if edit_draft and edit_draft.display_mode == mode %}selected{% elif not edit_draft and mode == 'banner' %}selected{% endif %}>{{ mode|title }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field"><span>Dismiss Mode</span>
+                <select name="dismiss_mode">
+                  {% for mode in ['auto', 'manual', 'persistent'] %}
+                  <option value="{{ mode }}" {% if edit_draft and edit_draft.dismiss_mode == mode %}selected{% elif not edit_draft and mode == 'manual' %}selected{% endif %}>{{ mode|title }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field"><span>Duration Seconds</span><input type="number" step="0.1" name="duration_seconds" value="{{ edit_draft.duration_seconds if edit_draft else '8' }}"/></label>
+              <label class="field"><span>CTA Label</span><input type="text" name="cta_label" value="{{ edit_draft.cta_label if edit_draft else '' }}"/></label>
+              <label class="field"><span>CTA Href</span><input type="url" name="cta_href" value="{{ edit_draft.cta_href if edit_draft else '' }}" placeholder="https://triptokforge.org/..."/></label>
+              <label class="field"><span>Priority</span><input type="number" name="priority" value="{{ edit_draft.priority if edit_draft else '0' }}"/></label>
+              <label class="field field-toggle-row">
+                <span>Live Controls</span>
+                <div class="toggle-cluster">
+                  <label class="toggle"><input type="checkbox" name="active" {% if not edit_draft or edit_draft.active %}checked{% endif %}/> Active</label>
+                  <label class="toggle"><input type="checkbox" name="closable" {% if not edit_draft or edit_draft.closable %}checked{% endif %}/> Closable</label>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <button type="submit" class="btn btn-primary">{{ "Save Draft" if edit_draft else "Create Draft" }}</button>
+          </div>
+          <p class="helper-text">Recommended flow: create draft, submit for review, approve, then publish. Bot operators can draft and tune. Only admin can approve or publish.</p>
+        </form>
+
+        {% if edit_draft %}
+        <div class="workflow-actions">
+          {% if edit_draft.status in ('draft', 'rejected') %}
+          <form method="post" class="inline-form">
+            <input type="hidden" name="action" value="bot_draft_submit"/>
+            <input type="hidden" name="draft_id" value="{{ edit_draft.id }}"/>
+            <button type="submit" class="btn">Submit For Review</button>
+          </form>
+          {% endif %}
+          {% if current_role == 'admin' and edit_draft.status in ('pending_review', 'rejected', 'draft') %}
+          <form method="post" class="inline-form">
+            <input type="hidden" name="action" value="bot_draft_approve"/>
+            <input type="hidden" name="draft_id" value="{{ edit_draft.id }}"/>
+            <button type="submit" class="btn">Approve</button>
+          </form>
+          <form method="post" class="inline-form">
+            <input type="hidden" name="action" value="bot_draft_reject"/>
+            <input type="hidden" name="draft_id" value="{{ edit_draft.id }}"/>
+            <button type="submit" class="btn btn-danger">Reject</button>
+          </form>
+          {% endif %}
+          {% if current_role == 'admin' and edit_draft.status == 'approved' %}
+          <form method="post" class="inline-form">
+            <input type="hidden" name="action" value="bot_draft_publish"/>
+            <input type="hidden" name="draft_id" value="{{ edit_draft.id }}"/>
+            <button type="submit" class="btn btn-primary">Publish Live</button>
+          </form>
+          {% endif %}
+          {% if edit_draft.status != 'published' %}
+          <form method="post" class="inline-form">
+            <input type="hidden" name="action" value="bot_draft_delete"/>
+            <input type="hidden" name="draft_id" value="{{ edit_draft.id }}"/>
+            <button type="submit" class="btn btn-danger">Delete Draft</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Bot</th><th>Surface</th><th>Status</th><th>Title</th><th>Updated</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {% for draft in bot_drafts %}
+              <tr>
+                <td>{{ draft.bot_slug }}</td>
+                <td>{{ draft.target_surface|replace('_', ' ')|title }}</td>
+                <td><span class="{{ draft_status_pill(draft.status) }}">{{ bot_draft_statuses.get(draft.status, draft.status|title) }}</span></td>
+                <td>
+                  <strong>{{ draft.title }}</strong>
+                  {% if draft.review_note %}
+                  <div class="meta-line">Note: {{ draft.review_note }}</div>
+                  {% endif %}
+                </td>
+                <td>{{ draft.updated_at or draft.created_at }}</td>
+                <td class="actions-cell">
+                  <a href="/ops?edit_draft={{ draft.id }}#drafts" class="btn">Edit</a>
+                  {% if draft.status in ('draft', 'rejected') %}
+                  <form method="post" class="inline-form">
+                    <input type="hidden" name="action" value="bot_draft_submit"/>
+                    <input type="hidden" name="draft_id" value="{{ draft.id }}"/>
+                    <button type="submit" class="btn">Submit</button>
+                  </form>
+                  {% endif %}
+                  {% if current_role == 'admin' and draft.status in ('pending_review', 'rejected', 'draft') %}
+                  <form method="post" class="inline-form">
+                    <input type="hidden" name="action" value="bot_draft_approve"/>
+                    <input type="hidden" name="draft_id" value="{{ draft.id }}"/>
+                    <button type="submit" class="btn">Approve</button>
+                  </form>
+                  {% endif %}
+                  {% if current_role == 'admin' and draft.status == 'approved' %}
+                  <form method="post" class="inline-form">
+                    <input type="hidden" name="action" value="bot_draft_publish"/>
+                    <input type="hidden" name="draft_id" value="{{ draft.id }}"/>
+                    <button type="submit" class="btn btn-primary">Publish</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6">No bot drafts yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </section>

@@ -83,6 +83,17 @@ curl http://127.0.0.1:5000/health
    - dashboard nav
 5. Run logout and confirm it returns to `/home`
 
+## Epic mark handling
+
+If you place Epic marks on the website after approval:
+
+- use the official shield files from `files/photos/epicgames/epicgames-logos/`
+- keep them on factual Epic-related surfaces only
+- do not let Epic marks become the main TriptokForge brand
+- re-check the current Epic brand portal before any public rollout
+
+Reference: `templates/whitepages/EPIC_BRANDING.md`
+
 ## Failure modes
 
 ### Redirect mismatch

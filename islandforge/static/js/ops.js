@@ -126,4 +126,22 @@
 
   kindSelect.addEventListener("change", syncProfileKind);
   syncProfileKind();
+
+  function syncDraftSurface(form) {
+    const select = form.querySelector("[data-surface-select]");
+    if (!select) return;
+    const surface = select.value || "announcement";
+    form.querySelectorAll("[data-surface-panel]").forEach((panel) => {
+      panel.hidden = panel.getAttribute("data-surface-panel") !== surface;
+    });
+  }
+
+  document.querySelectorAll("[data-draft-form]").forEach((form) => {
+    const select = form.querySelector("[data-surface-select]");
+    if (!select) return;
+    select.addEventListener("change", function () {
+      syncDraftSurface(form);
+    });
+    syncDraftSurface(form);
+  });
 })();

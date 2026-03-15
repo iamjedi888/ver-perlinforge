@@ -13,10 +13,12 @@ from flask import (
 import os
 from oracle_db import (
     authenticate_staff_account,
+    create_bot_draft,
     create_site_broadcast,
     create_channel,
     create_staff_account,
     create_bot_profile,
+    delete_bot_draft,
     delete_bot_profile,
     delete_channel,
     delete_post,
@@ -26,6 +28,9 @@ from oracle_db import (
     get_announcements,
     get_audio_tracks,
     get_bot_profile,
+    get_bot_profile_by_slug,
+    get_bot_draft,
+    get_bot_drafts,
     get_bot_profiles,
     get_channel,
     get_channels,
@@ -45,12 +50,15 @@ from oracle_db import (
     set_site_broadcast_active,
     status,
     STAFF_ROLE_OPTIONS,
+    transition_bot_draft,
     update_channel,
+    update_bot_draft,
     update_post,
     update_staff_account,
     update_site_broadcast,
     update_bot_profile,
     approve_channel,
+    publish_bot_draft,
 )
 
 platform_bp = Blueprint("platform", __name__)
@@ -209,6 +217,17 @@ CHANNEL_AUTO_TOKENS = {
     "auto-detect",
     "detect",
     "suggested",
+}
+BOT_DRAFT_SURFACES = [
+    ("announcement", "Announcement"),
+    ("broadcast", "Broadcast"),
+]
+BOT_DRAFT_STATUSES = {
+    "draft": "Draft",
+    "pending_review": "Pending Review",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "published": "Published",
 }
 
 
@@ -778,6 +797,51 @@ def _broadcast_payload(form):
     }
 
 
+def _normalize_bot_draft_payload(form, target_surface: str):
+    target_surface = (target_surface or "announcement").strip().lower()
+    payload = {
+        "pinned": 1 if _is_checked(form.get("pinned")) else 0,
+        "variant": ((form.get("variant") or "").strip()[:24] or "info").lower(),
+        "display_mode": ((form.get("display_mode") or "").strip()[:24] or "banner").lower(),
+        "dismiss_mode": ((form.get("dismiss_mode") or "").strip()[:24] or "manual").lower(),
+        "duration_seconds": _to_float((form.get("duration_seconds") or "").strip(), 8.0),
+        "cta_label": (form.get("cta_label") or "").strip()[:64],
+        "cta_href": (form.get("cta_href") or "").strip()[:512],
+        "closable": 1 if _is_checked(form.get("closable")) else 0,
+        "active": 1 if _is_checked(form.get("active")) else 0,
+        "priority": _to_int((form.get("priority") or "").strip(), 0) or 0,
+    }
+    if target_surface == "announcement":
+        payload.update(
+            {
+                "variant": "info",
+                "display_mode": "banner",
+                "dismiss_mode": "manual",
+                "duration_seconds": 8.0,
+                "cta_label": "",
+                "cta_href": "",
+                "closable": 1,
+                "active": 1,
+                "priority": 0,
+            }
+        )
+    return payload
+
+
+def _bot_draft_payload(form):
+    target_surface = ((form.get("target_surface") or "announcement").strip()[:32] or "announcement").lower()
+    target_surface = target_surface if target_surface in {item[0] for item in BOT_DRAFT_SURFACES} else "announcement"
+    return {
+        "draft_id": _to_int(form.get("draft_id")),
+        "bot_slug": (form.get("bot_slug") or "").strip().lower()[:64],
+        "title": (form.get("title") or "").strip()[:256],
+        "body": (form.get("body") or "").strip(),
+        "target_surface": target_surface,
+        "review_note": (form.get("review_note") or "").strip()[:1024],
+        "payload_json": _normalize_bot_draft_payload(form, target_surface),
+    }
+
+
 def _admin_redirect(anchor="overview", edit_channel=None, edit_broadcast=None):
     params = {}
     if edit_channel is not None:
@@ -788,12 +852,14 @@ def _admin_redirect(anchor="overview", edit_channel=None, edit_broadcast=None):
     return redirect(f"{target}#{anchor}")
 
 
-def _ops_redirect(anchor="overview", edit_staff=None, edit_bot=None):
+def _ops_redirect(anchor="overview", edit_staff=None, edit_bot=None, edit_draft=None):
     params = {}
     if edit_staff is not None:
         params["edit_staff"] = edit_staff
     if edit_bot is not None:
         params["edit_bot"] = edit_bot
+    if edit_draft is not None:
+        params["edit_draft"] = edit_draft
     target = url_for("platform.ops", **params) if params else url_for("platform.ops")
     return redirect(f"{target}#{anchor}" if anchor else target)
 
@@ -821,6 +887,16 @@ def _can_manage_bot_profile(role: str, linked_bot_slug: str, bot_profile: dict |
         return True
     if role == "bot_operator":
         return bool(linked_bot_slug and linked_bot_slug == (bot_profile.get("slug") or ""))
+    return False
+
+
+def _can_manage_bot_draft(role: str, linked_bot_slug: str, draft: dict | None) -> bool:
+    if not draft:
+        return False
+    if role == "admin":
+        return True
+    if role == "bot_operator":
+        return bool(linked_bot_slug and linked_bot_slug == (draft.get("bot_slug") or ""))
     return False
 
 @platform_bp.route("/")
@@ -1230,12 +1306,159 @@ def ops():
                 flash("Bot profile removal failed.", "error")
             return _ops_redirect("bots")
 
+        if action == "bot_draft_create":
+            if not permissions["bots"]:
+                flash("Bot controls required.", "error")
+                return _ops_redirect("drafts")
+            payload = _bot_draft_payload(request.form)
+            target_bot = get_bot_profile_by_slug(payload["bot_slug"])
+            if not _can_manage_bot_profile(role, linked_bot_slug, target_bot):
+                flash("You do not have access to create a draft for that bot.", "error")
+                return _ops_redirect("drafts")
+            if not payload["title"]:
+                flash("Draft title is required.", "error")
+                return _ops_redirect("drafts")
+            if create_bot_draft(
+                bot_slug=payload["bot_slug"],
+                title=payload["title"],
+                body=payload["body"],
+                target_surface=payload["target_surface"],
+                payload_json=payload["payload_json"],
+                created_by=actor_username,
+                status="draft",
+            ):
+                log_operator_event(actor_username, actor_role, "bot_draft_create", "bot_draft", payload["bot_slug"], payload["target_surface"])
+                flash("Bot draft created.", "success")
+            else:
+                flash("Bot draft creation failed.", "error")
+            return _ops_redirect("drafts")
+
+        if action == "bot_draft_update":
+            if not permissions["bots"]:
+                flash("Bot controls required.", "error")
+                return _ops_redirect("drafts")
+            payload = _bot_draft_payload(request.form)
+            draft = get_bot_draft(payload["draft_id"]) if payload["draft_id"] else None
+            if not _can_manage_bot_draft(role, linked_bot_slug, draft):
+                flash("You do not have access to that draft.", "error")
+                return _ops_redirect("drafts")
+            if draft and draft.get("status") == "published":
+                flash("Published drafts cannot be edited here.", "error")
+                return _ops_redirect("drafts", edit_draft=payload["draft_id"])
+            if not payload["title"]:
+                flash("Draft title is required.", "error")
+                return _ops_redirect("drafts", edit_draft=payload["draft_id"])
+            if update_bot_draft(
+                draft_id=payload["draft_id"],
+                bot_slug=payload["bot_slug"],
+                title=payload["title"],
+                body=payload["body"],
+                target_surface=payload["target_surface"],
+                payload_json=payload["payload_json"],
+                review_note=payload["review_note"],
+            ):
+                log_operator_event(actor_username, actor_role, "bot_draft_update", "bot_draft", str(payload["draft_id"]), payload["target_surface"])
+                flash("Bot draft updated.", "success")
+            else:
+                flash("Bot draft update failed.", "error")
+            return _ops_redirect("drafts", edit_draft=payload["draft_id"])
+
+        if action == "bot_draft_delete":
+            if not permissions["bots"]:
+                flash("Bot controls required.", "error")
+                return _ops_redirect("drafts")
+            draft_id = _to_int(request.form.get("draft_id"))
+            draft = get_bot_draft(draft_id) if draft_id else None
+            if not _can_manage_bot_draft(role, linked_bot_slug, draft):
+                flash("You do not have access to that draft.", "error")
+                return _ops_redirect("drafts")
+            if draft and draft.get("status") == "published":
+                flash("Published drafts should be managed from the live surface instead of deleted.", "error")
+                return _ops_redirect("drafts", edit_draft=draft_id)
+            if draft_id and delete_bot_draft(draft_id):
+                log_operator_event(actor_username, actor_role, "bot_draft_delete", "bot_draft", str(draft_id), draft.get("bot_slug") if draft else "")
+                flash("Bot draft removed.", "success")
+            else:
+                flash("Bot draft removal failed.", "error")
+            return _ops_redirect("drafts")
+
+        if action == "bot_draft_submit":
+            if not permissions["bots"]:
+                flash("Bot controls required.", "error")
+                return _ops_redirect("drafts")
+            draft_id = _to_int(request.form.get("draft_id"))
+            review_note = (request.form.get("review_note") or "").strip()[:1024] or None
+            draft = get_bot_draft(draft_id) if draft_id else None
+            if not _can_manage_bot_draft(role, linked_bot_slug, draft):
+                flash("You do not have access to that draft.", "error")
+                return _ops_redirect("drafts")
+            if draft and draft.get("status") == "published":
+                flash("Published drafts cannot be resubmitted.", "error")
+                return _ops_redirect("drafts", edit_draft=draft_id)
+            if draft_id and transition_bot_draft(draft_id, "pending_review", actor=actor_username, review_note=review_note):
+                log_operator_event(actor_username, actor_role, "bot_draft_submit", "bot_draft", str(draft_id), draft.get("bot_slug") if draft else "")
+                flash("Draft submitted for admin review.", "success")
+            else:
+                flash("Draft submission failed.", "error")
+            return _ops_redirect("drafts", edit_draft=draft_id)
+
+        if action == "bot_draft_approve":
+            if role != "admin":
+                flash("Admin approval required.", "error")
+                return _ops_redirect("drafts")
+            draft_id = _to_int(request.form.get("draft_id"))
+            review_note = (request.form.get("review_note") or "").strip()[:1024] or None
+            draft = get_bot_draft(draft_id) if draft_id else None
+            if not draft:
+                flash("Draft not found.", "error")
+                return _ops_redirect("drafts")
+            if transition_bot_draft(draft_id, "approved", actor=actor_username, review_note=review_note):
+                log_operator_event(actor_username, actor_role, "bot_draft_approve", "bot_draft", str(draft_id), draft.get("bot_slug") or "")
+                flash("Draft approved.", "success")
+            else:
+                flash("Draft approval failed.", "error")
+            return _ops_redirect("drafts", edit_draft=draft_id)
+
+        if action == "bot_draft_reject":
+            if role != "admin":
+                flash("Admin approval required.", "error")
+                return _ops_redirect("drafts")
+            draft_id = _to_int(request.form.get("draft_id"))
+            review_note = (request.form.get("review_note") or "").strip()[:1024] or None
+            draft = get_bot_draft(draft_id) if draft_id else None
+            if not draft:
+                flash("Draft not found.", "error")
+                return _ops_redirect("drafts")
+            if transition_bot_draft(draft_id, "rejected", actor=actor_username, review_note=review_note):
+                log_operator_event(actor_username, actor_role, "bot_draft_reject", "bot_draft", str(draft_id), draft.get("bot_slug") or "")
+                flash("Draft rejected.", "success")
+            else:
+                flash("Draft rejection failed.", "error")
+            return _ops_redirect("drafts", edit_draft=draft_id)
+
+        if action == "bot_draft_publish":
+            if role != "admin":
+                flash("Admin publish controls required.", "error")
+                return _ops_redirect("drafts")
+            draft_id = _to_int(request.form.get("draft_id"))
+            draft = get_bot_draft(draft_id) if draft_id else None
+            if not draft:
+                flash("Draft not found.", "error")
+                return _ops_redirect("drafts")
+            if publish_bot_draft(draft_id, published_by=actor_username):
+                log_operator_event(actor_username, actor_role, "bot_draft_publish", "bot_draft", str(draft_id), draft.get("target_surface") or "")
+                flash("Draft published to the live site surface.", "success")
+            else:
+                flash("Draft publish failed. Approve it first and verify the payload.", "error")
+            return _ops_redirect("drafts", edit_draft=draft_id)
+
         flash("Unknown ops action.", "error")
         return _ops_redirect("overview")
 
     posts = []
     staff_accounts = []
     bot_profiles = []
+    bot_drafts = []
     audit_rows = []
     if authed and permissions["moderation"]:
         posts = get_posts(limit=60, approved_only=False) or []
@@ -1245,12 +1468,17 @@ def ops():
         bot_profiles = get_bot_profiles() or []
     elif authed and role == "bot_operator":
         bot_profiles = get_bot_profiles() or []
+    if authed and permissions["bots"]:
+        bot_drafts = get_bot_drafts(limit=120) or []
+    elif authed and role == "bot_operator":
+        bot_drafts = get_bot_drafts(limit=120) or []
 
     if authed:
         audit_rows = get_operator_audit_log(limit=40) or []
 
     if role == "bot_operator" and linked_bot_slug:
         bot_profiles = [item for item in bot_profiles if (item.get("slug") or "") == linked_bot_slug]
+        bot_drafts = [item for item in bot_drafts if (item.get("bot_slug") or "") == linked_bot_slug]
 
     edit_staff_id = _to_int(request.args.get("edit_staff"))
     edit_staff = get_staff_account(edit_staff_id) if authed and permissions["staff"] and edit_staff_id else None
@@ -1262,11 +1490,33 @@ def ops():
     if authed and role == "bot_operator" and not edit_bot and bot_profiles:
         edit_bot = bot_profiles[0]
 
+    edit_draft_id = _to_int(request.args.get("edit_draft"))
+    edit_draft = get_bot_draft(edit_draft_id) if authed and edit_draft_id else None
+    if edit_draft and not _can_manage_bot_draft(role, linked_bot_slug, edit_draft):
+        edit_draft = None
+    if authed and role == "bot_operator" and not edit_draft and bot_drafts:
+        draft_order = {
+            "pending_review": 0,
+            "rejected": 1,
+            "draft": 2,
+            "approved": 3,
+            "published": 4,
+        }
+        edit_draft = sorted(bot_drafts, key=lambda item: draft_order.get(item.get("status") or "", 99))[0]
+
     bot_choices = [{"slug": item.get("slug") or "", "display_name": item.get("display_name") or item.get("slug") or "Bot"} for item in (get_bot_profiles() or [])]
+    draft_bot_choices = [{"slug": item.get("slug") or "", "display_name": item.get("display_name") or item.get("slug") or "Bot"} for item in bot_profiles]
+    draft_counts = {key: 0 for key in BOT_DRAFT_STATUSES}
+    for draft in bot_drafts:
+        key = draft.get("status") or "draft"
+        if key in draft_counts:
+            draft_counts[key] += 1
     ops_metrics = {
         "posts": len(posts),
         "staff": len(staff_accounts),
         "bots": len(bot_profiles),
+        "drafts": len(bot_drafts),
+        "pending_drafts": draft_counts.get("pending_review", 0),
         "audit": len(audit_rows),
     }
     legacy_admin_links = [
@@ -1288,9 +1538,13 @@ def ops():
         moderation_posts=posts,
         staff_accounts=staff_accounts,
         bot_profiles=bot_profiles,
+        bot_drafts=bot_drafts,
         edit_staff=edit_staff,
         edit_bot=edit_bot,
+        edit_draft=edit_draft,
         bot_choices=bot_choices,
+        draft_bot_choices=draft_bot_choices,
+        draft_counts=draft_counts,
         audit_rows=audit_rows,
         ops_metrics=ops_metrics,
         llm_provider_catalog=BOT_PROVIDER_CATALOG,
@@ -1298,6 +1552,8 @@ def ops():
         role_labels=STAFF_ROLE_LABELS,
         permission_labels=STAFF_PERMISSION_LABELS,
         role_default_permissions=STAFF_ROLE_DEFAULTS,
+        bot_draft_surfaces=BOT_DRAFT_SURFACES,
+        bot_draft_statuses=BOT_DRAFT_STATUSES,
         legacy_admin_links=legacy_admin_links,
     )
 

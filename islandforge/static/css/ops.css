@@ -550,6 +550,73 @@ tbody td {
   margin-top: 16px;
 }
 
+.draft-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.summary-tile,
+.surface-panel {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(92, 121, 165, 0.18);
+  background: rgba(7, 10, 18, 0.64);
+}
+
+.summary-tile {
+  display: grid;
+  gap: 6px;
+}
+
+.summary-tile strong {
+  font-size: 1.2rem;
+}
+
+.summary-tile span {
+  color: var(--muted);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.draft-form {
+  display: grid;
+  gap: 16px;
+}
+
+.surface-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.surface-panel__head {
+  display: grid;
+  gap: 6px;
+}
+
+.surface-panel__head span {
+  color: var(--muted);
+}
+
+.field-toggle-row {
+  align-content: start;
+}
+
+.toggle-cluster,
+.workflow-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.workflow-actions {
+  margin: 16px 0 0;
+}
+
 .bot-meta {
   display: flex;
   gap: 8px;
