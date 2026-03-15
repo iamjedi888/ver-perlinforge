@@ -1,0 +1,81 @@
+{
+  "users": [
+    "colorstheforce",
+    "iamjedi888"
+  ],
+  "include_forks": false,
+  "max_repos_per_user": 250,
+  "output_path": "data/repo_vault_manifest.json",
+  "pinned_repos": [
+    "iamjedi888/ver-perlinforge"
+  ],
+  "manual_tags": {
+    "ver-perlinforge": [
+      "platform",
+      "flask",
+      "oracle",
+      "uefn",
+      "dashboard"
+    ]
+  },
+  "tag_rules": {
+    "graphics_3d": [
+      "three",
+      "threejs",
+      "three.js",
+      "r3f",
+      "react-three",
+      "aframe",
+      "a-frame",
+      "webgl",
+      "shader",
+      "webxr",
+      "xr"
+    ],
+    "uefn_verse": [
+      "uefn",
+      "verse",
+      "fortnite",
+      "creative",
+      "epic"
+    ],
+    "ai_llm": [
+      "llm",
+      "ai",
+      "agent",
+      "nvidia",
+      "huggingface",
+      "llama",
+      "gemini",
+      "granite"
+    ],
+    "data_viz": [
+      "chart",
+      "dashboard",
+      "d3",
+      "graph",
+      "telemetry",
+      "analytics"
+    ],
+    "broadcast_media": [
+      "video",
+      "stream",
+      "audio",
+      "music",
+      "player",
+      "tv",
+      "broadcast"
+    ],
+    "platform_ops": [
+      "flask",
+      "python",
+      "api",
+      "auth",
+      "admin",
+      "moderation",
+      "bot",
+      "tool",
+      "automation"
+    ]
+  }
+}

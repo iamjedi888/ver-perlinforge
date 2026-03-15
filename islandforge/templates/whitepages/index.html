@@ -29,6 +29,7 @@
     <a href="#member-hub" class="nav-a">Members</a>
     <a href="#deploy" class="nav-a">Deploy</a>
     <a href="#repo-privacy" class="nav-a">Repo Privacy</a>
+    <a href="#github-vault" class="nav-a">GitHub Vault</a>
     <a href="#epic-approval" class="nav-a">Epic Approval</a>
     <a href="#colorstheforce" class="nav-a">ColorsTheForce</a>
     <a href="#staff-bots" class="nav-a">Staff + Bots</a>
@@ -61,6 +62,7 @@
     <div class="sb-glabel">Deploy</div>
     <a href="#deploy" class="sb-a"><span class="ic">&#8593;</span>Guide</a>
     <a href="#repo-privacy" class="sb-a"><span class="ic">&#128274;</span>Repo Privacy</a>
+    <a href="#github-vault" class="sb-a"><span class="ic">&#128193;</span>GitHub Vault</a>
     <a href="#ops" class="sb-a"><span class="ic">&#9673;</span>Runbook</a>
     <a href="#workspace-audit" class="sb-a"><span class="ic">&#9881;</span>Workspace Audit</a>
     <a href="#epic-oauth" class="sb-a"><span class="ic">&#9889;</span>Epic OAuth <span class="sb-tag tag-wip">PENDING</span></a>
@@ -225,6 +227,34 @@
     <div class="callout green"><div class="callout-icon">&#128274;</div><div><div class="c-title">Recommended control</div><p>Keep the site repo private and let Oracle pull with a read-only deploy key. Do not use a public repo just to make deploys easier.</p></div></div>
     <div class="prose">
       <p>Reference note: <code>templates/whitepages/GITHUB_PRIVATE_DEPLOY.md</code></p>
+    </div>
+  </section>
+
+  <section class="doc" id="github-vault">
+    <div class="dh"><div class="dh-num">03B</div><div><h2>GitHub <span>Vault</span></h2><p>How to mine both GitHub accounts into one organized knowledge index without burning Oracle storage or compute.</p></div></div>
+    <div class="prose">
+      <h3>Why this matters</h3>
+      <p>The years of forks, experiments, graphics repos, AI tools, dashboards, and UEFN-adjacent code are a reusable design archive. They should be indexed once, categorized, and linked into TriptokForge as a lightweight knowledge surface instead of being dumped into Oracle.</p>
+      <h3>Best split</h3>
+      <ul>
+        <li><strong>GitHub:</strong> repo metadata, generated manifest, markdown notes, static Pages, release assets, and long-term archive.</li>
+        <li><strong>TriptokForge:</strong> curated links, featured integrations, and a small public-safe manifest if the site needs to surface the vault directly.</li>
+        <li><strong>Oracle:</strong> only lightweight app metadata, never the full archive.</li>
+      </ul>
+      <h3>Most valuable repo categories to mine</h3>
+      <ul>
+        <li><strong>3D / XR / graphics:</strong> Three.js, A-Frame, WebGL, shaders, and scene tooling for room, arena, and immersive dashboards.</li>
+        <li><strong>UEFN / Verse / Fortnite:</strong> any workflow, data, or generation experiments that can tighten the Forge output and runbooks.</li>
+        <li><strong>Data viz:</strong> D3, charts, telemetry, and admin-console work that can strengthen the member dashboard and ops room.</li>
+        <li><strong>Broadcast / media:</strong> video player, playlists, TV-guide, or audio-routing repos that improve channels and arena presentation.</li>
+        <li><strong>Platform ops:</strong> Flask, admin, moderation, and automation utilities that can harden the site control plane.</li>
+        <li><strong>AI / LLM:</strong> bot, moderation, NVIDIA, Llama, Hugging Face, or agent repos that can shape <code>ColorsTheForce</code> and future house bots.</li>
+      </ul>
+    </div>
+    <div class="callout green"><div class="callout-icon">&#128193;</div><div><div class="c-title">Recommended architecture</div><p>Create one separate vault repo, generate a static manifest with GitHub's REST API, publish only the safe metadata through GitHub Pages if needed, and keep TriptokForge consuming that small manifest or linking out to the vault.</p></div></div>
+    <div class="prose">
+      <p>This repo now includes <code>tools/build_repo_vault.py</code> and <code>config/repo_vault_sources.example.json</code> as the first-pass builder for that archive.</p>
+      <p>Reference note: <code>templates/whitepages/GITHUB_VAULT_RUNBOOK.md</code></p>
     </div>
   </section>
 
