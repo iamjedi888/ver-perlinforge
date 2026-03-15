@@ -221,11 +221,19 @@
           Whitepages stays here in the footer so the top navigation stays focused on the product surface.
         </p>
       </div>
+      {% if portal_member_access %}
       <a href="/whitepages" class="global-footer__whitepages">
         <span class="global-footer__eyebrow">Whitepages</span>
         <strong>Open the builder vault</strong>
         <span>Roadmaps, deployment notes, backend references, and internal launch prep.</span>
       </a>
+      {% else %}
+      <a href="/auth/epic" class="global-footer__whitepages">
+        <span class="global-footer__eyebrow">Member Access</span>
+        <strong>Connect Epic to enter</strong>
+        <span>Member tools, channels, forge, arena, whitepages, and dashboard surfaces stay behind the Epic or admin gate.</span>
+      </a>
+      {% endif %}
     </div>
 
     <div class="global-footer__grid">
@@ -233,34 +241,43 @@
         <h3>Company</h3>
         <ul>
           <li><a href="/home">Home</a></li>
-          <li><a href="/community">Community</a></li>
-          <li><a href="/news">News</a></li>
           <li><a href="/privacy">Privacy</a></li>
+          {% if portal_member_access %}
+            <li><a href="/community">Community</a></li>
+            <li><a href="/news">News</a></li>
+          {% endif %}
         </ul>
       </div>
       <div class="global-footer__col">
         <h3>Platform</h3>
         <ul>
+          {% if portal_member_access %}
           <li><a href="/forge">Island Forge</a></li>
           <li><a href="/esports">Esports</a></li>
           <li><a href="/arena">Arena</a></li>
           <li><a href="/channels">Live Channels</a></li>
           <li><a href="/feed">Feed</a></li>
           <li><a href="/leaderboard">Leaderboard</a></li>
+          {% else %}
+          <li><a href="/auth/epic">Connect Epic</a></li>
+          <li><a href="/admin">Admin</a></li>
+          {% endif %}
         </ul>
       </div>
       <div class="global-footer__col">
         <h3>Access</h3>
         <ul>
           <li><a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a></li>
-          {% if portal_logged_in %}
+          {% if portal_member_access %}
             <li><a href="/room">My Room</a></li>
+            {% if portal_epic_logged_in %}
             <li><a href="/auth/logout">Logout</a></li>
+            {% endif %}
           {% else %}
             <li><a href="/auth/epic">Connect Epic</a></li>
-            <li><a href="/cardgame">Card Game</a></li>
+            <li><a href="/admin">Admin</a></li>
           {% endif %}
-          <li><a href="/cardgame">Roadmap</a></li>
+          <li><a href="/privacy">Site rules</a></li>
         </ul>
       </div>
     </div>
@@ -269,7 +286,11 @@
       <span>Copyright &copy; 2026 TriptokForge</span>
       <div class="global-footer__bar-links">
         <a href="/privacy">Privacy policy</a>
+        {% if portal_member_access %}
         <a href="/news">Platform updates</a>
+        {% else %}
+        <a href="/auth/epic">Connect Epic</a>
+        {% endif %}
         <a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a>
       </div>
     </div>

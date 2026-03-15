@@ -17,10 +17,12 @@ def suggest_channel_route():
     description = data.get("description", "").strip()
     if not name or not embed_url:
         return jsonify({"error":"required"}), 400
+    if not (session.get("display_name") or session.get("epic_id") or session.get("admin_authed")):
+        return jsonify({"error": "login_required"}), 401
     suggested_by = (
         session.get("display_name")
         or session.get("epic_id")
-        or "anonymous"
+        or "Admin"
     )
     ok = db_suggest(
         name=name,

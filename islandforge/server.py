@@ -5,7 +5,7 @@ All route logic lives in routes/ as Blueprints.
 
 import os
 
-from flask import Flask, jsonify, render_template, send_from_directory, session
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session
 
 try:
     from dotenv import load_dotenv
@@ -18,6 +18,91 @@ if load_dotenv is not None:
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
+
+PUBLIC_PATHS = {
+    "/",
+    "/home",
+    "/privacy",
+    "/health",
+    "/favicon.svg",
+    "/favicon.ico",
+    "/manifest.json",
+    "/sitemap.xml",
+}
+
+PUBLIC_PREFIXES = (
+    "/static/",
+    "/auth/",
+    "/admin",
+)
+
+PROTECTED_PAGE_ROOTS = (
+    "/forge",
+    "/gallery",
+    "/feed",
+    "/channels",
+    "/community",
+    "/esports",
+    "/arena",
+    "/dashboard",
+    "/leaderboard",
+    "/news",
+    "/cardgame",
+    "/whitepages",
+    "/room",
+    "/generate",
+    "/upload_audio",
+    "/audio",
+    "/download",
+    "/random_seed",
+)
+
+PROTECTED_API_ROOTS = (
+    "/api/members",
+    "/api/post",
+    "/api/like",
+    "/api/whitepages",
+    "/api/suggest_channel",
+    "/api/channel_queue",
+    "/api/leaderboard",
+    "/api/news",
+    "/api/presets",
+    "/api/save_island",
+    "/api/set_room_theme",
+    "/api/stats",
+    "/api/cosmetics",
+    "/api/set_skin",
+    "/api/ecosystem",
+    "/api/dashboard",
+    "/api/forge",
+)
+
+
+def _path_matches(path: str, roots: tuple[str, ...]) -> bool:
+    normalized = (path or "/").rstrip("/") or "/"
+    for root in roots:
+        if normalized == root or normalized.startswith(f"{root}/"):
+            return True
+    return False
+
+
+def _epic_logged_in() -> bool:
+    return bool(session.get("user") or session.get("epic_id"))
+
+
+def _admin_logged_in() -> bool:
+    return bool(session.get("admin_authed"))
+
+
+def _has_portal_access() -> bool:
+    return _epic_logged_in() or _admin_logged_in()
+
+
+def _is_public_path(path: str) -> bool:
+    normalized = (path or "/").rstrip("/") or "/"
+    if normalized in PUBLIC_PATHS:
+        return True
+    return any(normalized.startswith(prefix) for prefix in PUBLIC_PREFIXES)
 
 try:
     from oracle_db import init_schema, ensure_channel_schema, get_site_broadcasts
@@ -37,19 +122,48 @@ if init_schema is not None:
 
 @app.context_processor
 def inject_portal_nav():
-    logged_in = bool(session.get("user") or session.get("epic_id"))
+    epic_logged_in = _epic_logged_in()
+    admin_authed = _admin_logged_in()
+    member_access = epic_logged_in or admin_authed
     broadcasts = []
     if get_site_broadcasts is not None:
         try:
             broadcasts = get_site_broadcasts(active_only=True, limit=12) or []
         except Exception:
             broadcasts = []
+    if epic_logged_in:
+        exit_href = "/dashboard"
+        exit_label = "Dashboard"
+    elif admin_authed:
+        exit_href = "/admin"
+        exit_label = "Admin"
+    else:
+        exit_href = "/home"
+        exit_label = "Home"
     return {
-        "portal_logged_in": logged_in,
-        "portal_exit_href": "/dashboard" if logged_in else "/home",
-        "portal_exit_label": "Dashboard" if logged_in else "Home",
+        "portal_logged_in": member_access,
+        "portal_epic_logged_in": epic_logged_in,
+        "portal_admin_authed": admin_authed,
+        "portal_member_access": member_access,
+        "portal_exit_href": exit_href,
+        "portal_exit_label": exit_label,
         "site_broadcasts": broadcasts,
     }
+
+
+@app.before_request
+def enforce_member_gate():
+    path = request.path or "/"
+    if request.method == "OPTIONS" or _is_public_path(path):
+        return None
+    if not _has_portal_access() and (
+        _path_matches(path, PROTECTED_PAGE_ROOTS)
+        or _path_matches(path, PROTECTED_API_ROOTS)
+    ):
+        if path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "login_required", "login_url": "/auth/epic"}), 401
+        return redirect("/home")
+    return None
 
 # Import all blueprints
 from routes.platform import platform_bp

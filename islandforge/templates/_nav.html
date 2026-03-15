@@ -6,6 +6,7 @@
         {% include "_brand_lockup.html" %}
         <div class="nav-links">
             <a href="/" class="nav-link">Home</a>
+            {% if portal_member_access %}
             <a href="/forge" class="nav-link">Island Forge</a>
             <a href="/leaderboard" class="nav-link">Leaderboard</a>
             <a href="/channels" class="nav-link">TV Channels</a>
@@ -13,9 +14,17 @@
             <a href="/news" class="nav-link">News</a>
             <a href="/cardgame" class="nav-link">Card Game</a>
             <a href="/community" class="nav-link">Community</a>
+            {% else %}
+            <a href="/privacy" class="nav-link">Privacy</a>
+            {% endif %}
         </div>
         <div class="nav-right">
+            {% if portal_member_access %}
             <a href="{{ portal_exit_href }}" class="nav-link nav-link--accent">{{ portal_exit_label }}</a>
+            {% else %}
+            <a href="/admin" class="nav-link">Admin</a>
+            <a href="/auth/epic" class="nav-link nav-link--accent">Connect Epic</a>
+            {% endif %}
         </div>
     </div>
 </nav>

@@ -88,17 +88,20 @@ h2{font-family:'Orbitron',monospace;font-size:clamp(20px,3vw,38px);font-weight:9
   {% set brand_compact = true %}
   {% include "_brand_lockup.html" %}
   <div class="nav-links">
+    {% if portal_member_access %}
     <a href="#features">Features</a>
     <a href="/forge">Island Forge</a>
     <a href="/feed">Feed</a>
     <a href="/channels">Channels</a>
     <a href="/community">Community</a>
+    {% endif %}
     <a href="/privacy">Privacy</a>
   </div>
   <div class="nav-r">
     {% if portal_logged_in %}
       <a href="{{ portal_exit_href }}" class="btn btn-p" style="padding:7px 18px">{{ portal_exit_label }} →</a>
     {% else %}
+      <a href="/admin" class="btn btn-o" style="padding:7px 18px">Admin</a>
       <a href="/auth/epic" class="btn btn-p" style="padding:7px 18px">⚡ Connect Epic</a>
     {% endif %}
   </div>
@@ -153,6 +156,7 @@ h2{font-family:'Orbitron',monospace;font-size:clamp(20px,3vw,38px);font-weight:9
   <h2>The Platform</h2>
   <p class="s-sub">Everything TriptokForge has to offer.</p>
   <div class="platform-grid">
+    {% if portal_member_access %}
     <a href="/forge" class="plink"><span class="plink-icon">▲</span>Island Forge</a>
     <a href="/feed" class="plink"><span class="plink-icon">◈</span>Social Feed</a>
     <a href="/channels" class="plink"><span class="plink-icon">▶</span>Live Channels</a>
@@ -161,6 +165,11 @@ h2{font-family:'Orbitron',monospace;font-size:clamp(20px,3vw,38px);font-weight:9
     <a href="{{ portal_exit_href }}" class="plink"><span class="plink-icon">◐</span>{{ portal_exit_label }}</a>
     <a href="/news" class="plink"><span class="plink-icon">◇</span>Newsroom</a>
     <a href="/admin" class="plink"><span class="plink-icon">⚙</span>Admin</a>
+    {% else %}
+    <a href="/auth/epic" class="plink"><span class="plink-icon">⚡</span>Connect Epic</a>
+    <a href="/admin" class="plink"><span class="plink-icon">⚙</span>Admin</a>
+    <a href="/privacy" class="plink"><span class="plink-icon">◇</span>Privacy</a>
+    {% endif %}
   </div>
 </section>
 {% include "_site_footer.html" %}

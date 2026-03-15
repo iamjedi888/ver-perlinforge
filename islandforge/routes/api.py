@@ -10,11 +10,14 @@ def members():
 @api_bp.route("/post", methods=["POST"])
 def post():
     data = request.get_json(silent=True) or request.form
-    epic_id = session.get("epic_id") or data.get("epic_id","anonymous")
-    display_name = session.get("display_name") or data.get("display_name","Player")
+    epic_id = session.get("epic_id") or ""
+    admin_authed = bool(session.get("admin_authed"))
+    if not epic_id and not admin_authed:
+        return jsonify({"error": "login_required"}), 401
+    display_name = session.get("display_name") or ("Admin" if admin_authed else "Player")
     caption = (data.get("caption") or "").strip()[:1000]
     embed_url = (data.get("embed_url") or "").strip()
-    skin_img = (data.get("skin_img") or "").strip()
+    skin_img = (session.get("skin_img") or data.get("skin_img") or "").strip()
     if not caption and not embed_url:
         return jsonify({"error":"caption or embed_url required"}), 400
     post_id = create_post(epic_id=epic_id, display_name=display_name, skin_img=skin_img, caption=caption, embed_url=embed_url)
