@@ -74,16 +74,109 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
   /* MAIN GRID */
-  main { display:grid; grid-template-columns:340px 1fr; height:calc(100vh - 57px); }
+  main { display:grid; grid-template-columns:minmax(420px, 470px) minmax(0, 1fr); height:calc(100vh - 57px); }
 
   /* LEFT PANEL */
-  .panel-left { border-right:1px solid var(--border); overflow-y:auto; background:var(--surface); display:flex; flex-direction:column; }
-  .psec { padding:18px 20px; border-bottom:1px solid var(--border); }
+  .panel-left {
+    border-right:1px solid var(--border); overflow-y:auto; background:
+      radial-gradient(circle at top, rgba(0,145,255,.08), transparent 28%),
+      linear-gradient(180deg, rgba(17,19,24,.98), rgba(10,12,16,.98));
+    display:flex; flex-direction:column; gap:14px; padding:18px 16px 26px;
+  }
+  .psec {
+    padding:16px 16px 18px; border:1px solid rgba(42,48,69,.9); border-radius:14px;
+    background:
+      linear-gradient(180deg, rgba(18,20,27,.95), rgba(11,13,18,.96)),
+      var(--surface);
+    box-shadow:0 18px 40px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.03);
+  }
   .sec-label {
     font-family:var(--mono); font-size:9px; letter-spacing:3px; text-transform:uppercase;
     color:var(--dim); margin-bottom:14px; display:flex; align-items:center; gap:8px;
   }
   .sec-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  .psec-head { display:grid; gap:6px; margin-bottom:14px; }
+  .psec-title {
+    font-family:var(--display); font-size:24px; line-height:1; letter-spacing:1px;
+    color:var(--bright);
+  }
+  .psec-copy {
+    font-family:var(--mono); font-size:10px; line-height:1.7; color:var(--med);
+  }
+  .forge-brief {
+    position:relative; overflow:hidden; padding:18px 18px 20px; border-radius:16px;
+    border:1px solid rgba(0,229,160,.18);
+    background:
+      radial-gradient(circle at top right, rgba(0,229,160,.16), transparent 28%),
+      radial-gradient(circle at left center, rgba(0,145,255,.16), transparent 22%),
+      linear-gradient(180deg, rgba(14,18,25,.98), rgba(9,11,16,.98));
+    box-shadow:0 20px 50px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .forge-brief::after {
+    content:''; position:absolute; inset:auto 18px 0 18px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(0,229,160,.32), transparent);
+  }
+  .forge-brief__eyebrow {
+    font-family:var(--mono); font-size:10px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--accent); margin-bottom:8px;
+  }
+  .forge-brief__top {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:14px;
+  }
+  .forge-brief__title {
+    font-family:var(--display); font-size:42px; line-height:.95; color:var(--bright);
+    letter-spacing:1.2px;
+  }
+  .forge-brief__copy {
+    margin-top:8px; font-family:var(--mono); font-size:10px; line-height:1.8; color:var(--med);
+    max-width:32ch;
+  }
+  .forge-brief__badge {
+    flex-shrink:0; align-self:flex-start; padding:7px 10px; border-radius:999px;
+    border:1px solid rgba(0,145,255,.24); background:rgba(0,145,255,.08);
+    font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--accent2);
+  }
+  .forge-stage-row {
+    display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; margin-bottom:14px;
+  }
+  .forge-stage {
+    min-width:0; padding:10px 8px; border-radius:10px; border:1px solid var(--border);
+    background:rgba(10,12,16,.7); display:grid; gap:4px;
+  }
+  .forge-stage span {
+    font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim);
+  }
+  .forge-stage strong {
+    font-family:var(--mono); font-size:10px; line-height:1.5; color:var(--text);
+  }
+  .forge-brief__grid {
+    display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;
+  }
+  .forge-brief__card {
+    min-width:0; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+    background:rgba(10,12,16,.76); display:grid; gap:4px;
+  }
+  .forge-brief__card span {
+    font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim);
+  }
+  .forge-brief__card strong {
+    font-family:var(--mono); font-size:11px; color:var(--bright); line-height:1.5;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .intel-grid {
+    display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:12px;
+  }
+  .intel-card {
+    min-width:0; padding:9px 10px; border-radius:8px; border:1px solid var(--border);
+    background:rgba(10,12,16,.62); display:grid; gap:4px;
+  }
+  .intel-card span {
+    font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim);
+  }
+  .intel-card strong {
+    font-family:var(--mono); font-size:10px; color:var(--text); line-height:1.5;
+  }
 
   .ctrl { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
   .ctrl:last-child { margin-bottom:0; }
@@ -107,6 +200,25 @@
     padding:7px 10px; outline:none; transition:border-color .2s;
   }
   input[type=number]:focus, input[type=text]:focus, select:focus { border-color:var(--accent); }
+  .toggle-switch {
+    position:relative; display:inline-flex; width:46px; height:24px; flex-shrink:0;
+  }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider {
+    position:absolute; inset:0; border-radius:999px; background:var(--border2);
+    border:1px solid var(--border2); cursor:pointer; transition:all .2s;
+  }
+  .toggle-slider::before {
+    content:''; position:absolute; top:2px; left:2px; width:18px; height:18px;
+    border-radius:50%; background:var(--bright); transition:transform .2s;
+    box-shadow:0 4px 10px rgba(0,0,0,.2);
+  }
+  .toggle-switch input:checked + .toggle-slider {
+    background:rgba(0,229,160,.15); border-color:rgba(0,229,160,.45);
+  }
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform:translateX(22px); background:var(--accent);
+  }
 
   .seed-row { display:flex; gap:8px; }
   .seed-row input { flex:1; }
@@ -129,6 +241,40 @@
   .ws-card-active .ws-km { color:var(--accent); }
   .ws-desc { font-family:var(--mono); font-size:8px; color:var(--dim); }
 
+  .audio-rack-top { display:grid; gap:10px; margin-bottom:12px; }
+  .audio-source-rails {
+    display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;
+  }
+  .audio-rail {
+    min-width:0; padding:8px 10px; border-radius:8px; border:1px solid var(--border);
+    background:rgba(10,12,16,.72); display:grid; gap:3px;
+  }
+  .audio-rail span {
+    font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim);
+  }
+  .audio-rail strong { font-family:var(--mono); font-size:10px; color:var(--text); }
+  .audio-rail.live { border-color:rgba(0,229,160,.28); background:rgba(0,229,160,.05); }
+  .audio-filter-row {
+    display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:8px; align-items:center;
+  }
+  .audio-search {
+    width:100%; background:var(--bg); border:1px solid var(--border2); border-radius:8px;
+    color:var(--text); font-family:var(--mono); font-size:11px; padding:9px 11px;
+  }
+  .audio-pill-group { display:flex; gap:6px; }
+  .audio-pill {
+    min-height:34px; padding:0 10px; border-radius:999px; border:1px solid var(--border2);
+    background:rgba(10,12,16,.88); color:var(--med); cursor:pointer;
+    font-family:var(--mono); font-size:10px; letter-spacing:1px; text-transform:uppercase;
+    transition:all .2s;
+  }
+  .audio-pill.active {
+    color:var(--accent); border-color:rgba(0,229,160,.28); background:rgba(0,229,160,.08);
+  }
+  .audio-lib-meta {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-family:var(--mono); font-size:9px; color:var(--dim);
+  }
   .audio-drop {
     border:1px dashed var(--border2); border-radius:6px;
     padding:16px; text-align:center; cursor:pointer; transition:all .2s;
@@ -220,7 +366,7 @@
   /* Audio library */
   .audio-lib { margin-top:12px; }
   .audio-lib-title { font-family:var(--mono); font-size:9px; color:var(--dim); letter-spacing:1px; margin-bottom:6px; }
-  .audio-file-list { display:flex; flex-direction:column; gap:4px; max-height:160px; overflow-y:auto; }
+  .audio-file-list { display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto; padding-right:2px; }
   .audio-file-item {
     display:flex; align-items:center; gap:6px;
     padding:7px 8px; border-radius:4px; border:1px solid var(--border);
@@ -249,6 +395,16 @@
   }
   .audio-file-del:hover { color:var(--del); }
   .audio-active-tag { font-family:var(--mono); font-size:9px; color:var(--accent); margin-top:6px; min-height:14px; }
+  .audio-structure-note {
+    margin-top:10px; padding:9px 11px; border-radius:8px; border:1px solid var(--border);
+    background:rgba(10,12,16,.72); display:grid; gap:4px;
+  }
+  .audio-structure-note span {
+    font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim);
+  }
+  .audio-structure-note strong {
+    font-family:var(--mono); font-size:10px; line-height:1.6; color:var(--med);
+  }
   .audio-mission {
     margin-top:10px; padding:10px 12px; border-radius:6px;
     border:1px solid var(--border2); background:rgba(0,145,255,.05);
@@ -279,8 +435,16 @@
   }
 
   /* GENERATE BTN */
+  .forge-command {
+    margin-top:2px; padding:14px; border-radius:14px; border:1px solid rgba(0,229,160,.18);
+    background:linear-gradient(180deg, rgba(12,18,18,.95), rgba(8,11,15,.98));
+    box-shadow:0 14px 34px rgba(0,0,0,.25);
+  }
+  .forge-command-note {
+    margin-top:10px; font-family:var(--mono); font-size:10px; line-height:1.7; color:var(--med);
+  }
   .btn-generate {
-    margin:16px 20px; width:calc(100% - 40px); padding:15px;
+    margin:0; width:100%; padding:15px;
     background:transparent; border:1px solid var(--accent);
     border-radius:6px; color:var(--accent);
     font-family:var(--display); font-size:19px; letter-spacing:4px;
@@ -309,6 +473,22 @@
     flex:1; position:relative; display:flex;
     align-items:center; justify-content:center;
     background:var(--bg); overflow:hidden;
+  }
+  .preview-telemetry {
+    position:absolute; top:18px; left:18px; z-index:3;
+    display:grid; grid-template-columns:repeat(2, minmax(180px, 220px)); gap:10px;
+    pointer-events:none;
+  }
+  .preview-chip {
+    min-width:0; padding:10px 12px; border-radius:10px; border:1px solid rgba(42,48,69,.92);
+    background:rgba(10,12,16,.84); backdrop-filter:blur(10px); display:grid; gap:4px;
+    box-shadow:0 10px 26px rgba(0,0,0,.26);
+  }
+  .preview-chip span {
+    font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim);
+  }
+  .preview-chip strong {
+    font-family:var(--mono); font-size:11px; color:var(--bright); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .map-placeholder { display:flex; flex-direction:column; align-items:center; gap:12px; opacity:.25; }
   .map-ring {
@@ -405,12 +585,25 @@
   ::-webkit-scrollbar { width:5px; }
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+  @media (max-width: 1180px) {
+    main { grid-template-columns:1fr; height:auto; }
+    .panel-left { border-right:none; border-bottom:1px solid var(--border); }
+    .preview-telemetry { grid-template-columns:repeat(2, minmax(0, 1fr)); max-width:calc(100% - 36px); }
+    .panel-right { min-height:72vh; }
+  }
   @media (max-width: 720px) {
     header { padding:14px 18px; }
     .header-right { gap:10px; }
     .portal-btn { padding:0 12px; font-size:10px; letter-spacing:1.5px; }
     .status-pill { padding:5px 10px; }
     .logo-sub { max-width:140px; }
+    .forge-brief__top { flex-direction:column; }
+    .forge-stage-row,
+    .forge-brief__grid,
+    .audio-source-rails,
+    .preview-telemetry { grid-template-columns:1fr; }
+    .audio-filter-row { grid-template-columns:1fr; }
+    .audio-lib-meta { flex-direction:column; align-items:flex-start; }
   }
 </style>
 </head>
@@ -434,9 +627,52 @@
   <!-- LEFT PANEL -->
   <div class="panel-left">
 
+    <div class="forge-brief">
+      <div class="forge-brief__eyebrow">Audio-driven world compiler</div>
+      <div class="forge-brief__top">
+        <div>
+          <div class="forge-brief__title">Island Forge</div>
+          <div class="forge-brief__copy">
+            Decode a sound source into a signal profile, shape a grayscale terrain field,
+            remap it into a Fortnite-readable island, then hand off a clean UEFN import bundle.
+          </div>
+        </div>
+        <div class="forge-brief__badge">PRO BUILD</div>
+      </div>
+      <div class="forge-stage-row">
+        <div class="forge-stage"><span>Stage 01</span><strong>Audio ingest</strong></div>
+        <div class="forge-stage"><span>Stage 02</span><strong>Signal profile</strong></div>
+        <div class="forge-stage"><span>Stage 03</span><strong>Noise field</strong></div>
+        <div class="forge-stage"><span>Stage 04</span><strong>Biome pass</strong></div>
+        <div class="forge-stage"><span>Stage 05</span><strong>UEFN handoff</strong></div>
+      </div>
+      <div class="forge-brief__grid">
+        <div class="forge-brief__card">
+          <span>Theme lane</span>
+          <strong id="brief-theme">Chapter 1 - Athena</strong>
+        </div>
+        <div class="forge-brief__card">
+          <span>Locker target</span>
+          <strong id="brief-output">outputs/Island#N</strong>
+        </div>
+        <div class="forge-brief__card">
+          <span>Import mode</span>
+          <strong id="brief-import">World Partition ready</strong>
+        </div>
+        <div class="forge-brief__card">
+          <span>Signal state</span>
+          <strong id="brief-source">Awaiting source rail</strong>
+        </div>
+      </div>
+    </div>
+
     <!-- SEED -->
     <div class="psec">
-      <div class="sec-label">Seed</div>
+      <div class="sec-label">Mission Spec</div>
+      <div class="psec-head">
+        <div class="psec-title">Run Identity</div>
+        <div class="psec-copy">Lock the world name, Fortnite chapter lane, and deterministic seed before the terrain pass.</div>
+      </div>
       <div class="ctrl">
         <label>
           Island Name
@@ -469,11 +705,25 @@
           <button class="btn-icon" onclick="randomSeed()" title="Randomise [R]">⟳</button>
         </div>
       </div>
+      <div class="intel-grid">
+        <div class="intel-card">
+          <span>Design rule</span>
+          <strong>Same audio + same seed should resolve into the same world family.</strong>
+        </div>
+        <div class="intel-card">
+          <span>Target</span>
+          <strong>Fortnite-readable terrain and a UEFN handoff, not abstract noise art.</strong>
+        </div>
+      </div>
     </div>
 
     <!-- ISLAND -->
     <div class="psec">
-      <div class="sec-label">Island</div>
+      <div class="sec-label">Settlement Plan</div>
+      <div class="psec-head">
+        <div class="psec-title">Resolution + Plot Grid</div>
+        <div class="psec-copy">Define the map resolution and the plot layout pressure before the biome and town pass lands.</div>
+      </div>
       <div class="ctrl">
         <label>Resolution <span class="val" id="size-val">2017²</span></label>
         <select id="size" onchange="document.getElementById('size-val').textContent=this.value+'²';wsUpdateInfo(_wsCm,_wsPreset,parseInt(document.querySelector('.ws-card-active')?.dataset.px||2017))">
@@ -493,11 +743,25 @@
         <input type="range" id="spacing" min="20" max="80" value="40"
                oninput="document.getElementById('spacing-val').textContent=this.value+'px'"/>
       </div>
+      <div class="intel-grid">
+        <div class="intel-card">
+          <span>Playability</span>
+          <strong>Use tighter spacing for social compounds and looser spacing for traversal-heavy islands.</strong>
+        </div>
+        <div class="intel-card">
+          <span>Current locker</span>
+          <strong id="brief-resolution">2017 × 2017 capture rail</strong>
+        </div>
+      </div>
     </div>
 
     <!-- WORLD SIZE -->
     <div class="psec" id="world-size-sec">
-      <div class="sec-label">World Scale</div>
+      <div class="sec-label">Scale + Partition</div>
+      <div class="psec-head">
+        <div class="psec-title">Landscape Envelope</div>
+        <div class="psec-copy">Scale the island against known Fortnite and open-world references, then follow the World Partition rule when you cross the large-map threshold.</div>
+      </div>
 
       <!-- Preset cards -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px" id="ws-presets">
@@ -570,11 +834,25 @@
           <span style="color:var(--accent)">Forge addendum:</span> if you change world scale, regenerate and then follow the WhitePages Forge Runbook before import. The generated <span style="color:var(--text)">layout.json</span> and package <span style="color:var(--text)">README.md</span> mirror the same steps.
         </div>
       </div>
+      <div class="intel-grid">
+        <div class="intel-card">
+          <span>Live scale</span>
+          <strong id="scale-brief">11.0 km runtime envelope</strong>
+        </div>
+        <div class="intel-card">
+          <span>UEFN note</span>
+          <strong>Large worlds need streaming enabled before heightmap import, not after.</strong>
+        </div>
+      </div>
     </div>
 
     <!-- WORLD -->
     <div class="psec">
-      <div class="sec-label">World</div>
+      <div class="sec-label">Topology + Placement</div>
+      <div class="psec-head">
+        <div class="psec-title">Coastline, Wrap, and Town Bias</div>
+        <div class="psec-copy">Steer water pressure, world-wrap behavior, and the town-side cluster direction before the final gameplay layout pass.</div>
+      </div>
       <div class="ctrl">
         <label>
           Water Level
@@ -635,11 +913,25 @@
           <span>Village tight</span><span>Normal</span><span>Township loose</span>
         </div>
       </div>
+      <div class="intel-grid">
+        <div class="intel-card">
+          <span>Town bias</span>
+          <strong id="topology-brief">Farm cluster points SE with normal spread.</strong>
+        </div>
+        <div class="intel-card">
+          <span>Traversal</span>
+          <strong>World wrap works best when border water reads like a deliberate coastline, not a hard cliff.</strong>
+        </div>
+      </div>
     </div>
 
     <!-- TERRAIN LAYERS -->
     <div class="psec">
-      <div class="sec-label">Terrain Layers</div>
+      <div class="sec-label">Signal Weights</div>
+      <div class="psec-head">
+        <div class="psec-title">Manual Terrain Bias</div>
+        <div class="psec-copy">These sliders stay live as manual overrides after analysis, so you can push the terrain away from the raw spectrum when art direction demands it.</div>
+      </div>
       <div class="ctrl">
         <label>Sub Bass — Ridges <span class="val" id="sub-val">0.50</span></label>
         <input type="range" id="sub_bass" min="0" max="100" value="50"
@@ -665,11 +957,62 @@
         <input type="range" id="brilliance" min="0" max="100" value="50"
                oninput="document.getElementById('bril-val').textContent=fmt(this.value)"/>
       </div>
+      <div class="intel-grid">
+        <div class="intel-card">
+          <span>Band rule</span>
+          <strong>Bass shapes macro massing, mids fill body, highs sharpen edges and detail.</strong>
+        </div>
+        <div class="intel-card">
+          <span>Key next levers</span>
+          <strong>Direct media URL ingest, POI pressure, traversal openness, and climate moisture bias.</strong>
+        </div>
+      </div>
     </div>
 
     <!-- AUDIO -->
     <div class="psec">
-      <div class="sec-label">Audio Input</div>
+      <div class="sec-label">Audio Source Rack</div>
+      <div class="psec-head">
+        <div class="psec-title">Ingest + Analyse + Arm</div>
+        <div class="psec-copy">Use a sound source to drive the terrain pass. The current live rail is file ingest, but the workstation is structured for URL and remote-source lanes next.</div>
+      </div>
+      <div class="audio-rack-top">
+        <div class="audio-source-rails">
+          <div class="audio-rail live">
+            <span>Live lane</span>
+            <strong>Local file ingest</strong>
+          </div>
+          <div class="audio-rail live">
+            <span>Live lane</span>
+            <strong>Saved library replay</strong>
+          </div>
+          <div class="audio-rail">
+            <span>Next lane</span>
+            <strong>Direct media URL decode</strong>
+          </div>
+          <div class="audio-rail">
+            <span>Next lane</span>
+            <strong>Remote catalog source</strong>
+          </div>
+        </div>
+        <div class="audio-filter-row">
+          <input
+            type="text"
+            id="audio-search"
+            class="audio-search"
+            placeholder="Filter saved sources"
+            oninput="filterAudioLibrary()"
+          />
+          <div class="audio-pill-group">
+            <button type="button" class="audio-pill active" data-audio-filter="all" onclick="setAudioFilter('all')">All</button>
+            <button type="button" class="audio-pill" data-audio-filter="active" onclick="setAudioFilter('active')">Active</button>
+          </div>
+        </div>
+        <div class="audio-lib-meta">
+          <span id="audio-lib-count">0 saved sources</span>
+          <span id="audio-lib-selected">No active source</span>
+        </div>
+      </div>
 
       <!-- Drop zone -->
       <div class="audio-drop" id="audio-drop">
@@ -754,29 +1097,56 @@
         </div>
         <div class="audio-mission__note" id="audio-mission-note">Load and analyse a sound file to unlock generation. Forge uses the resulting audio weights, tempo, and duration as part of the terrain pass and UEFN export package.</div>
       </div>
+      <div class="audio-structure-note">
+        <span>Signal chain</span>
+        <strong>Decode -> spectral profile -> noise field -> Perlin remap -> biome classification -> UEFN package</strong>
+      </div>
 
       <!-- Saved audio library -->
       <div class="audio-lib" id="audio-lib">
         <div class="audio-lib-title">SAVED AUDIO LIBRARY</div>
         <div class="audio-file-list" id="audio-file-list">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:4px 0">
-            No saved files — upload one above
+          <div id="audio-file-empty" style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:6px 2px">
+            No saved files - upload one above
           </div>
         </div>
       </div>
     </div>
 
     <!-- GENERATE -->
-    <button class="btn-generate" id="btn-gen" onclick="generate()">
-      <span>GENERATE ISLAND</span>
-      <small id="btn-gen-sub">Audio analysis required before terrain pass</small>
-    </button>
+    <div class="forge-command">
+      <button class="btn-generate" id="btn-gen" onclick="generate()">
+        <span>GENERATE ISLAND</span>
+        <small id="btn-gen-sub">Audio analysis required before terrain pass</small>
+      </button>
+      <div class="forge-command-note">
+        Forge writes a deterministic run locker, preview, layout, placement plan, manifest, and Verse package. If scale changes, regenerate and follow the import runbook again.
+      </div>
+    </div>
 
   </div><!-- /panel-left -->
 
   <!-- RIGHT PANEL -->
   <div class="panel-right">
     <div class="map-container" id="map-container">
+      <div class="preview-telemetry">
+        <div class="preview-chip">
+          <span>Theme</span>
+          <strong id="preview-theme">Chapter 1 - Athena</strong>
+        </div>
+        <div class="preview-chip">
+          <span>World scale</span>
+          <strong id="preview-scale">11.0 km</strong>
+        </div>
+        <div class="preview-chip">
+          <span>Source</span>
+          <strong id="preview-source">Awaiting audio</strong>
+        </div>
+        <div class="preview-chip">
+          <span>Locker</span>
+          <strong id="preview-locker">outputs/Island#N</strong>
+        </div>
+      </div>
       <div class="map-placeholder" id="map-ph">
         <div class="map-ring"><span class="map-ring-text">NO MAP</span></div>
         <div class="map-ph-text">CONFIGURE → GENERATE</div>
@@ -891,6 +1261,7 @@ const BAR_COLORS = ['#ff6b35','#ff9f35','#00e5a0','#0091ff','#aa66ff'];
 let _playerFile  = null;   // filename currently loaded
 let _isMuted     = false;
 let _seeking     = false;
+let _audioFilterMode = 'all';
 
 // ── Setup Web Audio context (must be triggered by user gesture) ──
 function ensureAudioCtx() {
@@ -1125,6 +1496,98 @@ function dominantAudioProfile(weights) {
   return strongest ? strongest[0] : 'Awaiting analysis';
 }
 
+function formatWorldKm(cm) {
+  const km = Number(cm || 0) / 100_000;
+  if (!km) return '0.0 km';
+  return km >= 10 ? `${km.toFixed(0)} km` : `${km.toFixed(1)} km`;
+}
+
+function currentOutputTarget() {
+  const raw = ($('island-name')?.value || '').trim();
+  const safe = raw || 'Island';
+  return `outputs/${safe}#N`;
+}
+
+function updateAudioLibraryMeta(totalCount = null, visibleCount = null) {
+  const rows = [...document.querySelectorAll('.audio-file-item')];
+  const total = totalCount ?? rows.length;
+  const visible = visibleCount ?? rows.filter(row => row.style.display !== 'none').length;
+  const countLabel = total === 0
+    ? '0 saved sources'
+    : visible === total
+      ? `${total} saved source${total === 1 ? '' : 's'}`
+      : `${visible} of ${total} source${total === 1 ? '' : 's'}`;
+  if ($('audio-lib-count')) $('audio-lib-count').textContent = countLabel;
+  if ($('audio-lib-selected')) $('audio-lib-selected').textContent = _playerFile || 'No active source';
+}
+
+function setAudioFilter(mode) {
+  _audioFilterMode = mode;
+  document.querySelectorAll('.audio-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.audioFilter === mode);
+  });
+  filterAudioLibrary();
+}
+
+function filterAudioLibrary() {
+  const list = $('audio-file-list');
+  if (!list) return;
+  const query = ($('audio-search')?.value || '').trim().toLowerCase();
+  const rows = [...list.querySelectorAll('.audio-file-item')];
+  let visible = 0;
+
+  rows.forEach(row => {
+    const name = (row.dataset.fn || '').toLowerCase();
+    const matchesQuery = !query || name.includes(query);
+    const matchesMode = _audioFilterMode === 'all' || row.dataset.fn === _playerFile;
+    const show = matchesQuery && matchesMode;
+    row.style.display = show ? '' : 'none';
+    if (show) visible += 1;
+  });
+
+  let empty = $('audio-file-empty');
+  if (!empty) {
+    empty = document.createElement('div');
+    empty.id = 'audio-file-empty';
+    empty.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--dim);padding:6px 2px;';
+    list.appendChild(empty);
+  }
+  empty.textContent = rows.length
+    ? 'No sources match the current filter.'
+    : 'No saved files - upload one above';
+  empty.style.display = visible === 0 ? 'block' : 'none';
+  updateAudioLibraryMeta(rows.length, visible);
+}
+
+function syncForgeConsole() {
+  const themeLabel = $('theme')?.selectedOptions?.[0]?.textContent || $('theme')?.value || 'Chapter 1 - Athena';
+  const locker = currentOutputTarget();
+  const importMode = _wsCm > 200_000 ? 'World Partition required' : 'Direct import ready';
+  const sourceLabel = _playerFile ? _playerFile : 'Awaiting source rail';
+  const resolution = $('size')?.value || '2017';
+  const resolutionLabel = `${resolution} x ${resolution} capture rail`;
+  const topologyLabel = `${compassLabel(parseInt($('cluster_angle')?.value || 135))} cluster / ${$('spread-val')?.textContent || 'Normal'}`;
+  const scaleLabel = formatWorldKm(_wsCm);
+  const mapping = {
+    'brief-theme': themeLabel,
+    'brief-output': locker,
+    'brief-import': importMode,
+    'brief-source': sourceLabel,
+    'preview-theme': themeLabel,
+    'preview-scale': scaleLabel,
+    'preview-source': sourceLabel,
+    'preview-locker': locker,
+    'brief-resolution': resolutionLabel,
+    'scale-brief': `${scaleLabel} runtime envelope`,
+    'topology-brief': topologyLabel,
+  };
+  Object.entries(mapping).forEach(([id, value]) => {
+    const el = $(id);
+    if (el) el.textContent = value;
+  });
+  updateAudioLibraryMeta();
+}
+
 function syncGenerateGate() {
   const btn = $('btn-gen');
   const sub = $('btn-gen-sub');
@@ -1145,6 +1608,7 @@ function updateAudioMission(filename = _playerFile) {
   $('audio-mission-note').textContent = ready
     ? `Active file ${filename} is driving the current terrain pass. Generate now to turn its tempo, duration, and spectral weighting into the latest island run and Verse handoff package.`
     : 'Load and analyse a sound file to unlock generation. Forge uses the resulting audio weights, tempo, and duration as part of the terrain pass and UEFN export package.';
+  syncForgeConsole();
   syncGenerateGate();
 }
 
@@ -1244,7 +1708,8 @@ async function refreshAudioLib() {
     const d = await parseApiResponse(r, 'Audio library load failed');
     const list = $('audio-file-list');
     if (!d.files.length) {
-      list.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:4px 0">No saved files — upload one above</div>';
+      list.innerHTML = '<div id="audio-file-empty" style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:6px 2px">No saved files - upload one above</div>';
+      updateAudioLibraryMeta(0, 0);
       if (!_playerFile) updateAudioMission();
       return;
     }
@@ -1275,6 +1740,7 @@ async function refreshAudioLib() {
         await selectAudio(fn);
       });
     });
+    filterAudioLibrary();
   } catch(e) {
     console.warn('audio lib refresh failed', e);
   }
@@ -1432,6 +1898,7 @@ function wsUpdateInfo(cm, preset, recPx) {
       break;
     }
   }
+  syncForgeConsole();
 }
 
 // ── GENERATE ──
@@ -1622,6 +2089,7 @@ document.addEventListener('keydown', e => {
 // ── WORLD WRAP TOGGLE ──
 $('world_wrap').addEventListener('change', function() {
   $('wrap-note').style.opacity = this.checked ? '1' : '0.4';
+  syncForgeConsole();
 });
 
 // ── WATER LEVEL VISUAL HINT ──
@@ -1656,17 +2124,24 @@ function updateCompass(deg) {
   dot.style.left = fx + 'px';
   dot.style.top  = fy + 'px';
   $('angle-val').textContent = compassLabel(deg) + ' (' + deg + '°)';
+  syncForgeConsole();
 }
 function updateSpread(v) {
   const labels = {50:'Village tight', 75:'Compact', 100:'Normal', 150:'Spacious', 200:'Township loose'};
   const nearest = Object.keys(labels).reduce((a,b) => Math.abs(b-v)<Math.abs(a-v)?b:a);
   $('spread-val').textContent = labels[nearest] || 'Custom';
+  syncForgeConsole();
 }
 updateCompass(135); // init
+
+$('theme').addEventListener('change', syncForgeConsole);
+$('island-name').addEventListener('input', syncForgeConsole);
+$('size').addEventListener('change', syncForgeConsole);
 
 // ── INIT ──
 refreshAudioLib();
 updateAudioMission();
+syncForgeConsole();
 </script>
 {% include "_site_footer.html" %}
 </body>
