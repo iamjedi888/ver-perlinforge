@@ -155,6 +155,25 @@ def _theme_lookup_key(value: str) -> str:
     compact = re.sub(r"[^0-9a-z]+", "", str(value or "").lower())
     return compact or "chapter1"
 
+
+def _compact_export_grids(height: np.ndarray, biome: np.ndarray, max_dim: int = 257) -> tuple[list[list[float]], list[list[int]], int]:
+    """Reduce large Forge grids before Verse/package export work.
+
+    The UEFN handoff package does not need full-heightmap resolution for biome
+    summaries, foliage anchors, or placement hints. Downsampling here avoids
+    converting millions of cells into Python lists during a live web request.
+    """
+    size = int(height.shape[0]) if getattr(height, "shape", None) else 0
+    if size <= 0:
+        return [], [], 0
+    if size <= max_dim:
+        return height.tolist(), biome.tolist(), size
+
+    sample_idx = np.linspace(0, size - 1, max_dim, dtype=np.int32)
+    compact_height = height[np.ix_(sample_idx, sample_idx)]
+    compact_biome = biome[np.ix_(sample_idx, sample_idx)]
+    return compact_height.tolist(), compact_biome.tolist(), int(len(sample_idx))
+
 # ── FORGE PAGE ───────────────────────────────────────────────
 @forge_bp.route("/forge")
 def forge():
@@ -237,10 +256,12 @@ def generate():
 
         verse_package = {}
         if VERSE_EXPORT_AVAILABLE:
+            export_heightmap, export_biome_map, export_grid_px = _compact_export_grids(height, biome)
+            layout["meta"]["verse_export_grid_px"] = export_grid_px
             verse_result = integrate_with_forge(
                 {
-                    "heightmap_normalized": height.tolist(),
-                    "biome_map": biome.tolist(),
+                    "heightmap_normalized": export_heightmap,
+                    "biome_map": export_biome_map,
                     "plots_found": layout.get("plots", []),
                     "town_center": layout.get("town_center"),
                     "world_size_cm": world_size_cm,
