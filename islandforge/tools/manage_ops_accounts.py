@@ -5,8 +5,12 @@ Manage TriptokForge staff and bot-operator logins from the terminal.
 from __future__ import annotations
 
 import argparse
+import os
 import secrets
+import re
+import shlex
 import string
+import subprocess
 import sys
 from pathlib import Path
 
@@ -14,6 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import oracle_db as oracle_db_module
 from oracle_db import (
     STAFF_ROLE_OPTIONS,
     authenticate_staff_account,
@@ -58,6 +63,14 @@ DEFAULT_COLORSTHEFORCE = {
     "system_prompt": "Speak as ColorsTheForce, a clearly labeled TriptokForge AI Moderator. Never claim to be an official Epic, Nintendo, or Microsoft representative.",
 }
 
+SERVICE_NAME = "islandforge"
+ORACLE_ENV_KEYS = (
+    "ORACLE_DSN",
+    "ORACLE_USER",
+    "ORACLE_PASSWORD",
+    "ORACLE_WALLET",
+)
+
 
 def _generate_password(length: int = 24) -> str:
     # Keep generated passwords easy to transcribe from SSH output and browser-safe.
@@ -65,11 +78,77 @@ def _generate_password(length: int = 24) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
+def _refresh_oracle_runtime() -> None:
+    for key in ORACLE_ENV_KEYS:
+        setattr(oracle_db_module, key, os.environ.get(key, ""))
+
+
+def _parse_systemd_environment_text(text: str) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for token in shlex.split(text or "", posix=True):
+        if "=" not in token:
+            continue
+        key, value = token.split("=", 1)
+        if key:
+            values[key] = value
+    return values
+
+
+def _parse_systemd_unit_environment(text: str) -> dict[str, str]:
+    values: dict[str, str] = {}
+    pattern = re.compile(r'^Environment=(?:"([^"]+)"|(\S+))$')
+    for raw_line in (text or "").splitlines():
+        line = raw_line.strip()
+        match = pattern.match(line)
+        if not match:
+            continue
+        payload = match.group(1) or match.group(2) or ""
+        if "=" not in payload:
+            continue
+        key, value = payload.split("=", 1)
+        if key:
+            values[key] = value
+    return values
+
+
+def _load_service_env(service_name: str = SERVICE_NAME) -> bool:
+    if db_available():
+        return True
+    env_values: dict[str, str] = {}
+    commands = [
+        ["systemctl", "show", service_name, "--property=Environment", "--value"],
+        ["systemctl", "cat", service_name],
+    ]
+    for command in commands:
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=False)
+        except Exception:
+            continue
+        if result.returncode != 0 or not result.stdout.strip():
+            continue
+        if command[1] == "show":
+            env_values.update(_parse_systemd_environment_text(result.stdout))
+        else:
+            env_values.update(_parse_systemd_unit_environment(result.stdout))
+        if any(env_values.get(key) for key in ORACLE_ENV_KEYS):
+            break
+    if not any(env_values.get(key) for key in ORACLE_ENV_KEYS):
+        return False
+    for key in ORACLE_ENV_KEYS:
+        value = env_values.get(key)
+        if value:
+            os.environ[key] = value
+    _refresh_oracle_runtime()
+    return db_available()
+
+
 def _backend_label() -> str:
     return "oracle" if db_available() else "json-fallback"
 
 
 def _print_backend_warning() -> None:
+    if not db_available():
+        _load_service_env()
     state = status()
     backend = _backend_label()
     print(f"Backend: {backend}")
@@ -78,10 +157,10 @@ def _print_backend_warning() -> None:
             "Warning: Oracle DB is not available in this shell, so this command is using local JSON fallback data."
         )
         print(
-            "Load the same environment file used by systemd before managing real site accounts."
+            "Load the same Oracle environment used by systemd before managing real site accounts."
         )
         print(
-            "Example: set -a && source /etc/islandforge.env && set +a"
+            "If the service uses inline Environment= values instead of an env file, export those Oracle variables first."
         )
     else:
         print(
