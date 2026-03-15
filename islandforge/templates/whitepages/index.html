@@ -374,9 +374,21 @@
 
     <div class="vp-embed-wrap" id="vp-embed-wrap">
       <div class="vp-loading" id="vp-loading">
-        <span>&#9672; LOADING AMBIENT FEED...</span>
+        <span id="vp-loading-text">&#9672; SYNCING AMBIENT FEED...</span>
       </div>
-      <iframe id="vp-iframe" class="vp-iframe" frameborder="0" scrolling="no" allow="autoplay" allowtransparency="true"></iframe>
+      <audio id="vp-audio-el" class="vp-audio" controls preload="none"></audio>
+      <div class="vp-empty" id="vp-empty-state">
+        <div class="vp-empty-copy">
+          <span class="vp-empty-kicker" id="vp-empty-kicker">FAST PATH READY</span>
+          <strong class="vp-empty-title" id="vp-empty-title">Select a track to arm the player.</strong>
+          <p class="vp-empty-text" id="vp-empty-text">Direct audio stays lightweight and external feeds stay cold until you explicitly load them.</p>
+        </div>
+        <div class="vp-empty-actions">
+          <button class="vp-action" id="vp-load-btn" type="button" onclick="vpLoadCurrent()">Load feed</button>
+          <a class="vp-action vp-action--ghost" id="vp-open-btn" href="#" target="_blank" rel="noopener">Open source</a>
+        </div>
+      </div>
+      <iframe id="vp-iframe" class="vp-iframe" frameborder="0" scrolling="no" allow="autoplay" allowtransparency="true" hidden></iframe>
     </div>
 
     <div class="vp-tracklist" id="vp-tracklist"></div>
@@ -390,6 +402,42 @@
   let tracks = [];
   let idx = 0;
   let playing = false;
+  let embedLoaded = false;
+
+  const iframe = document.getElementById('vp-iframe');
+  const audio = document.getElementById('vp-audio-el');
+  const loading = document.getElementById('vp-loading');
+  const loadingText = document.getElementById('vp-loading-text');
+  const emptyState = document.getElementById('vp-empty-state');
+  const loadBtn = document.getElementById('vp-load-btn');
+  const openBtn = document.getElementById('vp-open-btn');
+  const emptyKicker = document.getElementById('vp-empty-kicker');
+  const emptyTitle = document.getElementById('vp-empty-title');
+  const emptyText = document.getElementById('vp-empty-text');
+  const playBtn = document.getElementById('vp-play-btn');
+
+  iframe.addEventListener('load', () => {
+    if (!iframe.src || iframe.src === 'about:blank') {
+      return;
+    }
+    loading.style.display = 'none';
+    iframe.hidden = false;
+  });
+
+  audio.addEventListener('play', () => {
+    playing = true;
+    updateTransport();
+  });
+
+  audio.addEventListener('pause', () => {
+    playing = false;
+    updateTransport();
+  });
+
+  audio.addEventListener('ended', () => {
+    playing = false;
+    updateTransport();
+  });
 
   fetch('/api/whitepages/tracks')
     .then((response) => response.json())
@@ -399,11 +447,13 @@
       if (tracks.length) {
         setTrack(0);
       } else {
-        document.getElementById('vp-loading').innerHTML = '<span style="color:var(--mid)">NO TRACKS - ADD VIA ADMIN</span>';
+        loadingText.textContent = 'NO TRACKS - ADD VIA ADMIN';
+        loading.style.display = 'flex';
       }
     })
     .catch(() => {
-      document.getElementById('vp-loading').innerHTML = '<span style="color:var(--warn-red)">FEED OFFLINE</span>';
+      loadingText.textContent = 'FEED OFFLINE';
+      loading.style.display = 'flex';
     });
 
   function setTrack(i) {
@@ -416,46 +466,144 @@
     document.getElementById('vp-np-artist').textContent = track.artist || '--';
     document.getElementById('vp-tab-label').textContent = track.title || 'AMBIENT FEED';
     document.getElementById('vp-track-pos').textContent = (idx + 1) + ' / ' + tracks.length;
-    document.getElementById('vp-loading').style.display = 'none';
-
-    const iframe = document.getElementById('vp-iframe');
-    iframe.src = buildEmbedUrl(track);
+    resetExternal();
+    resetAudio();
+    updateSourceState(track);
+    if (track.source_type === 'audio') {
+      primeAudio(track);
+    }
     playing = false;
-    document.getElementById('vp-play-btn').textContent = 'PLAY';
+    updateTransport();
 
     document.querySelectorAll('.vp-tli').forEach((element, index) => {
       element.classList.toggle('active', index === idx);
     });
   }
 
-  function buildEmbedUrl(track) {
+  function buildEmbedUrl(track, autoplay) {
     if (track.source_type === 'soundcloud') {
       const base = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(track.embed_url);
-      return base + '&color=%2300ff41&auto_play=false&buying=false&sharing=false&download=false&show_artwork=true&show_playcount=false&show_user=false&hide_related=true';
+      return base + '&color=%2300ff41&auto_play=' + (autoplay ? 'true' : 'false') + '&buying=false&sharing=false&download=false&show_artwork=true&show_playcount=false&show_user=false&hide_related=true';
     }
 
     if (track.source_type === 'youtube') {
       const url = track.embed_url;
       const videoMatch = url.match(/[?&]v=([^&]+)/);
       const listMatch = url.match(/[?&]list=([^&]+)/);
+      const autoplayPart = autoplay ? 'autoplay=1&rel=0' : 'autoplay=0&rel=0';
 
       if (videoMatch) {
-        return 'https://www.youtube.com/embed/' + videoMatch[1] + (listMatch ? '?list=' + listMatch[1] + '&enablejsapi=1' : '?enablejsapi=1');
+        return 'https://www.youtube.com/embed/' + videoMatch[1] + (listMatch ? '?list=' + listMatch[1] + '&' + autoplayPart : '?' + autoplayPart);
       }
 
       if (url.includes('youtu.be/')) {
         const videoId = url.split('youtu.be/')[1].split('?')[0];
-        return 'https://www.youtube.com/embed/' + videoId;
+        return 'https://www.youtube.com/embed/' + videoId + '?' + autoplayPart;
       }
 
       if (url.includes('/embed/')) {
-        return url;
+        return url + (url.includes('?') ? '&' : '?') + autoplayPart;
+      }
+
+      if (listMatch) {
+        return 'https://www.youtube.com/embed/videoseries?list=' + listMatch[1] + '&' + autoplayPart;
       }
 
       return url;
     }
 
     return 'about:blank';
+  }
+
+  function primeAudio(track) {
+    audio.dataset.src = track.embed_url || '';
+    audio.classList.remove('is-visible');
+    emptyState.hidden = false;
+  }
+
+  function resetAudio() {
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.dataset.src = '';
+    audio.classList.remove('is-visible');
+    audio.load();
+    playing = false;
+  }
+
+  function resetExternal() {
+    iframe.hidden = true;
+    iframe.src = 'about:blank';
+    embedLoaded = false;
+  }
+
+  function updateSourceState(track) {
+    const sourceType = track.source_type || 'audio';
+    const sourceLabel = sourceType === 'audio' ? 'DIRECT AUDIO' : sourceType.toUpperCase();
+
+    openBtn.href = track.embed_url || '#';
+    openBtn.textContent = sourceType === 'youtube'
+      ? 'Open YouTube'
+      : sourceType === 'soundcloud'
+      ? 'Open SoundCloud'
+      : 'Open source';
+
+    loading.style.display = 'none';
+    emptyState.hidden = false;
+    emptyKicker.textContent = sourceType === 'audio' ? 'NATIVE AUDIO READY' : sourceLabel + ' HELD COLD';
+    emptyTitle.textContent = sourceType === 'audio'
+      ? 'This track uses the lightweight native player.'
+      : 'External feed is unloaded until you ask for it.';
+    emptyText.textContent = sourceType === 'audio'
+      ? 'Press play to start without loading a third-party embed.'
+      : 'This keeps WhitePages fast. Use Load feed only when you want this source active.';
+    loadBtn.hidden = sourceType === 'audio';
+    loadBtn.textContent = sourceType === 'youtube' ? 'Load YouTube' : 'Load feed';
+  }
+
+  function updateTransport() {
+    const track = tracks[idx];
+    if (!track) {
+      playBtn.textContent = 'PLAY';
+      return;
+    }
+
+    if (track.source_type === 'audio') {
+      playBtn.textContent = playing ? 'PAUSE' : 'PLAY';
+      return;
+    }
+
+    playBtn.textContent = embedLoaded ? 'RELOAD' : 'LOAD';
+  }
+
+  function ensureAudioSource(track) {
+    if (!track || track.source_type !== 'audio') {
+      return false;
+    }
+    if (!audio.dataset.src && !audio.src) {
+      return false;
+    }
+    if (!audio.src && audio.dataset.src) {
+      audio.src = audio.dataset.src;
+    }
+    audio.classList.add('is-visible');
+    emptyState.hidden = true;
+    return true;
+  }
+
+  function loadCurrentEmbed(autoplay) {
+    const track = tracks[idx];
+    if (!track || track.source_type === 'audio') {
+      return;
+    }
+
+    resetAudio();
+    loadingText.textContent = 'LOADING ' + (track.source_type || 'FEED').toUpperCase() + '...';
+    loading.style.display = 'flex';
+    emptyState.hidden = true;
+    iframe.hidden = true;
+    iframe.src = buildEmbedUrl(track, Boolean(autoplay));
+    embedLoaded = true;
+    updateTransport();
   }
 
   function renderTracklist() {
@@ -480,38 +628,27 @@
   window.setTrackPublic = function(i) { setTrack(i); };
   window.vpPrev = function() { setTrack(idx - 1); };
   window.vpNext = function() { setTrack(idx + 1); };
+  window.vpLoadCurrent = function() { loadCurrentEmbed(false); };
 
   window.vpPlayPause = function() {
     const track = tracks[idx];
     if (!track) return;
 
     if (track.source_type === 'audio') {
-      let audio = document.getElementById('vp-audio-el');
-      if (!audio) {
-        audio = document.createElement('audio');
-        audio.id = 'vp-audio-el';
-        document.body.appendChild(audio);
-      }
-
-      if (audio.src !== track.embed_url) {
-        audio.src = track.embed_url;
-      }
-
+      if (!ensureAudioSource(track)) return;
       audio.volume = parseInt(document.getElementById('vp-vol').value, 10) / 100;
-
       if (playing) {
         audio.pause();
       } else {
         audio.play().catch(() => {});
       }
+      return;
     }
 
-    playing = !playing;
-    document.getElementById('vp-play-btn').textContent = playing ? 'PAUSE' : 'PLAY';
+    loadCurrentEmbed(true);
   };
 
   window.vpVolume = function(value) {
-    const audio = document.getElementById('vp-audio-el');
     if (audio) {
       audio.volume = parseInt(value, 10) / 100;
     }

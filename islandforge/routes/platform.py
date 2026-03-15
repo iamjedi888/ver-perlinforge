@@ -19,6 +19,9 @@ from oracle_db import (
     get_audio_tracks,
     get_channel,
     get_channels,
+    get_member_islands,
+    get_member_room,
+    get_member_tickets,
     get_posts,
     get_recent_islands,
     get_wp_tracks,
@@ -54,6 +57,15 @@ def _to_int(value, default=None):
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _short_id(value):
+    value = (value or "").strip()
+    if not value:
+        return ""
+    if len(value) <= 18:
+        return value
+    return f"{value[:8]}...{value[-6:]}"
 
 
 def _channel_payload(form):
@@ -110,14 +122,39 @@ def dashboard():
         epic_id = session.get("epic_id")
         if not epic_id:
             return redirect("/home")
-        user = {"display_name": session.get("display_name", epic_id),
-                "account_id": epic_id,
-                "skin_img": session.get("skin_img",""),
-                "skin_name": session.get("skin_name","Default")}
+        user = {
+            "display_name": session.get("display_name", epic_id),
+            "account_id": session.get("epic_account_id", epic_id),
+            "skin_img": session.get("skin_img", ""),
+            "skin_name": session.get("skin_name", "Default"),
+        }
+    account_id = (
+        user.get("account_id")
+        or session.get("epic_account_id")
+        or session.get("epic_id")
+        or ""
+    )
+    room_data = get_member_room(account_id) if account_id else {"theme": "", "tickets": 0}
+    tickets = get_member_tickets(account_id) if account_id else int(room_data.get("tickets") or 0)
+    islands = get_member_islands(account_id, limit=6) if account_id else []
+    uploads = (get_audio_tracks(account_id) or [])[:6] if account_id else []
+    announcements = (get_announcements() or [])[:4]
     return render_template("dashboard.html",
-        name=user.get("display_name","Player"),
-        skin_img=user.get("skin_img",""),
-        skin_name=user.get("skin_name","Default"))
+        name=user.get("display_name", "Player"),
+        account_id=account_id,
+        account_id_short=_short_id(account_id),
+        skin_img=user.get("skin_img", "") or session.get("skin_img", ""),
+        skin_name=user.get("skin_name", "Default") or session.get("skin_name", "Default"),
+        room_theme=room_data.get("theme", "") or "stock",
+        tickets=tickets,
+        islands=islands,
+        island_count=len(islands),
+        uploads=uploads,
+        upload_count=len(uploads),
+        announcements=announcements,
+        announcement_count=len(announcements),
+        epic_connected=bool(session.get("epic_access_token") or session.get("access_token") or account_id),
+        admin_authed=bool(session.get("admin_authed")))
 
 @platform_bp.route("/privacy")
 def privacy():

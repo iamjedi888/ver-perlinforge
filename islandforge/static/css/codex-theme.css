@@ -757,10 +757,85 @@ tr:hover td { background: rgba(0,255,65,.02); }
   text-shadow: 0 0 8px var(--term-green);
   animation: dotPulse 1.8s infinite;
 }
+.vp-audio {
+  display: none;
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 234, 255, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(0, 255, 65, 0.08), transparent 46%),
+    rgba(0, 0, 0, 0.38);
+}
+.vp-audio.is-visible {
+  display: block;
+}
 .vp-iframe {
   width: 100%; height: 100%;
   border: none;
   display: block;
+}
+.vp-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 234, 255, 0.08), transparent 32%),
+    linear-gradient(145deg, rgba(0, 255, 65, 0.08), transparent 44%),
+    rgba(0, 0, 0, 0.22);
+}
+.vp-empty[hidden] {
+  display: none;
+}
+.vp-empty-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.vp-empty-kicker {
+  font-family: var(--mono);
+  font-size: .56rem;
+  letter-spacing: 3px;
+  color: var(--jarvis);
+}
+.vp-empty-title {
+  font-family: var(--mono);
+  font-size: .82rem;
+  color: var(--text);
+}
+.vp-empty-text {
+  margin: 0;
+  font-size: .74rem;
+  color: var(--mid);
+  line-height: 1.45;
+}
+.vp-empty-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.vp-action {
+  border: 1px solid rgba(0, 255, 65, .2);
+  background: rgba(0, 255, 65, .08);
+  color: var(--term-green);
+  padding: 8px 12px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.vp-action--ghost {
+  background: rgba(0, 234, 255, .08);
+  border-color: rgba(0, 234, 255, .18);
+  color: var(--jarvis);
 }
 
 /* Track list */
@@ -812,3 +887,15 @@ tr:hover td { background: rgba(0,255,65,.02); }
 .src-soundcloud { background: rgba(255,85,0,.1); color: #ff6600; border: 1px solid rgba(255,102,0,.25); }
 .src-youtube    { background: rgba(255,30,30,.08); color: #ff4444; border: 1px solid rgba(255,30,30,.2); }
 .src-audio      { background: rgba(0,255,65,.07); color: var(--term-green); border: 1px solid var(--border); }
+
+@media (max-width: 720px) {
+  .vp-empty {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .vp-empty-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}

@@ -3,244 +3,472 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>{{ name }} — TriptokForge Dashboard</title>
+<title>{{ name }} - TriptokForge Member Hub</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/static/css/dashboard.css"/>
 </head>
-<body class="dash-body">
+<body class="member-body">
 
 {% include '_nav.html' %}
 
-<div class="dash">
-  <div class="dash-grid">
-
-    <!-- ── Holographic Player Card ───────────────────────────────────── -->
-    <div class="card-wrap">
-      <div class="holo-card" id="holoCard">
-        <div class="card-corner tl"></div>
-        <div class="card-corner tr"></div>
-        <div class="card-corner bl"></div>
-        <div class="card-corner br"></div>
-
-        <div class="card-header">
-          <span class="card-studio">EuphoriÆ Studios</span>
-          <span class="card-badge">MEMBER</span>
-        </div>
-
-        <div class="card-skin" id="cardSkin">
-          {% if skin_img %}
-            <img src="{{ skin_img }}" id="skinImg" alt="Skin"/>
-          {% else %}
-            <div class="card-skin-placeholder">FN</div>
-          {% endif %}
-        </div>
-
-        <div class="card-info">
-          <div class="card-player-name">{{ name }}</div>
-          <div class="card-skin-name" id="cardSkinName">{{ skin_name or 'Default' }}</div>
-          <div class="card-stats">
-            <div class="card-stat">
-              <span class="card-stat-value" id="cWins">—</span>
-              <span class="card-stat-label">Wins</span>
-            </div>
-            <div class="card-stat">
-              <span class="card-stat-value" id="cKD">—</span>
-              <span class="card-stat-label">K/D</span>
-            </div>
-            <div class="card-stat">
-              <span class="card-stat-value" id="cMatches">—</span>
-              <span class="card-stat-label">Matches</span>
-            </div>
-          </div>
-        </div>
-        <div class="card-glow"></div>
-      </div>
+<main class="member-shell">
+  <section class="market-strip panel-shell">
+    <div class="market-strip__track">
+      <div class="ticker-pill"><span class="ticker-pill__label">Epic Link</span><span class="ticker-pill__value">{{ "ONLINE" if epic_connected else "OFFLINE" }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Ticket Bank</span><span class="ticker-pill__value">{{ tickets }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Forge Saves</span><span class="ticker-pill__value">{{ island_count }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Audio Uploads</span><span class="ticker-pill__value">{{ upload_count }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Room Theme</span><span class="ticker-pill__value">{{ room_theme|upper }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Signal Queue</span><span class="ticker-pill__value">{{ announcement_count }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Admin Gate</span><span class="ticker-pill__value">{{ "OPEN" if admin_authed else "MEMBER" }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Locker</span><span class="ticker-pill__value">{{ skin_name or "DEFAULT" }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Epic Link</span><span class="ticker-pill__value">{{ "ONLINE" if epic_connected else "OFFLINE" }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Ticket Bank</span><span class="ticker-pill__value">{{ tickets }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Forge Saves</span><span class="ticker-pill__value">{{ island_count }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Audio Uploads</span><span class="ticker-pill__value">{{ upload_count }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Room Theme</span><span class="ticker-pill__value">{{ room_theme|upper }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Signal Queue</span><span class="ticker-pill__value">{{ announcement_count }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Admin Gate</span><span class="ticker-pill__value">{{ "OPEN" if admin_authed else "MEMBER" }}</span></div>
+      <div class="ticker-pill"><span class="ticker-pill__label">Locker</span><span class="ticker-pill__value">{{ skin_name or "DEFAULT" }}</span></div>
     </div>
+  </section>
 
-    <!-- ── Right Panel Stack ─────────────────────────────────────────── -->
-    <div class="right-stack">
+  <section class="hero-grid">
+    <aside class="identity-card panel-shell">
+      <div class="identity-card__eyebrow">Member Garage</div>
+      <div class="identity-card__skin" id="identitySkin">
+        {% if skin_img %}
+          <img src="{{ skin_img }}" id="skinImg" alt="{{ skin_name or 'Locker skin' }}"/>
+        {% else %}
+          <div class="identity-card__fallback">TF</div>
+        {% endif %}
+      </div>
+      <div class="identity-card__meta">
+        <div class="identity-card__name">{{ name }}</div>
+        <div class="identity-card__sub">Epic account {{ account_id_short or "pending" }}</div>
+        <div class="identity-card__skin-name" id="cardSkinName">{{ skin_name or "Default" }}</div>
+      </div>
+      <div class="identity-card__badges">
+        <span class="status-chip {{ 'is-live' if epic_connected else 'is-offline' }}">{{ "Epic connected" if epic_connected else "Epic pending" }}</span>
+        <span class="status-chip is-room">Room {{ room_theme|upper }}</span>
+        <span class="status-chip is-admin">{{ "Admin open" if admin_authed else "Member lane" }}</span>
+      </div>
+      <div class="identity-card__actions">
+        <a href="/forge" class="action-tile">
+          <span class="action-tile__label">Garage Forge</span>
+          <span class="action-tile__meta">Build islands</span>
+        </a>
+        <a href="/room" class="action-tile">
+          <span class="action-tile__label">Member Room</span>
+          <span class="action-tile__meta">Theme and tickets</span>
+        </a>
+        <a href="/channels" class="action-tile">
+          <span class="action-tile__label">TV Channels</span>
+          <span class="action-tile__meta">Watch feeds</span>
+        </a>
+        <a href="/news" class="action-tile">
+          <span class="action-tile__label">Signal Desk</span>
+          <span class="action-tile__meta">News scopes</span>
+        </a>
+        <a href="/whitepages" class="action-tile">
+          <span class="action-tile__label">WhitePages</span>
+          <span class="action-tile__meta">Builder vault</span>
+        </a>
+        {% if admin_authed %}
+        <a href="/admin" class="action-tile">
+          <span class="action-tile__label">Admin Bay</span>
+          <span class="action-tile__meta">Ops controls</span>
+        </a>
+        {% else %}
+        <a href="/community" class="action-tile">
+          <span class="action-tile__label">Community</span>
+          <span class="action-tile__meta">Members and posts</span>
+        </a>
+        {% endif %}
+      </div>
+    </aside>
 
-      <!-- Welcome -->
-      <div class="panel">
-        <div class="welcome-name">Welcome back, <span>{{ name }}</span></div>
-        <div class="welcome-sub">Your TriptokForge command center. Live stats, skin selection, and platform tools — all in one place.</div>
-        <div class="quick-links">
-          <a href="/forge" class="quick-link">&#127965; Island Forge</a>
-          <a href="#skins"  class="quick-link" onclick="document.getElementById('skins').scrollIntoView({behavior:'smooth'});return false;">&#127912; Change Skin</a>
-          <a href="#stats"  class="quick-link" onclick="loadStats();return false;">&#128202; Refresh Stats</a>
-          <a href="/channels" class="quick-link">&#128250; TV Channels</a>
-          <a href="/community" class="quick-link">&#127758; Community</a>
-          <a href="/auth/logout" class="quick-link">&#128682; Logout</a>
+    <section class="nexus panel-shell">
+      <div class="panel-top">
+        <div>
+          <span class="panel-top__kicker">Telemetry Nexus</span>
+          <h1>Ironcore member wall with pit-lane signal flow</h1>
         </div>
+        <p class="panel-top__copy">This pass is driven by live member data plus the current Fortnite snapshot pipe. Multi-surface Epic feeds can slot into the same wall once their source map is approved.</p>
       </div>
 
-      <!-- JARVIS Stats -->
-      <div class="panel" id="stats">
-        <div class="panel-title">Fortnite Analytics</div>
-        <div class="stats-grid">
-          <div class="stat-box">
-            <span class="stat-value" id="s-wins">—</span>
-            <span class="stat-label">Total Wins</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value" id="s-kd">—</span>
-            <span class="stat-label">K/D Ratio</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value" id="s-matches">—</span>
-            <span class="stat-label">Matches</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value" id="s-kills">—</span>
-            <span class="stat-label">Total Kills</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value" id="s-winpct">—</span>
-            <span class="stat-label">Win Rate</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-value" id="s-avgelim">—</span>
-            <span class="stat-label">Avg Elims</span>
+      <div class="nexus-grid">
+        <article class="nexus-node">
+          <span class="nexus-node__label">Fortnite wins</span>
+          <strong class="nexus-node__value" id="octoWins">--</strong>
+          <span class="nexus-node__meta">Snapshot pipeline</span>
+        </article>
+        <article class="nexus-node">
+          <span class="nexus-node__label">K/D rail</span>
+          <strong class="nexus-node__value" id="octoKd">--</strong>
+          <span class="nexus-node__meta">Competitive pace</span>
+        </article>
+        <article class="nexus-node">
+          <span class="nexus-node__label">Audio intake</span>
+          <strong class="nexus-node__value">{{ upload_count }}</strong>
+          <span class="nexus-node__meta">Forge uploads</span>
+        </article>
+        <article class="nexus-node">
+          <span class="nexus-node__label">Island saves</span>
+          <strong class="nexus-node__value">{{ island_count }}</strong>
+          <span class="nexus-node__meta">UEFN builds</span>
+        </article>
+        <div class="nexus-core">
+          <span class="nexus-core__eyebrow">Octopus chart</span>
+          <div class="nexus-core__ring">
+            <span class="nexus-core__title">TRIPTOKFORGE</span>
+            <span class="nexus-core__sub">member nexus</span>
           </div>
         </div>
-        <div class="stats-msg" id="statsMsg"></div>
+        <article class="nexus-node">
+          <span class="nexus-node__label">Room theme</span>
+          <strong class="nexus-node__value">{{ room_theme|upper }}</strong>
+          <span class="nexus-node__meta">Garage state</span>
+        </article>
+        <article class="nexus-node">
+          <span class="nexus-node__label">Ticket bank</span>
+          <strong class="nexus-node__value">{{ tickets }}</strong>
+          <span class="nexus-node__meta">Member economy</span>
+        </article>
+        <article class="nexus-node">
+          <span class="nexus-node__label">Signal queue</span>
+          <strong class="nexus-node__value">{{ announcement_count }}</strong>
+          <span class="nexus-node__meta">Pinned updates</span>
+        </article>
+        <article class="nexus-node">
+          <span class="nexus-node__label">Access lane</span>
+          <strong class="nexus-node__value">{{ "ADMIN" if admin_authed else "MEMBER" }}</strong>
+          <span class="nexus-node__meta">{{ "Control panel live" if admin_authed else "Standard access" }}</span>
+        </article>
       </div>
+    </section>
+  </section>
 
-      <!-- Skin Selector -->
-      <div class="panel" id="skins">
-        <div class="panel-title">Choose Your Skin</div>
-        <input class="skin-search" type="text" placeholder="Search skins..."
-               id="skinSearch" oninput="filterSkins()"/>
-        <div class="skin-grid" id="skinGrid">
-          <div class="skin-loading">&#9900; Loading cosmetics...</div>
+  <section class="member-grid">
+    <section class="panel-shell panel-stats" id="stats">
+      <div class="section-head">
+        <div>
+          <span class="section-head__kicker">Fortnite Snapshot</span>
+          <h2>Charts, bars, and quick reads</h2>
+        </div>
+        <button class="section-head__button" type="button" onclick="loadStats()">Refresh stats</button>
+      </div>
+      <div class="stat-grid">
+        <article class="stat-card">
+          <span class="stat-card__label">Wins</span>
+          <strong class="stat-card__value" id="s-wins">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-wins"></span></span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">K/D</span>
+          <strong class="stat-card__value" id="s-kd">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-kd"></span></span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">Matches</span>
+          <strong class="stat-card__value" id="s-matches">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-matches"></span></span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">Kills</span>
+          <strong class="stat-card__value" id="s-kills">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-kills"></span></span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">Win rate</span>
+          <strong class="stat-card__value" id="s-winpct">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-winpct"></span></span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">Avg elims</span>
+          <strong class="stat-card__value" id="s-avgelim">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-avgelim"></span></span>
+        </article>
+      </div>
+      <div class="stats-foot">
+        <div class="stats-pulse">
+          <span class="stats-pulse__label">Telemetry note</span>
+          <span class="stats-pulse__text" id="statsMsg">Loading current signal.</span>
         </div>
       </div>
+    </section>
 
-    </div>
-  </div>
-</div>
+    <section class="panel-shell panel-room">
+      <div class="section-head">
+        <div>
+          <span class="section-head__kicker">Member Space</span>
+          <h2>Room, routing, and operator state</h2>
+        </div>
+        <a href="/room" class="section-head__button section-head__button--link">Open room</a>
+      </div>
+      <div class="room-grid">
+        <article class="room-card">
+          <span class="room-card__label">Room theme</span>
+          <strong class="room-card__value">{{ room_theme|upper }}</strong>
+          <p>Keep this as the member-facing lounge while the dashboard handles telemetry and switching.</p>
+        </article>
+        <article class="room-card">
+          <span class="room-card__label">Ticket bank</span>
+          <strong class="room-card__value">{{ tickets }}</strong>
+          <p>Ready for member rewards, events, and later creator economy hooks.</p>
+        </article>
+        <article class="room-card">
+          <span class="room-card__label">Epic session</span>
+          <strong class="room-card__value">{{ "LIVE" if epic_connected else "PENDING" }}</strong>
+          <p>Current member identity is mapped from the active Epic login session.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel-shell panel-signal">
+      <div class="section-head">
+        <div>
+          <span class="section-head__kicker">Signal Desk</span>
+          <h2>Announcements and active notes</h2>
+        </div>
+        <a href="/community" class="section-head__button section-head__button--link">Open community</a>
+      </div>
+      <div class="signal-list">
+        {% if announcements %}
+          {% for item in announcements %}
+          <article class="signal-item">
+            <div class="signal-item__top">
+              <strong>{{ item.title }}</strong>
+              {% if item.pinned %}<span class="signal-item__badge">Pinned</span>{% endif %}
+            </div>
+            <p>{{ item.body or "No body text yet." }}</p>
+            <span class="signal-item__meta">{{ item.posted_by }} - {{ item.created_at }}</span>
+          </article>
+          {% endfor %}
+        {% else %}
+          <div class="empty-card">
+            <strong>No signal queued</strong>
+            <p>Post announcements from the admin bay and they will surface here for members.</p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel-shell panel-islands">
+      <div class="section-head">
+        <div>
+          <span class="section-head__kicker">Forge Garage</span>
+          <h2>Recent saved islands</h2>
+        </div>
+        <a href="/forge" class="section-head__button section-head__button--link">Open forge</a>
+      </div>
+      <div class="island-grid">
+        {% if islands %}
+          {% for island in islands %}
+          <article class="island-card">
+            <div class="island-card__preview">
+              {% if island.preview_url %}
+              <img src="{{ island.preview_url }}" alt="{{ island.name or 'Saved island preview' }}" loading="lazy"/>
+              {% else %}
+              <div class="island-card__fallback">GRID</div>
+              {% endif %}
+            </div>
+            <div class="island-card__body">
+              <strong>{{ island.name or "Untitled island" }}</strong>
+              <span>{{ island.dominant_biome or "Mixed biome" }}</span>
+              <div class="island-card__meta">Seed {{ island.seed }}</div>
+            </div>
+          </article>
+          {% endfor %}
+        {% else %}
+          <div class="empty-card">
+            <strong>No island saves yet</strong>
+            <p>Run Island Forge, save a build, and this wall becomes your garage rack.</p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel-shell panel-audio">
+      <div class="section-head">
+        <div>
+          <span class="section-head__kicker">Audio Intake</span>
+          <h2>Tracks wired into your forge flow</h2>
+        </div>
+        <a href="/forge" class="section-head__button section-head__button--link">Upload more</a>
+      </div>
+      <div class="audio-list">
+        {% if uploads %}
+          {% for track in uploads %}
+          <article class="audio-item">
+            <div>
+              <strong>{{ track.filename }}</strong>
+              <span>{{ (track.weights.tempo_bpm or 0)|round|int }} BPM - {{ (track.weights.duration_s or 0)|round(1) }} s</span>
+            </div>
+            {% if track.storage_url %}
+            <a href="{{ track.storage_url }}" target="_blank" rel="noopener">Open</a>
+            {% else %}
+            <span class="audio-item__ghost">Stored</span>
+            {% endif %}
+          </article>
+          {% endfor %}
+        {% else %}
+          <div class="empty-card">
+            <strong>No uploads tracked</strong>
+            <p>Audio uploads from Island Forge will appear here with BPM and duration telemetry.</p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel-shell panel-locker" id="skins">
+      <div class="section-head">
+        <div>
+          <span class="section-head__kicker">Locker Bay</span>
+          <h2>Switch skins without leaving the hub</h2>
+        </div>
+      </div>
+      <input class="skin-search" type="text" placeholder="Search skins..." id="skinSearch" oninput="filterSkins()"/>
+      <div class="skin-grid" id="skinGrid">
+        <div class="skin-loading">Loading cosmetics...</div>
+      </div>
+    </section>
+  </section>
+</main>
 
 <script>
 const DISPLAY_NAME = {{ name|tojson }};
+const DASHBOARD_STATE = {{ {
+  "tickets": tickets,
+  "islands": island_count,
+  "uploads": upload_count,
+  "roomTheme": room_theme,
+  "connected": epic_connected,
+  "admin": admin_authed,
+  "announcements": announcement_count,
+}|tojson }};
 
-// ── 3D Card Tilt ─────────────────────────────────────────────────────────────
-const card = document.getElementById('holoCard');
-card.addEventListener('mousemove', e => {
-  const r = card.getBoundingClientRect();
-  const x = (e.clientX - r.left) / r.width  - 0.5;
-  const y = (e.clientY - r.top)  / r.height - 0.5;
-  card.style.transform = `rotateY(${x * 20}deg) rotateX(${-y * 16}deg) scale(1.02)`;
-});
-card.addEventListener('mouseleave', () => {
-  card.style.transform = 'rotateY(0) rotateX(0) scale(1)';
-});
+let allSkins = [];
 
-// ── Stats Loader ─────────────────────────────────────────────────────────────
+function normalizePercent(value, maxValue) {
+  const numeric = parseFloat(String(value || '0').replace('%', ''));
+  if (!Number.isFinite(numeric) || maxValue <= 0) {
+    return 0;
+  }
+  return Math.max(8, Math.min(100, (numeric / maxValue) * 100));
+}
+
+function setMeter(id, value, maxValue) {
+  const meter = document.getElementById(id);
+  if (!meter) return;
+  meter.style.width = `${normalizePercent(value, maxValue)}%`;
+}
+
 async function loadStats() {
   const msg = document.getElementById('statsMsg');
-  msg.textContent = 'Initializing data uplink...';
+  msg.textContent = 'Refreshing telemetry rail...';
 
   try {
-    const r = await fetch(`/api/stats?name=${encodeURIComponent(DISPLAY_NAME)}`);
-    const d = await r.json();
-    if (d.ok) {
-      const s = d.stats;
-      const map = {
-        's-wins':    s.wins,
-        's-kd':      s.kd,
-        's-matches': s.matches,
-        's-kills':   s.kills,
-        's-winpct':  s.winPct,
-        's-avgelim': s.avgElim,
-      };
-      Object.entries(map).forEach(([id, val]) => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.textContent = val || '—';
-          if (val && val !== '—') el.classList.add('loaded');
-        }
-      });
-      document.getElementById('cWins').textContent    = s.wins    || '—';
-      document.getElementById('cKD').textContent      = s.kd      || '—';
-      document.getElementById('cMatches').textContent = s.matches || '—';
-      msg.textContent = d.source === 'mock'
-        ? '&#9900; Stats preview (connect Epic API for live data)'
-        : '';
-      msg.style.color = 'var(--dim)';
-    } else {
-      msg.textContent = 'Stats unavailable — ensure your Fortnite account is public.';
-      msg.style.color = 'var(--amber)';
+    const response = await fetch(`/api/stats?name=${encodeURIComponent(DISPLAY_NAME)}`);
+    const data = await response.json();
+    if (!data.ok) {
+      throw new Error('stats unavailable');
     }
-  } catch(e) {
-    msg.textContent = 'Network error — could not load stats.';
-    msg.style.color = 'var(--red)';
+
+    const stats = data.stats || {};
+    const statMap = {
+      's-wins': stats.wins || '--',
+      's-kd': stats.kd || '--',
+      's-matches': stats.matches || '--',
+      's-kills': stats.kills || '--',
+      's-winpct': stats.winPct || '--',
+      's-avgelim': stats.avgElim || '--',
+    };
+    Object.entries(statMap).forEach(([id, value]) => {
+      const node = document.getElementById(id);
+      if (node) node.textContent = value;
+    });
+
+    document.getElementById('octoWins').textContent = stats.wins || '--';
+    document.getElementById('octoKd').textContent = stats.kd || '--';
+
+    setMeter('m-wins', stats.wins, 500);
+    setMeter('m-kd', stats.kd, 10);
+    setMeter('m-matches', stats.matches, 5000);
+    setMeter('m-kills', stats.kills, 10000);
+    setMeter('m-winpct', stats.winPct, 100);
+    setMeter('m-avgelim', stats.avgElim, 10);
+
+    msg.textContent = data.source === 'mock'
+      ? 'Preview stats are active. Wire a real stats provider later without changing the layout.'
+      : 'Live stats synced.';
+  } catch (error) {
+    msg.textContent = 'Stats are offline right now. The rest of the member hub is still live.';
   }
 }
 
-// ── Skin Loader ──────────────────────────────────────────────────────────────
-let allSkins = [];
-
 async function loadSkins() {
   try {
-    const r = await fetch('/api/cosmetics');
-    const d = await r.json();
-    if (d.ok && d.skins.length) {
-      allSkins = d.skins;
-      renderSkins(allSkins);
-    } else {
+    const response = await fetch('/api/cosmetics');
+    const data = await response.json();
+    if (!data.ok || !data.skins || !data.skins.length) {
       throw new Error('no skins');
     }
-  } catch(e) {
-    document.getElementById('skinGrid').innerHTML =
-      '<div class="skin-loading">Could not load cosmetics.</div>';
+    allSkins = data.skins;
+    renderSkins(allSkins);
+  } catch (error) {
+    document.getElementById('skinGrid').innerHTML = '<div class="skin-loading">Cosmetics could not be loaded.</div>';
   }
 }
 
 function renderSkins(skins) {
-  const g = document.getElementById('skinGrid');
+  const grid = document.getElementById('skinGrid');
   if (!skins.length) {
-    g.innerHTML = '<div class="skin-loading">No results found.</div>';
+    grid.innerHTML = '<div class="skin-loading">No skins found.</div>';
     return;
   }
-  g.innerHTML = skins.slice(0, 150).map(s => {
-    const safe = s.name.replace(/'/g, "\\'");
-    const safeImg = s.img.replace(/'/g, "\\'");
-    return `<div class="skin-item" onclick="selectSkin('${s.id}','${safe}','${safeImg}')" title="${s.name}">
-      <img src="${s.img}" loading="lazy" alt="${s.name}"/>
-      <div class="skin-name">${s.name}</div>
-    </div>`;
+
+  grid.innerHTML = skins.slice(0, 150).map((skin) => {
+    const safeName = skin.name.replace(/'/g, "\\'");
+    const safeImg = skin.img.replace(/'/g, "\\'");
+    return `<button class="skin-item" type="button" onclick="selectSkin(this, '${skin.id}', '${safeName}', '${safeImg}')">
+      <img src="${skin.img}" loading="lazy" alt="${skin.name}"/>
+      <span class="skin-name">${skin.name}</span>
+    </button>`;
   }).join('');
 }
 
 function filterSkins() {
-  const q = document.getElementById('skinSearch').value.toLowerCase();
-  renderSkins(q ? allSkins.filter(s => s.name.toLowerCase().includes(q)) : allSkins);
+  const query = document.getElementById('skinSearch').value.trim().toLowerCase();
+  renderSkins(query ? allSkins.filter((skin) => skin.name.toLowerCase().includes(query)) : allSkins);
 }
 
-async function selectSkin(id, name, img) {
-  document.querySelectorAll('.skin-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+async function selectSkin(button, id, name, img) {
+  document.querySelectorAll('.skin-item').forEach((node) => node.classList.remove('active'));
+  if (button) {
+    button.classList.add('active');
+  }
 
-  // Update card
-  document.getElementById('cardSkin').innerHTML =
-    `<img src="${img}" alt="${name}" style="max-height:280px;max-width:100%;object-fit:contain;filter:drop-shadow(0 0 20px rgba(0,229,160,.3));animation:skin-float 3.5s ease-in-out infinite"/>`;
+  const identitySkin = document.getElementById('identitySkin');
+  identitySkin.innerHTML = `<img src="${img}" id="skinImg" alt="${name}"/>`;
   document.getElementById('cardSkinName').textContent = name;
 
-  // Persist
   try {
     await fetch('/api/set_skin', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({id, name, img})
     });
-  } catch(e) { /* non-fatal */ }
+  } catch (error) {
+    // Session already updates visually even if persistence fails.
+  }
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
 loadStats();
 loadSkins();
 </script>
+
 {% include "_site_footer.html" %}
 </body>
 </html>
