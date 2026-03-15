@@ -26,7 +26,7 @@ try:
         analyse_audio, generate_terrain, generate_moisture,
         classify_biomes, classify_biomes_themed, find_plot_positions, build_layout,
         build_preview, paint_farm_biome, get_farm_cluster_info,
-        BIOME_NAMES, BIOME_COLOURS,
+        BIOME_NAMES, BIOME_COLOURS, blend_theme_audio_weights, get_theme,
         WORLD_SIZE_PRESETS, DEFAULT_WORLD_SIZE_CM,
     )
     AUDIO_AVAILABLE = True
@@ -192,10 +192,14 @@ def generate():
         water_level    = max(0.0, min(0.48, water_level))
         cluster_spread = max(0.5, min(2.0, cluster_spread))
         if size not in (505, 1009, 2017, 4033): size = 1009
-        for k, v in DEFAULT_WEIGHTS.items(): weights.setdefault(k, v)
-        height, road_mask = generate_terrain(size, seed, weights, water_level)
+        for k, v in DEFAULT_WEIGHTS.items():
+            weights.setdefault(k, v)
+        weights = blend_theme_audio_weights(weights, theme_key)
+
+        height, road_mask = generate_terrain(size, seed, weights, water_level, theme_name=theme_key)
         moisture = generate_moisture(size, seed)
         themed_colours = BIOME_COLOURS
+        theme_profile = get_theme(theme_key)
         try:
             biome, themed_colours, _ = classify_biomes_themed(
                 height,
@@ -220,6 +224,8 @@ def generate():
         layout = build_layout(height, biome, plots, size, seed, weights, water_level, world_wrap, world_size_cm)
         layout["meta"]["theme"] = theme_name
         layout["meta"]["theme_key"] = theme_key
+        layout["meta"]["theme_description"] = theme_profile.get("description", "")
+        layout["meta"]["theme_land_biome_targets"] = theme_profile.get("land_biome_targets", {})
         layout["meta"]["uefn_asset_binding"] = "Bind generated Verse slot names to builtin Fortnite assets in UEFN editor"
         run_name, output_folder_name, output_run_dir = _allocate_output_run(island_name)
         layout["meta"]["island_name"] = run_name

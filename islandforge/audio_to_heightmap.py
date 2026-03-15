@@ -208,7 +208,7 @@ def build_island_mask(size, seed, presence, bpm=120.0):
 # FORTNITE-STYLE BASE TERRAIN
 # ─────────────────────────────────────────────────────────────
 
-def build_fortnite_terrain(size, seed, w, island_mask):
+def build_fortnite_terrain(size, seed, w, island_mask, terrain_profile=None):
     """
     Builds terrain that mimics Fortnite map structure:
     - Large flat interior bowl (natural storm funnel)
@@ -218,6 +218,12 @@ def build_fortnite_terrain(size, seed, w, island_mask):
     - Audio weights shape the style
     """
     rng = np.random.default_rng(seed + 100)
+    terrain_profile = terrain_profile or {}
+    basin_scale = float(terrain_profile.get("basin", 1.0))
+    hill_scale = float(terrain_profile.get("hills", 1.0))
+    coast_scale = float(terrain_profile.get("coast", 1.0))
+    ridge_scale = float(terrain_profile.get("ridges", 1.0))
+    detail_scale = float(terrain_profile.get("detail", 1.0))
     sub_bass   = w.get("sub_bass",   0.5)
     bass       = w.get("bass",       0.5)
     presence   = w.get("presence",   0.5)
@@ -231,7 +237,7 @@ def build_fortnite_terrain(size, seed, w, island_mask):
 
     # ── Layer 1: Interior bowl (Fortnite always has playable flat center)
     # Center is lower, edges of inland area rise to coastal ridges
-    bowl = dist_center * 0.35
+    bowl = dist_center * 0.35 * basin_scale
     bowl = gaussian_filter(bowl, sigma=size*0.06)
 
     # ── Layer 2: Gentle rolling hills over flatlands
@@ -239,18 +245,18 @@ def build_fortnite_terrain(size, seed, w, island_mask):
     hills = nn(size, 4, 0.55, 2.0, 1.5 + bass * 1.5, seed+10)
     hills = gaussian_filter(hills, sigma=size*0.04)
     # Keep hills gentle — flatten the amplitude
-    hills = hills * (0.12 + bass * 0.10)
+    hills = hills * (0.12 + bass * 0.10) * hill_scale
 
     # ── Layer 3: Coastal cliff shelf
     # Inner land is raised relative to water, creating natural cliffs at coast
     # island_mask already gives us the coastal gradient
     coast_shelf = np.clip((island_mask - 0.35) * 3, 0, 1)
     coast_shelf = gaussian_filter(coast_shelf ** 0.7, sigma=size*0.025)
-    coast_shelf *= (0.18 + presence * 0.15)
+    coast_shelf *= (0.18 + presence * 0.15) * coast_scale
 
     # ── Layer 4: Mountain ridges (sub_bass driven)
     # Fortnite has 1-3 distinct ridges, not scattered peaks
-    n_ridges = 1 + int(sub_bass * 2.5)  # 1 to 3 ridges
+    n_ridges = max(1, min(4, int(round((1 + sub_bass * 2.5) * ridge_scale))))
     ridge_terrain = np.zeros((size,size))
 
     for i in range(n_ridges):
@@ -281,13 +287,13 @@ def build_fortnite_terrain(size, seed, w, island_mask):
         ridge_blend *= np.clip(island_mask * 2 - 0.4, 0, 1)
         ridge_blend = gaussian_filter(ridge_blend, sigma=size*0.02)
 
-        ridge_height = 0.30 + sub_bass * 0.20
+        ridge_height = (0.30 + sub_bass * 0.20) * ridge_scale
         ridge_terrain += ridge_blend * ridge_height / n_ridges
 
     # ── Layer 5: Fine surface detail (brilliance driven)
     detail = nn(size, 5, 0.5, 2.1, 3.0 + brilliance*2, seed+30)
     detail = gaussian_filter(detail, sigma=size*0.005)
-    detail = (detail - 0.5) * (0.04 + brilliance * 0.04)
+    detail = (detail - 0.5) * (0.04 + brilliance * 0.04) * detail_scale
 
     # ── Combine
     terrain = bowl + hills + coast_shelf + ridge_terrain + detail
@@ -309,7 +315,7 @@ def build_fortnite_terrain(size, seed, w, island_mask):
 # POI LANDING PADS
 # ─────────────────────────────────────────────────────────────
 
-def inject_pois(terrain, island_mask, size, seed, midrange=0.5, n_pois=None):
+def inject_pois(terrain, island_mask, size, seed, midrange=0.5, n_pois=None, poi_scale=1.0):
     """
     Flatten circular areas for POIs (named locations).
     Some are raised (hilltop town), some are lowered (valley village).
@@ -317,7 +323,7 @@ def inject_pois(terrain, island_mask, size, seed, midrange=0.5, n_pois=None):
     """
     rng = np.random.default_rng(seed + 5000)
     if n_pois is None:
-        n_pois = 3 + int(midrange * 4)  # 3-7 POIs
+        n_pois = max(2, min(9, int(round((3 + midrange * 4) * poi_scale))))  # 2-9 POIs
 
     cy, cx = size // 2, size // 2
     land_mask = island_mask > 0.45  # only place POIs well inside coast
@@ -354,7 +360,7 @@ def inject_pois(terrain, island_mask, size, seed, midrange=0.5, n_pois=None):
     YY, XX = np.meshgrid(np.arange(size), np.arange(size), indexing='ij')
     for (py, px) in poi_centers:
         # POI radius — varies with midrange
-        poi_r = size * (0.04 + midrange * 0.025)
+        poi_r = size * (0.04 + midrange * 0.025) * max(0.82, min(1.18, poi_scale))
         dist  = np.sqrt((YY-py)**2 + (XX-px)**2)
         blend = np.clip(1 - dist / poi_r, 0, 1) ** 2
 
@@ -374,13 +380,13 @@ def inject_pois(terrain, island_mask, size, seed, midrange=0.5, n_pois=None):
 # RIVERS  — wide shallow valleys
 # ─────────────────────────────────────────────────────────────
 
-def simulate_rivers(terrain, island_mask, size, seed, midrange=0.5):
+def simulate_rivers(terrain, island_mask, size, seed, midrange=0.5, river_scale=1.0):
     """
     Fortnite rivers are wide, shallow, and navigable.
     They flow from high ground toward coast in gentle curves.
     """
     rng = np.random.default_rng(seed + 3000)
-    n_rivers = 1 + int(midrange * 3)
+    n_rivers = max(1, min(6, int(round((1 + midrange * 3) * river_scale))))
 
     for _ in range(n_rivers):
         # Start from upper third of terrain on land
@@ -420,7 +426,7 @@ def simulate_rivers(terrain, island_mask, size, seed, midrange=0.5):
             continue
 
         # Carve river — wide and shallow
-        river_width  = size * (0.018 + midrange * 0.012)
+        river_width  = size * (0.018 + midrange * 0.012) * max(0.75, min(1.35, river_scale))
         river_depth  = 0.045  # very shallow
         YY, XX = np.meshgrid(np.arange(size), np.arange(size), indexing='ij')
 
@@ -493,7 +499,7 @@ def build_roads(terrain, size, poi_centers, seed):
 # GENERATE TERRAIN  — main entry
 # ─────────────────────────────────────────────────────────────
 
-def generate_terrain(size, seed, weights, water_level=0.20):
+def generate_terrain(size, seed, weights, water_level=0.20, theme_name="chapter1"):
     """
     Full Fortnite-style terrain generation pipeline.
     Returns (height_array 0..1, road_mask bool array).
@@ -504,17 +510,34 @@ def generate_terrain(size, seed, weights, water_level=0.20):
     presence   = w.get("presence",   0.5)
     bpm        = w.get("tempo_bpm",  120.0)
 
+    theme = get_theme(theme_name)
+    terrain_profile = theme.get("terrain_profile", {})
+
     # 1. Island mask
     island_mask = build_island_mask(size, seed, presence, bpm)
 
     # 2. Base terrain
-    terrain = build_fortnite_terrain(size, seed, w, island_mask)
+    terrain = build_fortnite_terrain(size, seed, w, island_mask, terrain_profile=terrain_profile)
 
     # 3. POI landing pads
-    terrain, poi_centers = inject_pois(terrain, island_mask, size, seed, midrange)
+    terrain, poi_centers = inject_pois(
+        terrain,
+        island_mask,
+        size,
+        seed,
+        midrange,
+        poi_scale=float(terrain_profile.get("pois", 1.0)),
+    )
 
     # 4. Rivers
-    terrain = simulate_rivers(terrain, island_mask, size, seed, midrange)
+    terrain = simulate_rivers(
+        terrain,
+        island_mask,
+        size,
+        seed,
+        midrange,
+        river_scale=float(terrain_profile.get("rivers", 1.0)),
+    )
 
     # 5. Roads between POIs
     terrain, road_mask = build_roads(terrain, size, poi_centers, seed)
@@ -800,6 +823,316 @@ def get_theme(name: str) -> dict:
     return UEFN_THEMES.get(name, UEFN_THEMES["chapter1"])
 
 
+# Official Fortnite-inspired chapter and climate models.
+# This overrides the older placeholder theme table above with
+# stronger macro-biome direction and terrain-shape defaults.
+UEFN_THEMES = {
+    "chapter1": {
+        "label": "Chapter 1 - Athena",
+        "description": "Classic Battle Royale mix: temperate core, one frosted corner, one arid accent, and broad readable POI space.",
+        "water_level": 0.20,
+        "moisture_jungle": 0.67,
+        "moisture_forest": 0.44,
+        "moisture_desert": 0.32,
+        "moisture_snow": 0.35,
+        "zone_desert": 0.58,
+        "zone_snow": 0.44,
+        "highland_min": 0.65,
+        "peak_min": 0.82,
+        "zone_seed": 42,
+        "biome_bias": {"plains": 0.18, "forest": 0.10, "jungle": -0.12, "snow": 0.05, "desert": 0.02},
+        "terrain_profile": {"basin": 1.00, "hills": 0.95, "coast": 1.00, "ridges": 1.00, "rivers": 0.90, "pois": 1.00, "detail": 0.90},
+        "land_biome_targets": {"plains": 0.36, "forest": 0.25, "snow": 0.11, "desert": 0.08, "highland": 0.13, "peak": 0.07},
+        "macro_regions": [
+            {"biome": "forest", "x": 0.34, "y": 0.38, "radius": 0.28, "strength": 0.56},
+            {"biome": "snow", "x": 0.20, "y": 0.80, "radius": 0.22, "strength": 0.78},
+            {"biome": "desert", "x": 0.80, "y": 0.72, "radius": 0.18, "strength": 0.48},
+        ],
+        "colours": {0: (20, 60, 120), 1: (210, 190, 140), 2: (130, 170, 80), 3: (60, 110, 55), 4: (30, 90, 40), 5: (220, 235, 245), 6: (195, 165, 90), 7: (90, 110, 75), 8: (200, 200, 210), 9: (160, 190, 80)},
+        "weights": {"sub_bass": 0.56, "bass": 0.49, "midrange": 0.52, "presence": 0.42, "brilliance": 0.30},
+    },
+    "chapter2": {
+        "label": "Chapter 2 - Apollo",
+        "description": "River-cut temperate island with wetter lowlands, stronger coastline travel, and restrained snow or desert accents.",
+        "water_level": 0.24,
+        "moisture_jungle": 0.56,
+        "moisture_forest": 0.39,
+        "moisture_desert": 0.23,
+        "moisture_snow": 0.30,
+        "zone_desert": 0.63,
+        "zone_snow": 0.38,
+        "highland_min": 0.68,
+        "peak_min": 0.84,
+        "zone_seed": 118,
+        "biome_bias": {"plains": 0.14, "forest": 0.15, "jungle": 0.07, "snow": -0.06, "desert": -0.10},
+        "terrain_profile": {"basin": 1.05, "hills": 0.90, "coast": 0.95, "ridges": 0.86, "rivers": 1.24, "pois": 0.96, "detail": 0.82},
+        "land_biome_targets": {"plains": 0.37, "forest": 0.29, "jungle": 0.11, "snow": 0.05, "highland": 0.12, "peak": 0.06},
+        "macro_regions": [
+            {"biome": "forest", "x": 0.40, "y": 0.38, "radius": 0.30, "strength": 0.54},
+            {"biome": "jungle", "x": 0.18, "y": 0.68, "radius": 0.21, "strength": 0.50},
+            {"biome": "snow", "x": 0.82, "y": 0.18, "radius": 0.15, "strength": 0.28},
+        ],
+        "colours": {0: (15, 50, 105), 1: (200, 180, 130), 2: (110, 155, 65), 3: (50, 100, 45), 4: (25, 80, 35), 5: (215, 230, 240), 6: (180, 155, 80), 7: (80, 100, 65), 8: (190, 195, 205), 9: (150, 180, 70)},
+        "weights": {"sub_bass": 0.60, "bass": 0.56, "midrange": 0.44, "presence": 0.53, "brilliance": 0.24},
+    },
+    "chapter3": {
+        "label": "Chapter 3 - Artemis",
+        "description": "A wider flipped island with a strong snow sector, visible ridgelines, and open plains supporting long traversal routes.",
+        "water_level": 0.18,
+        "moisture_jungle": 0.72,
+        "moisture_forest": 0.51,
+        "moisture_desert": 0.27,
+        "moisture_snow": 0.44,
+        "zone_desert": 0.66,
+        "zone_snow": 0.35,
+        "highland_min": 0.60,
+        "peak_min": 0.78,
+        "zone_seed": 233,
+        "biome_bias": {"plains": 0.12, "forest": 0.02, "jungle": -0.10, "snow": 0.14, "desert": 0.00},
+        "terrain_profile": {"basin": 0.96, "hills": 1.04, "coast": 1.00, "ridges": 1.12, "rivers": 1.08, "pois": 1.00, "detail": 0.98},
+        "land_biome_targets": {"plains": 0.30, "forest": 0.21, "snow": 0.19, "desert": 0.08, "highland": 0.14, "peak": 0.08},
+        "macro_regions": [
+            {"biome": "snow", "x": 0.18, "y": 0.26, "radius": 0.28, "strength": 0.84},
+            {"biome": "forest", "x": 0.78, "y": 0.34, "radius": 0.24, "strength": 0.40},
+            {"biome": "desert", "x": 0.64, "y": 0.80, "radius": 0.20, "strength": 0.34},
+        ],
+        "colours": {0: (25, 65, 130), 1: (215, 200, 155), 2: (140, 178, 90), 3: (65, 115, 60), 4: (35, 95, 45), 5: (230, 240, 250), 6: (190, 160, 85), 7: (95, 118, 82), 8: (210, 215, 225), 9: (165, 195, 85)},
+        "weights": {"sub_bass": 0.44, "bass": 0.34, "midrange": 0.60, "presence": 0.58, "brilliance": 0.48},
+    },
+    "chapter4": {
+        "label": "Chapter 4 - Asteria",
+        "description": "High-contrast island inspired by MEGA and Wilds: autumnal highlands, a neon southeast, and a jungle-crater accent instead of desert sprawl.",
+        "water_level": 0.18,
+        "moisture_jungle": 0.59,
+        "moisture_forest": 0.43,
+        "moisture_desert": 0.25,
+        "moisture_snow": 0.31,
+        "zone_desert": 0.71,
+        "zone_snow": 0.34,
+        "highland_min": 0.57,
+        "peak_min": 0.75,
+        "zone_seed": 314,
+        "biome_bias": {"plains": 0.10, "forest": 0.08, "jungle": 0.10, "snow": -0.08, "desert": -0.18},
+        "terrain_profile": {"basin": 0.92, "hills": 0.98, "coast": 1.02, "ridges": 1.18, "rivers": 0.92, "pois": 1.08, "detail": 1.08},
+        "land_biome_targets": {"plains": 0.27, "forest": 0.27, "jungle": 0.15, "snow": 0.05, "highland": 0.17, "peak": 0.09},
+        "macro_regions": [
+            {"biome": "forest", "x": 0.34, "y": 0.38, "radius": 0.26, "strength": 0.42},
+            {"biome": "jungle", "x": 0.56, "y": 0.58, "radius": 0.18, "strength": 0.72},
+            {"biome": "forest", "x": 0.80, "y": 0.30, "radius": 0.21, "strength": 0.32},
+        ],
+        "colours": {0: (18, 55, 110), 1: (205, 185, 135), 2: (122, 164, 82), 3: (86, 112, 63), 4: (38, 98, 52), 5: (224, 232, 242), 6: (178, 156, 98), 7: (114, 120, 86), 8: (192, 196, 188), 9: (155, 185, 75)},
+        "weights": {"sub_bass": 0.50, "bass": 0.42, "midrange": 0.58, "presence": 0.68, "brilliance": 0.48},
+    },
+    "chapter5": {
+        "label": "Chapter 5 - Helios",
+        "description": "Official Chapter 5 shape: west chaparral, northwest boreal forest, central grassland rail corridor, and alpine east snowfields.",
+        "water_level": 0.19,
+        "moisture_jungle": 0.68,
+        "moisture_forest": 0.43,
+        "moisture_desert": 0.29,
+        "moisture_snow": 0.35,
+        "zone_desert": 0.66,
+        "zone_snow": 0.38,
+        "highland_min": 0.61,
+        "peak_min": 0.79,
+        "zone_seed": 517,
+        "biome_bias": {"plains": 0.13, "forest": 0.10, "jungle": -0.14, "snow": 0.11, "desert": -0.04},
+        "terrain_profile": {"basin": 0.96, "hills": 0.94, "coast": 0.98, "ridges": 1.06, "rivers": 0.84, "pois": 1.04, "detail": 0.92},
+        "land_biome_targets": {"plains": 0.31, "forest": 0.24, "snow": 0.18, "desert": 0.04, "highland": 0.15, "peak": 0.08},
+        "macro_regions": [
+            {"biome": "forest", "x": 0.24, "y": 0.26, "radius": 0.22, "strength": 0.46},
+            {"biome": "plains", "x": 0.52, "y": 0.72, "radius": 0.24, "strength": 0.44},
+            {"biome": "snow", "x": 0.80, "y": 0.28, "radius": 0.24, "strength": 0.82},
+            {"biome": "desert", "x": 0.18, "y": 0.78, "radius": 0.16, "strength": 0.18},
+        ],
+        "colours": {0: (20, 60, 118), 1: (216, 197, 148), 2: (132, 170, 94), 3: (76, 112, 65), 4: (38, 93, 54), 5: (233, 239, 247), 6: (191, 162, 96), 7: (106, 118, 90), 8: (204, 210, 218), 9: (164, 194, 96)},
+        "weights": {"sub_bass": 0.46, "bass": 0.43, "midrange": 0.55, "presence": 0.50, "brilliance": 0.36},
+    },
+    "chapter6": {
+        "label": "Chapter 6 - Hunters",
+        "description": "Modern Fortnite reads as shrine-country hills, maple forests, lake basins, and disciplined mountain silhouettes with sparse arid land.",
+        "water_level": 0.18,
+        "moisture_jungle": 0.60,
+        "moisture_forest": 0.41,
+        "moisture_desert": 0.25,
+        "moisture_snow": 0.32,
+        "zone_desert": 0.74,
+        "zone_snow": 0.36,
+        "highland_min": 0.59,
+        "peak_min": 0.77,
+        "zone_seed": 624,
+        "biome_bias": {"plains": 0.10, "forest": 0.16, "jungle": 0.02, "snow": -0.02, "desert": -0.16},
+        "terrain_profile": {"basin": 0.94, "hills": 0.96, "coast": 0.92, "ridges": 1.16, "rivers": 0.88, "pois": 0.96, "detail": 1.02},
+        "land_biome_targets": {"plains": 0.28, "forest": 0.30, "jungle": 0.08, "snow": 0.08, "highland": 0.18, "peak": 0.08},
+        "macro_regions": [
+            {"biome": "forest", "x": 0.30, "y": 0.32, "radius": 0.26, "strength": 0.56},
+            {"biome": "jungle", "x": 0.74, "y": 0.38, "radius": 0.18, "strength": 0.28},
+            {"biome": "plains", "x": 0.48, "y": 0.74, "radius": 0.22, "strength": 0.38},
+            {"biome": "snow", "x": 0.60, "y": 0.16, "radius": 0.16, "strength": 0.26},
+        ],
+        "colours": {0: (22, 58, 114), 1: (208, 192, 146), 2: (135, 168, 92), 3: (88, 116, 64), 4: (48, 100, 58), 5: (228, 236, 244), 6: (188, 160, 102), 7: (108, 118, 92), 8: (196, 202, 210), 9: (166, 194, 96)},
+        "weights": {"sub_bass": 0.48, "bass": 0.44, "midrange": 0.52, "presence": 0.46, "brilliance": 0.42},
+    },
+    "arctic": {
+        "label": "Arctic Wasteland",
+        "description": "Permafrost island with dominant snowfields, boreal edges, and glacial highland travel lanes.",
+        "water_level": 0.15,
+        "moisture_jungle": 0.90,
+        "moisture_forest": 0.72,
+        "moisture_desert": 0.05,
+        "moisture_snow": 0.22,
+        "zone_desert": 0.95,
+        "zone_snow": 0.05,
+        "highland_min": 0.52,
+        "peak_min": 0.68,
+        "zone_seed": 701,
+        "biome_bias": {"plains": -0.10, "forest": 0.04, "jungle": -0.30, "snow": 0.34, "desert": -0.30},
+        "terrain_profile": {"basin": 0.90, "hills": 0.88, "coast": 0.94, "ridges": 1.08, "rivers": 0.74, "pois": 0.92, "detail": 1.05},
+        "land_biome_targets": {"plains": 0.12, "forest": 0.14, "snow": 0.44, "highland": 0.18, "peak": 0.12},
+        "macro_regions": [
+            {"biome": "snow", "x": 0.50, "y": 0.50, "radius": 0.52, "strength": 0.92},
+            {"biome": "forest", "x": 0.24, "y": 0.32, "radius": 0.20, "strength": 0.22},
+        ],
+        "colours": {0: (10, 40, 100), 1: (230, 220, 205), 2: (175, 200, 190), 3: (120, 155, 140), 4: (80, 120, 95), 5: (240, 248, 255), 6: (200, 195, 185), 7: (150, 165, 175), 8: (225, 232, 242), 9: (160, 185, 170)},
+        "weights": {"sub_bass": 0.30, "bass": 0.30, "midrange": 0.68, "presence": 0.30, "brilliance": 0.82},
+    },
+    "desert": {
+        "label": "Desert Storm",
+        "description": "Arid badlands with wide exposure, mesa ridges, and only tiny cooler or wetter relief pockets.",
+        "water_level": 0.14,
+        "moisture_jungle": 0.85,
+        "moisture_forest": 0.72,
+        "moisture_desert": 0.50,
+        "moisture_snow": 0.02,
+        "zone_desert": 0.25,
+        "zone_snow": 0.98,
+        "highland_min": 0.63,
+        "peak_min": 0.80,
+        "zone_seed": 808,
+        "biome_bias": {"plains": 0.02, "forest": -0.16, "jungle": -0.28, "snow": -0.28, "desert": 0.32},
+        "terrain_profile": {"basin": 0.92, "hills": 1.00, "coast": 0.82, "ridges": 1.18, "rivers": 0.48, "pois": 0.96, "detail": 0.98},
+        "land_biome_targets": {"plains": 0.18, "desert": 0.40, "highland": 0.24, "peak": 0.10, "forest": 0.08},
+        "macro_regions": [
+            {"biome": "desert", "x": 0.52, "y": 0.50, "radius": 0.52, "strength": 0.92},
+            {"biome": "forest", "x": 0.18, "y": 0.24, "radius": 0.14, "strength": 0.10},
+        ],
+        "colours": {0: (60, 90, 130), 1: (225, 210, 160), 2: (210, 185, 120), 3: (170, 145, 90), 4: (140, 115, 65), 5: (235, 215, 175), 6: (215, 175, 95), 7: (165, 138, 88), 8: (190, 160, 110), 9: (180, 165, 105)},
+        "weights": {"sub_bass": 0.78, "bass": 0.68, "midrange": 0.32, "presence": 0.24, "brilliance": 0.16},
+    },
+    "jungle": {
+        "label": "Primal Jungle",
+        "description": "Dense canopy island with humid lowlands, visible rivers, and only isolated elevated clearings.",
+        "water_level": 0.25,
+        "moisture_jungle": 0.38,
+        "moisture_forest": 0.28,
+        "moisture_desert": 0.05,
+        "moisture_snow": 0.02,
+        "zone_desert": 0.98,
+        "zone_snow": 0.98,
+        "highland_min": 0.70,
+        "peak_min": 0.85,
+        "zone_seed": 915,
+        "biome_bias": {"plains": -0.08, "forest": 0.08, "jungle": 0.34, "snow": -0.30, "desert": -0.28},
+        "terrain_profile": {"basin": 1.06, "hills": 0.94, "coast": 0.96, "ridges": 0.90, "rivers": 1.28, "pois": 0.92, "detail": 0.88},
+        "land_biome_targets": {"plains": 0.12, "forest": 0.16, "jungle": 0.44, "highland": 0.16, "peak": 0.12},
+        "macro_regions": [
+            {"biome": "jungle", "x": 0.50, "y": 0.50, "radius": 0.46, "strength": 0.92},
+            {"biome": "forest", "x": 0.22, "y": 0.26, "radius": 0.18, "strength": 0.18},
+        ],
+        "colours": {0: (15, 65, 100), 1: (180, 190, 130), 2: (90, 140, 55), 3: (45, 95, 38), 4: (20, 75, 28), 5: (160, 185, 110), 6: (130, 160, 80), 7: (70, 105, 55), 8: (100, 130, 70), 9: (120, 155, 65)},
+        "weights": {"sub_bass": 0.48, "bass": 0.58, "midrange": 0.70, "presence": 0.58, "brilliance": 0.38},
+    },
+    "volcanic": {
+        "label": "Volcanic Inferno",
+        "description": "Active caldera profile with ash basins, heavy ridgelines, and scorched traversal lanes rather than lush regional diversity.",
+        "water_level": 0.12,
+        "moisture_jungle": 0.75,
+        "moisture_forest": 0.60,
+        "moisture_desert": 0.35,
+        "moisture_snow": 0.02,
+        "zone_desert": 0.40,
+        "zone_snow": 0.95,
+        "highland_min": 0.50,
+        "peak_min": 0.68,
+        "zone_seed": 1022,
+        "biome_bias": {"plains": -0.04, "forest": -0.10, "jungle": -0.24, "snow": -0.18, "desert": 0.16},
+        "terrain_profile": {"basin": 0.84, "hills": 0.90, "coast": 0.86, "ridges": 1.30, "rivers": 0.34, "pois": 0.92, "detail": 1.16},
+        "land_biome_targets": {"plains": 0.12, "desert": 0.20, "highland": 0.32, "peak": 0.22, "forest": 0.08, "jungle": 0.06},
+        "macro_regions": [
+            {"biome": "desert", "x": 0.50, "y": 0.52, "radius": 0.42, "strength": 0.60},
+        ],
+        "colours": {0: (80, 20, 10), 1: (120, 55, 30), 2: (80, 70, 60), 3: (55, 80, 45), 4: (35, 65, 30), 5: (200, 175, 155), 6: (90, 60, 40), 7: (70, 55, 45), 8: (110, 80, 60), 9: (95, 90, 55)},
+        "weights": {"sub_bass": 0.88, "bass": 0.78, "midrange": 0.24, "presence": 0.30, "brilliance": 0.24},
+    },
+}
+
+
+def get_theme(name: str) -> dict:
+    return UEFN_THEMES.get(name, UEFN_THEMES["chapter1"])
+
+
+def blend_theme_audio_weights(weights, theme_name="chapter1", theme_mix=0.38):
+    theme_weights = get_theme(theme_name).get("weights", {})
+    merged = dict(weights or {})
+    for key in ("sub_bass", "bass", "midrange", "presence", "brilliance"):
+        audio_value = float(merged.get(key, 0.5))
+        theme_value = float(theme_weights.get(key, audio_value))
+        merged[key] = max(0.0, min(1.0, audio_value * (1.0 - theme_mix) + theme_value * theme_mix))
+    return merged
+
+
+def _normalise01(arr):
+    lo = float(arr.min())
+    hi = float(arr.max())
+    if hi - lo < 1e-9:
+        return np.zeros_like(arr, dtype=np.float64)
+    return (arr - lo) / (hi - lo + 1e-9)
+
+
+def _anchor_field(size, x_frac, y_frac, radius_frac, falloff=1.8):
+    ys = np.linspace(0.0, 1.0, size)
+    xs = np.linspace(0.0, 1.0, size)
+    yy, xx = np.meshgrid(ys, xs, indexing="ij")
+    dist = np.sqrt((xx - x_frac) ** 2 + (yy - y_frac) ** 2)
+    return np.clip(1.0 - dist / max(radius_frac, 1e-6), 0.0, 1.0) ** falloff
+
+
+def build_theme_macro_fields(size, theme_name="chapter1"):
+    theme = get_theme(theme_name)
+    zone_seed = int(theme.get("zone_seed", 42))
+    fields = {
+        "plains": np.zeros((size, size), dtype=np.float64),
+        "forest": np.zeros((size, size), dtype=np.float64),
+        "jungle": np.zeros((size, size), dtype=np.float64),
+        "snow": np.zeros((size, size), dtype=np.float64),
+        "desert": np.zeros((size, size), dtype=np.float64),
+    }
+
+    warp = gaussian_filter(nn(size, 2, 0.55, 2.0, 1.15, zone_seed + 19), sigma=size * 0.03)
+    for idx, region in enumerate(theme.get("macro_regions", [])):
+        biome_name = str(region.get("biome", "")).lower()
+        if biome_name not in fields:
+            continue
+        field = _anchor_field(
+            size,
+            float(region.get("x", 0.5)),
+            float(region.get("y", 0.5)),
+            float(region.get("radius", 0.24)),
+            float(region.get("falloff", 1.7)),
+        )
+        jitter = nn(size, 2, 0.55, 2.0, 1.0 + idx * 0.11, zone_seed + 200 + idx * 31)
+        field = gaussian_filter(field * (0.82 + jitter * 0.36) * (0.78 + warp * 0.44), sigma=size * 0.02)
+        fields[biome_name] += field * float(region.get("strength", 0.4))
+
+    accent_total = fields["forest"] + fields["jungle"] + fields["snow"] + fields["desert"]
+    plains_pad = gaussian_filter(np.clip(1.0 - accent_total * 0.68, 0.0, 1.0), sigma=size * 0.05)
+    fields["plains"] += plains_pad
+
+    for key in fields:
+        fields[key] = _normalise01(fields[key])
+    return fields
+
+
 def classify_biomes_themed(height, moisture, water_level=0.20, theme_name="chapter1"):
     """
     classify_biomes with per-theme thresholds and colour overrides.
@@ -814,8 +1147,10 @@ def classify_biomes_themed(height, moisture, water_level=0.20, theme_name="chapt
     size  = height.shape[0]
     biome = np.zeros((size, size), dtype=np.uint8)
 
-    zone = nn(size, 2, 0.5, 2.0, 1.0, 42)
+    zone = nn(size, 2, 0.5, 2.0, 1.0, int(th.get("zone_seed", 42)))
     moisture_smooth = gaussian_filter(moisture, sigma=size * 0.08)
+    macro = build_theme_macro_fields(size, theme_name)
+    bias = th.get("biome_bias", {})
 
     PLAINS = 2
     biome[:] = PLAINS
@@ -834,12 +1169,43 @@ def classify_biomes_themed(height, moisture, water_level=0.20, theme_name="chapt
     hm = th["highland_min"]
     pm = th["peak_min"]
 
-    biome[land & (moisture_smooth > mj)]                           = 4  # jungle
-    biome[land & (moisture_smooth > mf) & (moisture_smooth <= mj)] = 3  # forest
-    biome[land & (moisture_smooth < md) & (zone > zd)]             = 6  # desert
-    biome[land & (moisture_smooth < ms) & (zone <= zs)]            = 5  # snow
-    biome[land & (height > hm) & (height <= pm)]                   = 7  # highland
-    biome[land & (height > pm)]                                     = 8  # peak
+    plains_score = (
+        0.42
+        + np.clip(1.0 - np.abs(moisture_smooth - 0.45) * 1.9, 0.0, 1.0) * 0.42
+        + macro["plains"] * 0.78
+        + float(bias.get("plains", 0.0))
+    )
+    forest_score = (
+        np.clip((moisture_smooth - mf) / max(1.0 - mf, 1e-6), 0.0, 1.0) * 0.90
+        + macro["forest"] * 1.00
+        + float(bias.get("forest", 0.0))
+    )
+    jungle_score = (
+        np.clip((moisture_smooth - mj) / max(1.0 - mj, 1e-6), 0.0, 1.0) * 0.95
+        + macro["jungle"] * 1.08
+        + float(bias.get("jungle", 0.0))
+    )
+    desert_score = (
+        np.clip((md - moisture_smooth) / max(md, 1e-6), 0.0, 1.0) * 0.88
+        + np.clip((zone - zd) / max(1.0 - zd, 1e-6), 0.0, 1.0) * 0.55
+        + macro["desert"] * 1.10
+        + float(bias.get("desert", 0.0))
+    )
+    snow_score = (
+        np.clip((ms - moisture_smooth) / max(ms, 1e-6), 0.0, 1.0) * 0.55
+        + np.clip((zs - zone) / max(zs, 1e-6), 0.0, 1.0) * 0.50
+        + np.clip((height - hm) / max(pm - hm, 1e-6), 0.0, 1.0) * 0.45
+        + macro["snow"] * 1.08
+        + float(bias.get("snow", 0.0))
+    )
+
+    scores = np.stack((plains_score, forest_score, jungle_score, snow_score, desert_score), axis=0)
+    winners = np.argmax(scores, axis=0)
+    palette = np.array([2, 3, 4, 5, 6], dtype=np.uint8)
+    biome[land] = palette[winners[land]]
+
+    biome[land & (height > hm) & (height <= pm)] = 7  # highland
+    biome[land & (height > pm)] = 8  # peak
 
     colours = th["colours"]
     names   = {0:"Water",1:"Beach",2:"Plains",3:"Forest",
@@ -1204,7 +1570,7 @@ WORLD SIZE PRESETS:
     ap.add_argument("--world_wrap", action="store_true", default=True,
                     help="Enable edge-wrap teleporters (world_wrap_manager.verse)")
     ap.add_argument("--theme",      type=str,   default="chapter1",
-                    help="Biome theme: chapter1, chapter2, chapter3, chapter4, arctic, desert, jungle, volcanic")
+                    help="Biome theme: chapter1, chapter2, chapter3, chapter4, chapter5, chapter6, arctic, desert, jungle, volcanic")
     args = ap.parse_args()
 
     # Resolve world size
@@ -1244,9 +1610,10 @@ WORLD SIZE PRESETS:
         w = analyse_audio(args.audio)
         print("[audio] Weights:", {k:round(v,3) for k,v in w.items()})
 
-    height, road_mask = generate_terrain(args.size, args.seed, w, args.water)
+    w = blend_theme_audio_weights(w, args.theme)
+    height, road_mask = generate_terrain(args.size, args.seed, w, args.water, theme_name=args.theme)
     moisture = generate_moisture(args.size, args.seed)
-    biome    = classify_biomes(height, moisture, args.water)
+    biome, _, _ = classify_biomes_themed(height, moisture, args.water, theme_name=args.theme)
     plots    = find_plot_positions(height, biome, 32, args.size)
     biome    = paint_farm_biome(biome, plots, args.size)
     layout   = build_layout(height, biome, plots, args.size, args.seed, w,
