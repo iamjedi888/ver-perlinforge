@@ -95,11 +95,11 @@ def run_tests(base_url: str) -> int:
     )
     checks.append(
         {
-            "name": "legacy_admin_redirect",
+            "name": "legacy_admin_login",
             "path": "/admin",
             "method": "GET",
-            "validate": lambda s, h, b: s == 302 and h.get("Location", "").endswith("/ops"),
-            "detail": "legacy admin redirect",
+            "validate": lambda s, h, b: s == 200 and ("admin terminal access" in b.lower() or "admin password" in b.lower()),
+            "detail": "legacy admin login",
         }
     )
     checks.append(

@@ -873,6 +873,11 @@ def _operator_username() -> str:
     )
 
 
+def _root_admin_alias(username: str) -> bool:
+    normalized = str(username or "").strip().lower()
+    return normalized in {"", "admin", "root", "root-admin", "rootadmin"}
+
+
 def _permission_overrides_from_form(form) -> dict:
     rows = {}
     for key in STAFF_PERMISSION_LABELS:
@@ -1082,9 +1087,7 @@ def ops():
             username = (request.form.get("username") or "").strip()
             password = request.form.get("password") or ""
             account = None
-            if username:
-                account = authenticate_staff_account(username, password)
-            elif password == ADMIN_PASSWORD:
+            if _root_admin_alias(username) and password == ADMIN_PASSWORD:
                 account = {
                     "id": 0,
                     "username": "root-admin",
@@ -1093,6 +1096,8 @@ def ops():
                     "linked_bot_slug": "",
                     "active": 1,
                 }
+            elif username:
+                account = authenticate_staff_account(username, password)
             if not account:
                 flash("Wrong username or password.", "error")
                 return _ops_redirect("login")
@@ -1560,9 +1565,6 @@ def ops():
 @platform_bp.route("/admin", methods=["GET","POST"])
 def admin():
     authed = bool(session.get("admin_authed"))
-    if request.method == "GET" and not authed:
-        flash("Use /ops for staff and admin login.", "success")
-        return redirect("/ops")
     if request.method == "POST":
         action = request.form.get("action")
         if action == "login":
