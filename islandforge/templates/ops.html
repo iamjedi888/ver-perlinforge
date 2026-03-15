@@ -15,6 +15,12 @@
 {% macro draft_status_pill(status) -%}
   {% if status == "rejected" %}pill pill-red{% elif status == "pending_review" %}pill pill-amber{% elif status in ("approved", "published") %}pill pill-blue{% else %}pill{% endif %}
 {%- endmacro %}
+{% macro panel_actions() -%}
+  <div class="panel-head__actions">
+    <button type="button" class="panel-head__btn" data-panel-action="compact">Compact</button>
+    <button type="button" class="panel-head__btn panel-head__btn--accent" data-panel-action="maximize">Maximize</button>
+  </div>
+{%- endmacro %}
 
 <nav class="ops-nav">
   {% set brand_href = '/home' %}
@@ -123,6 +129,51 @@
     </div>
   </section>
 
+  <section class="signal-strip panel">
+    <div class="panel-head">
+      <div>
+        <h2>Command Rail</h2>
+        <span class="panel-kicker">LIVE OPS SIGNALS</span>
+      </div>
+      <div class="signal-strip__meta">
+        <span class="{{ role_pill(current_role) }}">{{ current_role_label }}</span>
+        <span class="pill">{{ current_staff_name }}</span>
+      </div>
+    </div>
+    <div class="panel-body signal-strip__body">
+      <article class="signal-capsule {% if ops_metrics.posts %}signal-capsule--hot{% endif %}">
+        <span class="signal-capsule__label">Moderation Heat</span>
+        <strong class="signal-capsule__value">{{ ops_metrics.posts }}</strong>
+        <span class="signal-capsule__copy">{{ "Flags waiting" if ops_metrics.posts else "No flags stacked" }}</span>
+      </article>
+      <article class="signal-capsule">
+        <span class="signal-capsule__label">Crew Registry</span>
+        <strong class="signal-capsule__value">{{ ops_metrics.staff }}</strong>
+        <span class="signal-capsule__copy">named staff accounts</span>
+      </article>
+      <article class="signal-capsule">
+        <span class="signal-capsule__label">Bot Bay</span>
+        <strong class="signal-capsule__value">{{ ops_metrics.bots }}</strong>
+        <span class="signal-capsule__copy">active house personas</span>
+      </article>
+      <article class="signal-capsule {% if ops_metrics.pending_drafts %}signal-capsule--alert{% endif %}">
+        <span class="signal-capsule__label">Draft Pressure</span>
+        <strong class="signal-capsule__value">{{ ops_metrics.pending_drafts }}</strong>
+        <span class="signal-capsule__copy">{{ "needs review" if ops_metrics.pending_drafts else "queue clear" }}</span>
+      </article>
+      <article class="signal-capsule">
+        <span class="signal-capsule__label">Audit Trail</span>
+        <strong class="signal-capsule__value">{{ ops_metrics.audit }}</strong>
+        <span class="signal-capsule__copy">events in memory</span>
+      </article>
+      <article class="signal-capsule">
+        <span class="signal-capsule__label">Legacy Bridge</span>
+        <strong class="signal-capsule__value">{{ legacy_admin_links|length }}</strong>
+        <span class="signal-capsule__copy">admin modules online</span>
+      </article>
+    </div>
+  </section>
+
   <section class="ops-tabs panel">
     <div class="panel-head">
       <h2>Role Modules</h2>
@@ -140,12 +191,15 @@
 
   <div class="ops-grid">
     {% if staff_permissions.staff %}
-    <section class="panel" id="profile-factory">
+    <section class="panel ops-panel ops-panel--factory" id="profile-factory" data-panel-count="2" data-panel-density="medium">
       <div class="panel-head">
-        <h2>Profile Factory</h2>
-        <span class="panel-kicker">CREATE ADMIN / MODERATOR / BOT OPERATOR / USER / BOT</span>
+        <div>
+          <h2>Profile Factory</h2>
+          <span class="panel-kicker">CREATE ADMIN / MODERATOR / BOT OPERATOR / USER / BOT</span>
+        </div>
+        {{ panel_actions() }}
       </div>
-      <div class="panel-body">
+      <div class="panel-body" data-panel-body>
         <p class="section-copy">This is the primary account-and-bot creation lane. Pick the profile kind first, then the form reshapes around that type. Human profiles can have privilege overrides; bot profiles get provider, model, scope, and moderation-surface controls.</p>
         <div class="factory-switcher">
           <label class="field factory-field">
@@ -241,12 +295,15 @@
     </section>
     {% endif %}
 
-    <section class="panel" id="moderation">
+    <section class="panel ops-panel ops-panel--moderation" id="moderation" data-panel-count="{{ moderation_posts|length }}" data-panel-density="{% if moderation_posts %}high{% else %}low{% endif %}">
       <div class="panel-head">
-        <h2>Moderation Bay</h2>
-        <span class="panel-kicker">{{ "ENABLED" if staff_permissions.moderation else "READ ONLY" }}</span>
+        <div>
+          <h2>Moderation Bay</h2>
+          <span class="panel-kicker">{{ "ENABLED" if staff_permissions.moderation else "READ ONLY" }}</span>
+        </div>
+        {{ panel_actions() }}
       </div>
-      <div class="panel-body">
+      <div class="panel-body" data-panel-body>
         <p class="section-copy">Moderators and admins can update or remove member posts from here. This lane is intentionally separate from channels, broadcasts, and system controls.</p>
         {% if staff_permissions.moderation and moderation_posts %}
         <div class="post-stack">
@@ -291,12 +348,15 @@
     </section>
 
     {% if staff_permissions.staff %}
-    <section class="panel" id="staff">
+    <section class="panel ops-panel ops-panel--staff" id="staff" data-panel-count="{{ staff_accounts|length }}" data-panel-density="{% if staff_accounts|length > 4 %}high{% else %}medium{% endif %}">
       <div class="panel-head">
-        <h2>Staff Deck</h2>
-        <span class="panel-kicker">ADMIN ONLY</span>
+        <div>
+          <h2>Staff Deck</h2>
+          <span class="panel-kicker">ADMIN ONLY</span>
+        </div>
+        {{ panel_actions() }}
       </div>
-      <div class="panel-body">
+      <div class="panel-body" data-panel-body>
         <p class="section-copy">Use the Profile Factory above for new accounts. This deck is the roster editor for existing human profiles, including role changes, linked bots, and permission overrides.</p>
         <div class="form-grid two">
           <div class="form-card roster-note">
@@ -387,12 +447,15 @@
     {% endif %}
 
     {% if staff_permissions.bots %}
-    <section class="panel" id="bots">
+    <section class="panel ops-panel ops-panel--bots" id="bots" data-panel-count="{{ bot_profiles|length }}" data-panel-density="{% if bot_profiles|length > 2 %}high{% else %}medium{% endif %}">
       <div class="panel-head">
-        <h2>Bot Workshop</h2>
-        <span class="panel-kicker">{{ "ADMIN + BOT OPS" if current_role == "admin" else "LINKED BOT ONLY" }}</span>
+        <div>
+          <h2>Bot Workshop</h2>
+          <span class="panel-kicker">{{ "ADMIN + BOT OPS" if current_role == "admin" else "LINKED BOT ONLY" }}</span>
+        </div>
+        {{ panel_actions() }}
       </div>
-      <div class="panel-body">
+      <div class="panel-body" data-panel-body>
         <p class="section-copy">Tune scope, tone, language, moderation surfaces, and provider/model selections for house bots like <code>ColorsTheForce</code>. Provider choices are curated from official vendor model catalogs and docs, not scraped live at runtime.</p>
 
         {% if current_role == "admin" %}
@@ -500,12 +563,15 @@
     {% endif %}
 
     {% if staff_permissions.bots %}
-    <section class="panel" id="drafts">
+    <section class="panel ops-panel ops-panel--drafts" id="drafts" data-panel-count="{{ bot_drafts|length }}" data-panel-density="{% if bot_drafts|length > 3 %}high{% elif bot_drafts|length %}medium{% else %}low{% endif %}">
       <div class="panel-head">
-        <h2>Bot Draft Queue</h2>
-        <span class="panel-kicker">{{ "ADMIN REVIEW FLOW" if current_role == "admin" else "LINKED BOT LANE" }}</span>
+        <div>
+          <h2>Bot Draft Queue</h2>
+          <span class="panel-kicker">{{ "ADMIN REVIEW FLOW" if current_role == "admin" else "LINKED BOT LANE" }}</span>
+        </div>
+        {{ panel_actions() }}
       </div>
-      <div class="panel-body">
+      <div class="panel-body" data-panel-body>
         <p class="section-copy">House bots do not post straight to the site. They draft into this lane first, then admin reviews and publishes into announcements or sitewide emergency UI. That keeps the bot useful without giving it silent control-plane power.</p>
 
         <div class="draft-summary-grid">
@@ -699,12 +765,15 @@
     {% endif %}
 
     {% if staff_permissions.admin %}
-    <section class="panel" id="legacy">
+    <section class="panel ops-panel ops-panel--legacy" id="legacy" data-panel-count="{{ legacy_admin_links|length }}" data-panel-density="low">
       <div class="panel-head">
-        <h2>Legacy Admin Bridge</h2>
-        <span class="panel-kicker">FULL SITE CONTROL</span>
+        <div>
+          <h2>Legacy Admin Bridge</h2>
+          <span class="panel-kicker">FULL SITE CONTROL</span>
+        </div>
+        {{ panel_actions() }}
       </div>
-      <div class="panel-body">
+      <div class="panel-body" data-panel-body>
         <p class="section-copy">Channels, broadcasts, announcements, and system surfaces still live in the existing admin shell. This bridge keeps the new role-aware console separate from the older full-control modules.</p>
         <div class="link-grid">
           {% for item in legacy_admin_links %}
@@ -718,12 +787,15 @@
     </section>
     {% endif %}
 
-    <section class="panel" id="audit">
+    <section class="panel ops-panel ops-panel--audit" id="audit" data-panel-count="{{ audit_rows|length }}" data-panel-density="{% if audit_rows|length > 10 %}high{% else %}medium{% endif %}">
       <div class="panel-head">
-        <h2>Audit Rail</h2>
-        <span class="panel-kicker">LAST 40 EVENTS</span>
+        <div>
+          <h2>Audit Rail</h2>
+          <span class="panel-kicker">LAST 40 EVENTS</span>
+        </div>
+        {{ panel_actions() }}
       </div>
-      <div class="panel-body">
+      <div class="panel-body" data-panel-body>
         <div class="table-wrap">
           <table>
             <thead>

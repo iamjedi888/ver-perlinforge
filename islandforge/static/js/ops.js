@@ -92,41 +92,41 @@
   });
 
   const kindSelect = document.querySelector("[data-profile-kind-select]");
-  if (!kindSelect) return;
+  if (kindSelect) {
+    const kindCopy = document.querySelector("[data-profile-kind-copy]");
+    const humanPanel = document.querySelector('[data-profile-kind-panel="human"]');
+    const botPanel = document.querySelector('[data-profile-kind-panel="bot"]');
+    const roleInput = document.querySelector("[data-profile-role-input]");
+    const permissionInputs = Array.from(document.querySelectorAll("[data-permission-key]"));
 
-  const kindCopy = document.querySelector("[data-profile-kind-copy]");
-  const humanPanel = document.querySelector('[data-profile-kind-panel="human"]');
-  const botPanel = document.querySelector('[data-profile-kind-panel="bot"]');
-  const roleInput = document.querySelector("[data-profile-role-input]");
-  const permissionInputs = Array.from(document.querySelectorAll("[data-permission-key]"));
+    const kindText = {
+      admin: "Admin opens the full control plane, including channels, broadcasts, staff, bots, and system modules.",
+      moderator: "Moderator focuses on community cleanup and post safety without broader site-control access.",
+      bot_operator: "Bot Operator is the human login for a linked bot profile like ColorsTheForce and can be given moderation overrides when needed.",
+      user: "User is a low-privilege internal profile for observation, QA, or future limited workflows.",
+      bot: "Bot creates a site-owned AI profile with provider, model, scope, and guardrail controls.",
+    };
 
-  const kindText = {
-    admin: "Admin opens the full control plane, including channels, broadcasts, staff, bots, and system modules.",
-    moderator: "Moderator focuses on community cleanup and post safety without broader site-control access.",
-    bot_operator: "Bot Operator is the human login for a linked bot profile like ColorsTheForce and can be given moderation overrides when needed.",
-    user: "User is a low-privilege internal profile for observation, QA, or future limited workflows.",
-    bot: "Bot creates a site-owned AI profile with provider, model, scope, and guardrail controls.",
-  };
+    function applyRoleDefaults(role) {
+      const defaults = roleDefaults[role] || {};
+      permissionInputs.forEach((input) => {
+        input.checked = Boolean(defaults[input.dataset.permissionKey]);
+      });
+    }
 
-  function applyRoleDefaults(role) {
-    const defaults = roleDefaults[role] || {};
-    permissionInputs.forEach((input) => {
-      input.checked = Boolean(defaults[input.dataset.permissionKey]);
-    });
+    function syncProfileKind() {
+      const kind = kindSelect.value || "admin";
+      const isBot = kind === "bot";
+      if (humanPanel) humanPanel.hidden = isBot;
+      if (botPanel) botPanel.hidden = !isBot;
+      if (roleInput) roleInput.value = isBot ? "" : kind;
+      if (kindCopy) kindCopy.textContent = kindText[kind] || "";
+      if (!isBot) applyRoleDefaults(kind);
+    }
+
+    kindSelect.addEventListener("change", syncProfileKind);
+    syncProfileKind();
   }
-
-  function syncProfileKind() {
-    const kind = kindSelect.value || "admin";
-    const isBot = kind === "bot";
-    if (humanPanel) humanPanel.hidden = isBot;
-    if (botPanel) botPanel.hidden = !isBot;
-    if (roleInput) roleInput.value = isBot ? "" : kind;
-    if (kindCopy) kindCopy.textContent = kindText[kind] || "";
-    if (!isBot) applyRoleDefaults(kind);
-  }
-
-  kindSelect.addEventListener("change", syncProfileKind);
-  syncProfileKind();
 
   function syncDraftSurface(form) {
     const select = form.querySelector("[data-surface-select]");
@@ -145,4 +145,60 @@
     });
     syncDraftSurface(form);
   });
+
+  const opsGrid = document.querySelector(".ops-grid");
+  const opsPanels = Array.from(document.querySelectorAll(".ops-panel"));
+
+  function panelRowSpan(panel) {
+    if (!opsGrid || !panel) return;
+    const computed = window.getComputedStyle(opsGrid);
+    const rowSize = parseFloat(computed.getPropertyValue("grid-auto-rows")) || 10;
+    const gap = parseFloat(computed.getPropertyValue("gap")) || 14;
+    const height = panel.getBoundingClientRect().height;
+    const span = Math.max(18, Math.ceil((height + gap) / (rowSize + gap)));
+    panel.style.gridRowEnd = "span " + span;
+  }
+
+  function syncPanelDensity(panel) {
+    const count = Number(panel.dataset.panelCount || "0");
+    panel.classList.remove("ops-panel--compact", "ops-panel--highlight");
+    if (count === 0) {
+      panel.classList.add("ops-panel--compact");
+    }
+    if (count > 0) {
+      panel.classList.add("ops-panel--highlight");
+    }
+  }
+
+  function syncOpsPanels() {
+    opsPanels.forEach((panel) => {
+      syncPanelDensity(panel);
+      panelRowSpan(panel);
+    });
+  }
+
+  opsPanels.forEach((panel) => {
+    panel.querySelectorAll("[data-panel-action]").forEach((button) => {
+      button.addEventListener("click", function () {
+        const action = button.getAttribute("data-panel-action");
+        if (action === "maximize") {
+          panel.classList.toggle("ops-panel--maximized");
+        }
+        if (action === "compact") {
+          panel.classList.toggle("ops-panel--compact");
+        }
+        syncOpsPanels();
+      });
+    });
+  });
+
+  if (typeof ResizeObserver !== "undefined" && opsPanels.length) {
+    const observer = new ResizeObserver(() => {
+      syncOpsPanels();
+    });
+    opsPanels.forEach((panel) => observer.observe(panel));
+  }
+
+  window.addEventListener("resize", syncOpsPanels);
+  syncOpsPanels();
 })();
