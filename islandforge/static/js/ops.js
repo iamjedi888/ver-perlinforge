@@ -103,6 +103,7 @@
   const kindText = {
     admin: "Admin opens the full control plane, including channels, broadcasts, staff, bots, and system modules.",
     moderator: "Moderator focuses on community cleanup and post safety without broader site-control access.",
+    bot_operator: "Bot Operator is the human login for a linked bot profile like ColorsTheForce and can be given moderation overrides when needed.",
     user: "User is a low-privilege internal profile for observation, QA, or future limited workflows.",
     bot: "Bot creates a site-owned AI profile with provider, model, scope, and guardrail controls.",
   };

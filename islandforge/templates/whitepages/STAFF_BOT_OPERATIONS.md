@@ -68,6 +68,7 @@ Admin can choose:
 
 - `Admin`
 - `Moderator`
+- `Bot Operator`
 - `User`
 - `Bot`
 
@@ -77,6 +78,26 @@ Behavior:
 - bot profile kind creates the bot identity and model configuration
 - privilege overrides can grant or remove capabilities from the human defaults
 - linked bot operators can be created separately for bot maintenance
+
+## Recovery and Bootstrap
+
+If the root admin password is lost, do not depend on old txt files.
+
+Use the terminal account manager:
+
+```bash
+python tools/manage_ops_accounts.py list
+python tools/manage_ops_accounts.py upsert-staff --username owner --display-name "Owner" --role admin --generate-password
+python tools/manage_ops_accounts.py reset-password --username owner --generate-password
+python tools/manage_ops_accounts.py ensure-colorstheforce --generate-password --allow-moderation
+```
+
+What this gives you:
+
+- a named admin login for yourself
+- named moderator or internal staff accounts for hired operators
+- a linked `ColorsTheForce` bot-operator login
+- a clean password-reset path without editing code or relying on fallback secrets
 
 ## ColorsTheForce
 

@@ -506,10 +506,11 @@
       <h3>Ops surface</h3>
       <ul>
         <li><code>/ops</code> is the role-aware login and dashboard for staff accounts.</li>
-        <li>The top-level <code>Profile Factory</code> creates <code>Admin</code>, <code>Moderator</code>, <code>User</code>, or <code>Bot</code> profiles from one module.</li>
+        <li>The top-level <code>Profile Factory</code> creates <code>Admin</code>, <code>Moderator</code>, <code>Bot Operator</code>, <code>User</code>, or <code>Bot</code> profiles from one module.</li>
         <li>The <code>Bot Draft Queue</code> now keeps house bots in a draft -&gt; review -&gt; publish lane instead of letting them post directly to live surfaces.</li>
         <li>The old <code>/admin</code> route remains the legacy full-control console and should stay admin-only.</li>
         <li>Leave the username blank and use the root admin password only as a fallback, not as the long-term staff model.</li>
+        <li>Use <code>tools/manage_ops_accounts.py</code> to create or reset named admin, moderator, and linked bot-operator logins from the terminal when recovery is needed.</li>
       </ul>
       <h3>Provider catalog design</h3>
       <ul>

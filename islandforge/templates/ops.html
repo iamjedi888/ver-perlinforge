@@ -135,7 +135,7 @@
     <section class="panel" id="profile-factory">
       <div class="panel-head">
         <h2>Profile Factory</h2>
-        <span class="panel-kicker">CREATE ADMIN / MODERATOR / USER / BOT</span>
+        <span class="panel-kicker">CREATE ADMIN / MODERATOR / BOT OPERATOR / USER / BOT</span>
       </div>
       <div class="panel-body">
         <p class="section-copy">This is the primary account-and-bot creation lane. Pick the profile kind first, then the form reshapes around that type. Human profiles can have privilege overrides; bot profiles get provider, model, scope, and moderation-surface controls.</p>
@@ -145,12 +145,13 @@
             <select id="profileKindSelect" data-profile-kind-select>
               <option value="admin">Admin</option>
               <option value="moderator">Moderator</option>
+              <option value="bot_operator">Bot Operator</option>
               <option value="user">User</option>
               <option value="bot">Bot</option>
             </select>
           </label>
           <div class="helper-text" data-profile-kind-copy>
-            Admin opens the full control plane. Moderator is content-focused. User is a low-privilege internal profile. Bot creates a house-bot profile like ColorsTheForce.
+            Admin opens the full control plane. Moderator is content-focused. Bot Operator is the human login linked to a bot like ColorsTheForce. User is a low-privilege internal profile. Bot creates the site-owned AI profile itself.
           </div>
         </div>
 
