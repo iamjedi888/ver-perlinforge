@@ -122,8 +122,21 @@
         <div class="nexus-core">
           <span class="nexus-core__eyebrow">Octopus chart</span>
           <div class="nexus-core__ring">
-            <span class="nexus-core__title">TRIPTOKFORGE</span>
-            <span class="nexus-core__sub">member nexus</span>
+            <svg class="nexus-core__radar" viewBox="0 0 240 240" aria-hidden="true">
+              <polygon class="nexus-core__mesh" points="120,28 199.67,74 199.67,166 120,212 40.33,166 40.33,74"></polygon>
+              <polygon class="nexus-core__mesh nexus-core__mesh--inner" points="120,58 173.69,89 173.69,151 120,182 66.31,151 66.31,89"></polygon>
+              <line class="nexus-core__axis" x1="120" y1="120" x2="120" y2="28"></line>
+              <line class="nexus-core__axis" x1="120" y1="120" x2="199.67" y2="74"></line>
+              <line class="nexus-core__axis" x1="120" y1="120" x2="199.67" y2="166"></line>
+              <line class="nexus-core__axis" x1="120" y1="120" x2="120" y2="212"></line>
+              <line class="nexus-core__axis" x1="120" y1="120" x2="40.33" y2="166"></line>
+              <line class="nexus-core__axis" x1="120" y1="120" x2="40.33" y2="74"></line>
+              <polygon id="nexusRadarPlot" class="nexus-core__plot" points="120,72 167.63,92.5 171.96,150 120,162.4 55.91,157 66.31,89"></polygon>
+            </svg>
+            <div class="nexus-core__center">
+              <span class="nexus-core__title">TRIPTOKFORGE</span>
+              <span class="nexus-core__sub">member nexus</span>
+            </div>
           </div>
         </div>
         <article class="nexus-node">
@@ -148,6 +161,83 @@
         </article>
       </div>
     </section>
+  </section>
+
+  <section class="panel-shell panel-telemetry" id="telemetry">
+    <div class="section-head">
+      <div>
+        <span class="section-head__kicker">Telemetry Deck</span>
+        <h2>Trend lines, category mix, and backend readiness</h2>
+      </div>
+      <button class="section-head__button" type="button" onclick="loadTelemetry()">Refresh deck</button>
+    </div>
+    <div class="telemetry-grid">
+      <article class="telemetry-card telemetry-card--timeline">
+        <div class="telemetry-card__head">
+          <div>
+            <span class="telemetry-card__kicker">Activity Timeline</span>
+            <strong class="telemetry-card__title">Recent platform movement</strong>
+          </div>
+          <span class="telemetry-card__meta" id="activityMeta">Last 7 days</span>
+        </div>
+        <div class="timeline-shell">
+          <svg id="activityChart" class="timeline-chart" viewBox="0 0 720 240" preserveAspectRatio="none" aria-label="Activity chart"></svg>
+        </div>
+        <div class="timeline-legend" id="activityLegend">
+          <div class="chart-loading">Loading timeline...</div>
+        </div>
+      </article>
+
+      <article class="telemetry-card telemetry-card--volume">
+        <div class="telemetry-card__head">
+          <div>
+            <span class="telemetry-card__kicker">Volume Board</span>
+            <strong class="telemetry-card__title">Surface totals</strong>
+          </div>
+        </div>
+        <div class="mix-list" id="volumeBoard">
+          <div class="chart-loading">Loading board...</div>
+        </div>
+      </article>
+
+      <article class="telemetry-card telemetry-card--channels">
+        <div class="telemetry-card__head">
+          <div>
+            <span class="telemetry-card__kicker">Live Guide Mix</span>
+            <strong class="telemetry-card__title">Channel categories</strong>
+          </div>
+        </div>
+        <div class="mix-list" id="channelMix">
+          <div class="chart-loading">Loading channel mix...</div>
+        </div>
+      </article>
+
+      <article class="telemetry-card telemetry-card--forge">
+        <div class="telemetry-card__head">
+          <div>
+            <span class="telemetry-card__kicker">Forge Spectrum</span>
+            <strong class="telemetry-card__title">Audio weight profile</strong>
+          </div>
+          <span class="telemetry-card__meta" id="forgeSpectrumScope">Member weighted</span>
+        </div>
+        <div class="spectrum-list" id="forgeSpectrum">
+          <div class="chart-loading">Loading spectrum...</div>
+        </div>
+      </article>
+
+      <article class="telemetry-card telemetry-card--systems">
+        <div class="telemetry-card__head">
+          <div>
+            <span class="telemetry-card__kicker">Systems Matrix</span>
+            <strong class="telemetry-card__title">Readiness map</strong>
+          </div>
+        </div>
+        <div class="system-matrix" id="systemMatrix">
+          <div class="chart-loading">Loading matrix...</div>
+        </div>
+      </article>
+    </div>
+    <div class="telemetry-notes" id="telemetryNotes"></div>
   </section>
 
   <section class="member-grid">
@@ -189,6 +279,21 @@
           <span class="stat-card__label">Avg elims</span>
           <strong class="stat-card__value" id="s-avgelim">--</strong>
           <span class="stat-card__meter"><span class="stat-card__fill" id="m-avgelim"></span></span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">Score</span>
+          <strong class="stat-card__value" id="s-score">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-score"></span></span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">Top 5</span>
+          <strong class="stat-card__value" id="s-top5">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-top5"></span></span>
+        </article>
+        <article class="stat-card">
+          <span class="stat-card__label">Top 10</span>
+          <strong class="stat-card__value" id="s-top10">--</strong>
+          <span class="stat-card__meter"><span class="stat-card__fill" id="m-top10"></span></span>
         </article>
       </div>
       <div class="stats-foot">

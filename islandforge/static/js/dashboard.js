@@ -16,8 +16,13 @@ function getDisplayName() {
     return document.body.dataset.displayName || "";
 }
 
+function toNumber(value) {
+    const numeric = parseFloat(String(value || "0").replace(/[%,$]/g, "").replace(/,/g, ""));
+    return Number.isFinite(numeric) ? numeric : 0;
+}
+
 function normalizePercent(value, maxValue) {
-    const numeric = parseFloat(String(value || "0").replace("%", ""));
+    const numeric = toNumber(value);
     if (!Number.isFinite(numeric) || maxValue <= 0) {
         return 0;
     }
@@ -28,6 +33,29 @@ function setMeter(id, value, maxValue) {
     const meter = document.getElementById(id);
     if (!meter) return;
     meter.style.width = `${normalizePercent(value, maxValue)}%`;
+}
+
+function polygonPoint(cx, cy, radius, index, total, factor) {
+    const angle = (-Math.PI / 2) + ((Math.PI * 2) / total) * index;
+    return [
+        cx + Math.cos(angle) * radius * factor,
+        cy + Math.sin(angle) * radius * factor,
+    ];
+}
+
+function updateNexusRadar(stats) {
+    const plot = document.getElementById("nexusRadarPlot");
+    if (!plot) return;
+    const values = [
+        Math.min(toNumber(stats.wins) / 500, 1),
+        Math.min(toNumber(stats.kd) / 10, 1),
+        Math.min(toNumber(stats.matches) / 5000, 1),
+        Math.min(toNumber(stats.kills) / 10000, 1),
+        Math.min(toNumber(stats.winPct) / 100, 1),
+        Math.min(toNumber(stats.avgElim) / 10, 1),
+    ];
+    const points = values.map((value, index) => polygonPoint(120, 120, 92, index, values.length, Math.max(0.18, value)));
+    plot.setAttribute("points", points.map((point) => `${point[0].toFixed(2)},${point[1].toFixed(2)}`).join(" "));
 }
 
 function renderServices(services) {
@@ -52,6 +80,140 @@ function renderServices(services) {
     }).join("");
 }
 
+function buildLinePath(points) {
+    if (!points.length) return "";
+    return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point[0]} ${point[1]}`).join(" ");
+}
+
+function renderTimelineChart(timeline) {
+    const svg = document.getElementById("activityChart");
+    const legend = document.getElementById("activityLegend");
+    const meta = document.getElementById("activityMeta");
+    if (!svg || !legend || !timeline) return;
+
+    const labels = timeline.labels || [];
+    const series = timeline.series || [];
+    const width = 720;
+    const height = 240;
+    const padding = { top: 18, right: 18, bottom: 34, left: 26 };
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+    const maxValue = Math.max(1, ...series.flatMap((item) => item.values || []));
+    const stepX = labels.length > 1 ? plotWidth / (labels.length - 1) : plotWidth;
+
+    const parts = [];
+    for (let index = 0; index <= 4; index += 1) {
+        const y = padding.top + (plotHeight / 4) * index;
+        parts.push(`<line class="timeline-grid-line" x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}"></line>`);
+    }
+    parts.push(`<line class="timeline-baseline" x1="${padding.left}" y1="${height - padding.bottom}" x2="${width - padding.right}" y2="${height - padding.bottom}"></line>`);
+
+    labels.forEach((label, index) => {
+        const x = padding.left + stepX * index;
+        parts.push(`<text class="timeline-label" x="${x}" y="${height - 10}" text-anchor="middle">${escapeHtml(label)}</text>`);
+    });
+
+    series.forEach((item) => {
+        const points = (item.values || []).map((value, index) => {
+            const x = padding.left + stepX * index;
+            const y = padding.top + plotHeight - ((value / maxValue) * plotHeight);
+            return [x.toFixed(2), y.toFixed(2), value];
+        });
+        parts.push(`<path class="timeline-line" stroke="${item.color || "#31d0ff"}" d="${buildLinePath(points)}"></path>`);
+        points.forEach((point) => {
+            parts.push(`<circle class="timeline-point" cx="${point[0]}" cy="${point[1]}" r="4" fill="${item.color || "#31d0ff"}"></circle>`);
+        });
+    });
+
+    svg.innerHTML = parts.join("");
+    meta.textContent = `Last ${labels.length || 0} days`;
+    legend.innerHTML = series.map((item) => {
+        const values = item.values || [];
+        const latest = values.length ? values[values.length - 1] : 0;
+        return `<div class="timeline-legend__item">
+      <span class="timeline-legend__swatch" style="background:${escapeHtml(item.color || "#31d0ff")}"></span>
+      <span class="timeline-legend__label">${escapeHtml(item.label)}</span>
+      <strong class="timeline-legend__value">${latest}</strong>
+    </div>`;
+    }).join("");
+}
+
+function renderMixList(containerId, items, metaBuilder) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!items || !items.length) {
+        container.innerHTML = '<div class="chart-loading">No mix data is available yet.</div>';
+        return;
+    }
+    const maxValue = Math.max(1, ...items.map((item) => Number(item.value || 0)));
+    container.innerHTML = items.map((item) => {
+        const width = Math.max(10, Math.min(100, (Number(item.value || 0) / maxValue) * 100));
+        return `<div class="mix-row">
+      <div class="mix-row__top">
+        <div>
+          <span class="mix-row__label">${escapeHtml(item.label)}</span>
+        </div>
+        <strong class="mix-row__value">${Number(item.value || 0)}</strong>
+      </div>
+      <span class="mix-row__meter"><span class="mix-row__fill" style="width:${width}%"></span></span>
+      <span class="mix-row__meta">${escapeHtml(metaBuilder ? metaBuilder(item) : "")}</span>
+    </div>`;
+    }).join("");
+}
+
+function renderSpectrum(metrics, scope, sampleSize) {
+    const container = document.getElementById("forgeSpectrum");
+    const scopeNode = document.getElementById("forgeSpectrumScope");
+    if (!container || !scopeNode) return;
+
+    if (!metrics || !metrics.length) {
+        container.innerHTML = '<div class="chart-loading">No forge spectrum is available yet.</div>';
+        scopeNode.textContent = "No spectrum";
+        return;
+    }
+
+    scopeNode.textContent = `${scope === "member" ? "Member weighted" : "Site weighted"} | ${sampleSize} sample${sampleSize === 1 ? "" : "s"}`;
+    container.innerHTML = metrics.map((metric) => `
+      <div class="spectrum-row">
+        <div class="spectrum-row__top">
+          <span class="spectrum-row__label">${escapeHtml(metric.label)}</span>
+          <strong class="spectrum-row__value">${Number(metric.value || 0)}%</strong>
+        </div>
+        <span class="spectrum-row__meter"><span class="spectrum-row__fill" style="width:${Math.max(8, metric.value || 0)}%"></span></span>
+      </div>
+    `).join("");
+}
+
+function renderSystemMatrix(items) {
+    const container = document.getElementById("systemMatrix");
+    if (!container) return;
+    if (!items || !items.length) {
+        container.innerHTML = '<div class="chart-loading">No system matrix is available yet.</div>';
+        return;
+    }
+    container.innerHTML = items.map((item) => {
+        const statusClass = String(item.status || "pending").replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
+        return `<article class="system-tile system-tile--${statusClass}">
+      <div class="system-tile__top">
+        <span class="system-tile__label">${escapeHtml(item.label)}</span>
+        <span class="system-tile__badge">${escapeHtml(item.status)}</span>
+      </div>
+      <strong class="system-tile__value">${escapeHtml(item.value)}</strong>
+      <p class="system-tile__detail">${escapeHtml(item.detail)}</p>
+    </article>`;
+    }).join("");
+}
+
+function renderTelemetryNotes(notes) {
+    const container = document.getElementById("telemetryNotes");
+    if (!container) return;
+    if (!notes || !notes.length) {
+        container.innerHTML = "";
+        return;
+    }
+    container.innerHTML = notes.map((note) => `<div class="telemetry-note">${escapeHtml(note)}</div>`).join("");
+}
+
 async function loadStats() {
     const msg = document.getElementById("statsMsg");
     if (msg) {
@@ -73,6 +235,9 @@ async function loadStats() {
             "s-kills": stats.kills || "--",
             "s-winpct": stats.winPct || "--",
             "s-avgelim": stats.avgElim || "--",
+            "s-score": stats.score || "--",
+            "s-top5": stats.top5 || "--",
+            "s-top10": stats.top10 || "--",
         };
         Object.entries(statMap).forEach(([id, value]) => {
             const node = document.getElementById(id);
@@ -92,6 +257,10 @@ async function loadStats() {
         setMeter("m-kills", stats.kills, 10000);
         setMeter("m-winpct", stats.winPct, 100);
         setMeter("m-avgelim", stats.avgElim, 10);
+        setMeter("m-score", stats.score, 1000000);
+        setMeter("m-top5", stats.top5, 2000);
+        setMeter("m-top10", stats.top10, 4000);
+        updateNexusRadar(stats);
 
         if (msg) {
             msg.textContent = data.source === "mock"
@@ -150,6 +319,37 @@ async function loadEcosystem() {
             msg.textContent = "Ecosystem radar is unavailable right now. Core member tools are still live.";
         }
         renderServices([]);
+    }
+}
+
+async function loadTelemetry() {
+    try {
+        const response = await fetch("/api/dashboard/telemetry");
+        const data = await response.json();
+        if (!data.ok) {
+            throw new Error("telemetry unavailable");
+        }
+
+        renderTimelineChart(data.timeline || {});
+        renderMixList("volumeBoard", data.volume_mix || [], (item) => `${item.label} routed through the current site stack.`);
+        renderMixList("channelMix", data.channel_mix || [], (item) => `${item.share || 0}% of the visible live guide mix.`);
+
+        const forge = data.forge_spectrum || {};
+        renderSpectrum(forge.metrics || [], forge.scope || "site", forge.sample_size || 0);
+        renderSystemMatrix(data.system_matrix || []);
+        renderTelemetryNotes(data.notes || []);
+    } catch (error) {
+        const fallback = '<div class="chart-loading">Telemetry deck is unavailable right now.</div>';
+        ["volumeBoard", "channelMix", "forgeSpectrum", "systemMatrix", "telemetryNotes"].forEach((id) => {
+            const node = document.getElementById(id);
+            if (node) {
+                node.innerHTML = fallback;
+            }
+        });
+        const activityLegend = document.getElementById("activityLegend");
+        const activityChart = document.getElementById("activityChart");
+        if (activityLegend) activityLegend.innerHTML = fallback;
+        if (activityChart) activityChart.innerHTML = "";
     }
 }
 
@@ -222,11 +422,13 @@ async function selectSkin(button, id, name, img) {
 
 window.loadStats = loadStats;
 window.loadEcosystem = loadEcosystem;
+window.loadTelemetry = loadTelemetry;
 window.filterSkins = filterSkins;
 window.selectSkin = selectSkin;
 
 document.addEventListener("DOMContentLoaded", function () {
     loadStats();
     loadEcosystem();
+    loadTelemetry();
     loadSkins();
 });

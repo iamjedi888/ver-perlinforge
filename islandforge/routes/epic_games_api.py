@@ -8,6 +8,7 @@ import random
 import time
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request, session
 
@@ -313,6 +314,245 @@ def _ecosystem_services(platform: dict, shop: dict) -> list[dict]:
     ]
 
 
+def _coerce_datetime(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    normalized = text.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        pass
+
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _rolling_daily_series(rows, key: str, days: int = 7) -> dict:
+    today = datetime.utcnow().date()
+    dates = [today - timedelta(days=offset) for offset in range(days - 1, -1, -1)]
+    counts = {date: 0 for date in dates}
+
+    for row in rows or []:
+        dt = _coerce_datetime((row or {}).get(key))
+        if not dt:
+            continue
+        day = dt.date()
+        if day in counts:
+            counts[day] += 1
+
+    labels = [f"{date.strftime('%b')} {date.day}" for date in dates]
+    values = [counts[date] for date in dates]
+    return {"labels": labels, "values": values}
+
+
+def _channel_mix(channels, limit: int = 6) -> list[dict]:
+    counts = {}
+    for channel in channels or []:
+        label = (channel.get("category") or "Other").strip() or "Other"
+        counts[label] = counts.get(label, 0) + 1
+
+    ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]
+    total = sum(count for _, count in ranked) or 1
+    return [
+        {
+            "label": label,
+            "value": count,
+            "share": round((count / total) * 100, 1),
+        }
+        for label, count in ranked
+    ]
+
+
+def _volume_mix(platform: dict, uploads_total: int) -> list[dict]:
+    items = [
+        ("Members", platform.get("members", 0)),
+        ("Channels", platform.get("channels", 0)),
+        ("Posts", platform.get("posts", 0)),
+        ("Islands", platform.get("islands", 0)),
+        ("Uploads", uploads_total),
+        ("Announcements", platform.get("announcements", 0)),
+    ]
+    return [{"label": label, "value": int(value or 0)} for label, value in items]
+
+
+def _forge_spectrum(account_id: str) -> dict:
+    try:
+        from oracle_db import get_audio_tracks
+
+        uploads = get_audio_tracks(account_id) if account_id else []
+        scope = "member"
+        if not uploads:
+            uploads = (get_audio_tracks() or [])[:24]
+            scope = "site"
+    except Exception:
+        uploads = []
+        scope = "site"
+
+    labels = [
+        ("sub_bass", "Sub Bass"),
+        ("bass", "Bass"),
+        ("midrange", "Midrange"),
+        ("presence", "Presence"),
+        ("brilliance", "Brilliance"),
+    ]
+    if not uploads:
+        return {
+            "scope": scope,
+            "sample_size": 0,
+            "metrics": [{"id": key, "label": label, "value": 0} for key, label in labels],
+        }
+
+    sample_size = len(uploads)
+    metrics = []
+    for key, label in labels:
+        total = 0.0
+        for item in uploads:
+            weights = item.get("weights") or {}
+            total += _safe_float(weights.get(key), 0.0)
+        average = total / sample_size if sample_size else 0.0
+        metrics.append(
+            {
+                "id": key,
+                "label": label,
+                "value": round(max(0.0, min(average, 1.0)) * 100),
+            }
+        )
+    return {"scope": scope, "sample_size": sample_size, "metrics": metrics}
+
+
+def _system_matrix(platform: dict, shop: dict) -> list[dict]:
+    try:
+        from oracle_db import status as oracle_status
+
+        system = oracle_status()
+    except Exception:
+        system = {}
+
+    try:
+        from routes.epic_auth_config import epic_auth_ready, get_epic_auth_config
+
+        epic_ready = epic_auth_ready(get_epic_auth_config())
+    except Exception:
+        epic_ready = False
+
+    stats_ready = bool(os.environ.get("FORTNITE_API_KEY", "").strip())
+    island_code = os.environ.get("FORTNITE_DATA_ISLAND_CODE", "").strip()
+
+    return [
+        {
+            "label": "Oracle",
+            "value": "LIVE" if system.get("oracle_online") else "WAIT",
+            "status": "ready" if system.get("oracle_online") else "degraded",
+            "detail": "Core member, feed, channel, and island data.",
+        },
+        {
+            "label": "OCI",
+            "value": "READY" if system.get("oci_config") else "SETUP",
+            "status": "ready" if system.get("oci_config") else "pending",
+            "detail": "Storage path for media and generated outputs.",
+        },
+        {
+            "label": "Epic Auth",
+            "value": "READY" if epic_ready else "PEND",
+            "status": "ready" if epic_ready else "pending",
+            "detail": "Production Epic login handoff and member auth.",
+        },
+        {
+            "label": "BR Stats",
+            "value": "LIVE" if stats_ready else "KEY",
+            "status": "ready" if stats_ready else "watch-ready",
+            "detail": "Player stat lookups through keyed Fortnite data.",
+        },
+        {
+            "label": "Island API",
+            "value": island_code or "ADD",
+            "status": "ready" if island_code else "watch-ready",
+            "detail": "Official public island analytics after publish.",
+        },
+        {
+            "label": "Shop Feed",
+            "value": str(shop.get("entries") or 0),
+            "status": "ready" if shop.get("ok") else "degraded",
+            "detail": "Public Fortnite item shop and cosmetics feed.",
+        },
+    ]
+
+
+def _dashboard_telemetry(account_id: str) -> dict:
+    try:
+        from oracle_db import (
+            get_all_members,
+            get_announcements,
+            get_audio_tracks,
+            get_channels,
+            get_posts,
+            get_recent_islands,
+        )
+
+        members = get_all_members() or []
+        uploads = get_audio_tracks() or []
+        channels = get_channels() or []
+        posts = get_posts(limit=250) or []
+        islands = get_recent_islands(limit=250) or []
+        announcements = get_announcements() or []
+    except Exception:
+        members = []
+        uploads = []
+        channels = []
+        posts = []
+        islands = []
+        announcements = []
+
+    platform = {
+        "members": len(members),
+        "announcements": len(announcements),
+        "channels": len(channels),
+        "posts": len(posts),
+        "islands": len(islands),
+    }
+    shop = _shop_signal()
+
+    member_series = _rolling_daily_series(
+        [{"created_at": item.get("last_seen")} for item in members],
+        "created_at",
+    )
+    upload_series = _rolling_daily_series(uploads, "created_at")
+    island_series = _rolling_daily_series(islands, "created_at")
+    post_series = _rolling_daily_series(posts, "created_at")
+
+    return {
+        "timeline": {
+            "labels": upload_series["labels"],
+            "series": [
+                {"id": "members", "label": "Member activity", "values": member_series["values"], "color": "#31d0ff"},
+                {"id": "uploads", "label": "Audio uploads", "values": upload_series["values"], "color": "#ff7431"},
+                {"id": "islands", "label": "Island saves", "values": island_series["values"], "color": "#8aff80"},
+                {"id": "posts", "label": "Feed posts", "values": post_series["values"], "color": "#ffd166"},
+            ],
+        },
+        "volume_mix": _volume_mix(platform, len(uploads)),
+        "channel_mix": _channel_mix(channels),
+        "forge_spectrum": _forge_spectrum(account_id),
+        "system_matrix": _system_matrix(platform, shop),
+        "notes": [
+            "Timeline is built from recent site activity already stored in Oracle.",
+            "Forge spectrum averages the current member uploads first, then falls back to site audio.",
+            "Readiness cards follow live backend config instead of static copy.",
+        ],
+    }
+
+
 @epic_api_bp.route("/stats")
 def stats():
     name = (request.args.get("name") or "").strip()
@@ -393,6 +633,17 @@ def ecosystem_summary():
             ],
         }
     )
+
+
+@epic_api_bp.route("/dashboard/telemetry")
+def dashboard_telemetry():
+    account_id = (
+        session.get("epic_account_id")
+        or session.get("account_id")
+        or session.get("epic_id")
+        or ""
+    )
+    return jsonify({"ok": True, **_dashboard_telemetry(account_id)})
 
 
 @epic_api_bp.route("/set_skin", methods=["POST"])
