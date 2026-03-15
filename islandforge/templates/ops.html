@@ -79,11 +79,61 @@
 </main>
 {% else %}
 <main class="shell ops-shell">
+  <section class="market-strip panel" aria-label="Operations ticker">
+    <div class="market-strip__viewport">
+      <div class="market-strip__track">
+        {% for _ in range(2) %}
+        <article class="ticker-pill {% if ops_metrics.posts %}ticker-pill--alert{% endif %}">
+          <span class="ticker-pill__label">Moderation Heat</span>
+          <strong class="ticker-pill__value">{{ ops_metrics.posts }}</strong>
+          <span class="ticker-pill__meta">{{ "Flags waiting" if ops_metrics.posts else "Deck clear" }}</span>
+        </article>
+        <article class="ticker-pill">
+          <span class="ticker-pill__label">Crew Registry</span>
+          <strong class="ticker-pill__value">{{ ops_metrics.staff }}</strong>
+          <span class="ticker-pill__meta">Named staff accounts</span>
+        </article>
+        <article class="ticker-pill">
+          <span class="ticker-pill__label">Bot Bay</span>
+          <strong class="ticker-pill__value">{{ ops_metrics.bots }}</strong>
+          <span class="ticker-pill__meta">House personas online</span>
+        </article>
+        <article class="ticker-pill {% if ops_metrics.pending_drafts %}ticker-pill--hot{% endif %}">
+          <span class="ticker-pill__label">Draft Pressure</span>
+          <strong class="ticker-pill__value">{{ ops_metrics.pending_drafts }}</strong>
+          <span class="ticker-pill__meta">{{ "Review queue live" if ops_metrics.pending_drafts else "Review queue calm" }}</span>
+        </article>
+        <article class="ticker-pill">
+          <span class="ticker-pill__label">Audit Rail</span>
+          <strong class="ticker-pill__value">{{ ops_metrics.audit }}</strong>
+          <span class="ticker-pill__meta">Control-plane recorder</span>
+        </article>
+        <article class="ticker-pill">
+          <span class="ticker-pill__label">Legacy Bridge</span>
+          <strong class="ticker-pill__value">{{ legacy_admin_links|length }}</strong>
+          <span class="ticker-pill__meta">Heavy modules online</span>
+        </article>
+        <article class="ticker-pill ticker-pill--blue">
+          <span class="ticker-pill__label">Role Vector</span>
+          <strong class="ticker-pill__value">{{ current_role_label }}</strong>
+          <span class="ticker-pill__meta">{{ current_staff_name }}</span>
+        </article>
+        {% if linked_bot_slug %}
+        <article class="ticker-pill ticker-pill--blue">
+          <span class="ticker-pill__label">Linked Bot</span>
+          <strong class="ticker-pill__value">{{ linked_bot_slug }}</strong>
+          <span class="ticker-pill__meta">Operator lane armed</span>
+        </article>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
   <section class="hero panel" id="overview">
     <div class="hero-copy">
       <div class="eyebrow">TRIPTOKFORGE OPERATIONS</div>
-      <h1>Luxury lab controls for staff, mods, and house bots.</h1>
-      <p class="hero-copy-text">This is the role-aware operations deck. Admin keeps the full site-control surface. Moderators get a clean content lane. Bot operators tune persona, scope, and model choices without touching broader platform controls.</p>
+      <h1>Boss-level command deck for staff, moderators, and house bots.</h1>
+      <p class="hero-copy-text">This console now follows the stronger workspace direction: Bloomberg telemetry discipline, JARVIS reactor language, and a billionaire cyber-lab control plane. Admin keeps the full site-control surface. Moderators get a clean content lane. Bot operators tune persona, scope, and model choices without touching broader platform controls.</p>
       <div class="hero-console-note">
         <strong>Login path:</strong> use <code>/ops</code> for all named staff and bot-operator accounts. <code>/admin</code> is now a legacy admin bridge behind an active admin session.
       </div>
@@ -94,8 +144,66 @@
         <span class="pill pill-blue">Linked Bot: {{ linked_bot_slug }}</span>
         {% endif %}
       </div>
+      <div class="detector-strip">
+        <span class="detector-chip">JARVIS VISUAL DNA</span>
+        <span class="detector-chip">BLOOMBERG TELEMETRY</span>
+        <span class="detector-chip">CYBER LAB GLASS</span>
+        <span class="detector-chip">ROLE-AWARE CONTROL</span>
+        <span class="detector-chip">HOUSE BOT OVERSIGHT</span>
+      </div>
+      <div class="hero-ledger">
+        <article class="hero-ledger__card">
+          <span class="hero-ledger__label">Control Plane</span>
+          <strong class="hero-ledger__value">Admin</strong>
+          <span class="hero-ledger__copy">Staff, bots, channels, broadcasts, and legacy shell control.</span>
+        </article>
+        <article class="hero-ledger__card">
+          <span class="hero-ledger__label">Content Lane</span>
+          <strong class="hero-ledger__value">Moderator</strong>
+          <span class="hero-ledger__copy">Post edits, removals, queue cleanup, and community safety.</span>
+        </article>
+        <article class="hero-ledger__card">
+          <span class="hero-ledger__label">Persona Bay</span>
+          <strong class="hero-ledger__value">Bot Operator</strong>
+          <span class="hero-ledger__copy">Model scope, tone, workflow, and linked bot stewardship.</span>
+        </article>
+      </div>
     </div>
     <div class="hero-side">
+      <article class="command-core">
+        <span class="command-core__eyebrow">Ops Nexus</span>
+        <div class="command-core__stage">
+          <span class="command-core__ring command-core__ring--a"></span>
+          <span class="command-core__ring command-core__ring--b"></span>
+          <span class="command-core__ring command-core__ring--c"></span>
+          <div class="command-core__center">
+            <span class="command-core__title">{{ current_role_label }}</span>
+            <span class="command-core__sub">{{ current_staff_name }}</span>
+          </div>
+        </div>
+        <div class="command-core__nodes">
+          <article class="telemetry-node">
+            <span class="telemetry-node__label">Crew</span>
+            <strong class="telemetry-node__value">{{ ops_metrics.staff }}</strong>
+            <span class="telemetry-node__meta">Staff accounts online</span>
+          </article>
+          <article class="telemetry-node">
+            <span class="telemetry-node__label">Bots</span>
+            <strong class="telemetry-node__value">{{ ops_metrics.bots }}</strong>
+            <span class="telemetry-node__meta">Managed operator personas</span>
+          </article>
+          <article class="telemetry-node {% if ops_metrics.pending_drafts %}telemetry-node--alert{% endif %}">
+            <span class="telemetry-node__label">Drafts</span>
+            <strong class="telemetry-node__value">{{ ops_metrics.pending_drafts }}</strong>
+            <span class="telemetry-node__meta">Awaiting review</span>
+          </article>
+          <article class="telemetry-node {% if ops_metrics.posts %}telemetry-node--hot{% endif %}">
+            <span class="telemetry-node__label">Flags</span>
+            <strong class="telemetry-node__value">{{ ops_metrics.posts }}</strong>
+            <span class="telemetry-node__meta">Moderation pressure</span>
+          </article>
+        </div>
+      </article>
       <div class="metric-card metric-card--wide {% if ops_metrics.posts %}metric-card--hot{% endif %}">
         <span class="metric-label">Moderation Queue</span>
         <strong class="metric-value">{{ ops_metrics.posts }}</strong>
@@ -133,7 +241,7 @@
     <div class="panel-head">
       <div>
         <h2>Command Rail</h2>
-        <span class="panel-kicker">LIVE OPS SIGNALS</span>
+        <span class="panel-kicker">LIVE OPS SIGNALS / DETECTOR STRIP</span>
       </div>
       <div class="signal-strip__meta">
         <span class="{{ role_pill(current_role) }}">{{ current_role_label }}</span>

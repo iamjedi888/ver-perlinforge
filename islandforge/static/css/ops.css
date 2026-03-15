@@ -3,6 +3,11 @@
   --deep: #02040a;
   --panel: rgba(11, 16, 28, 0.9);
   --panel-strong: rgba(15, 21, 34, 0.96);
+  --jarvis-cyan: #6de8ff;
+  --jarvis-cyan-dim: rgba(109, 232, 255, 0.12);
+  --jarvis-orange: #ff9e3d;
+  --jarvis-orange-dim: rgba(255, 158, 61, 0.12);
+  --jarvis-grid: rgba(82, 134, 194, 0.12);
   --border: rgba(81, 109, 148, 0.26);
   --border-strong: rgba(0, 229, 160, 0.24);
   --text: #d8e4f0;
@@ -28,9 +33,10 @@ body {
   margin: 0;
   min-height: 100%;
   background:
-    radial-gradient(circle at top right, rgba(0, 229, 160, 0.12), transparent 28%),
-    radial-gradient(circle at left center, rgba(42, 168, 255, 0.14), transparent 34%),
-    linear-gradient(180deg, #08101b 0%, var(--deep) 58%, #02050a 100%);
+    radial-gradient(circle at 14% 12%, rgba(109, 232, 255, 0.18), transparent 24%),
+    radial-gradient(circle at 86% 10%, rgba(255, 158, 61, 0.14), transparent 24%),
+    radial-gradient(circle at 55% 72%, rgba(0, 229, 160, 0.09), transparent 30%),
+    linear-gradient(180deg, #09101c 0%, #050913 48%, #02050a 100%);
   color: var(--text);
   font-family: "Rajdhani", sans-serif;
 }
@@ -51,15 +57,15 @@ body.ops-page::after {
 
 body.ops-page::before {
   background:
-    radial-gradient(circle at 14% 18%, rgba(42, 168, 255, 0.18), transparent 24%),
-    radial-gradient(circle at 84% 12%, rgba(0, 229, 160, 0.14), transparent 22%),
-    radial-gradient(circle at 78% 78%, rgba(255, 179, 71, 0.08), transparent 20%);
+    radial-gradient(circle at 14% 18%, rgba(109, 232, 255, 0.16), transparent 24%),
+    radial-gradient(circle at 84% 12%, rgba(255, 158, 61, 0.12), transparent 22%),
+    radial-gradient(circle at 78% 78%, rgba(42, 168, 255, 0.08), transparent 20%);
 }
 
 body.ops-page::after {
   background-image:
-    linear-gradient(rgba(42, 168, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(42, 168, 255, 0.045) 1px, transparent 1px);
+    linear-gradient(rgba(109, 232, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(82, 134, 194, 0.05) 1px, transparent 1px);
   background-size: 68px 68px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.75), transparent 90%);
 }
@@ -85,6 +91,84 @@ select {
 
 .ops-shell {
   padding-bottom: 20px;
+}
+
+.market-strip {
+  margin-top: 18px;
+  padding: 10px 0;
+}
+
+.market-strip__viewport {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.market-strip__track {
+  display: flex;
+  gap: 14px;
+  width: max-content;
+  min-width: 100%;
+  padding: 0 18px;
+  animation: opsTicker 34s linear infinite;
+}
+
+.market-strip:hover .market-strip__track {
+  animation-play-state: paused;
+}
+
+.ticker-pill {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 4px 14px;
+  align-items: center;
+  min-width: 220px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(109, 232, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(109, 232, 255, 0.07), transparent 48%),
+    rgba(7, 12, 22, 0.84);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.ticker-pill--hot {
+  border-color: rgba(0, 229, 160, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 0 24px rgba(0, 229, 160, 0.08);
+}
+
+.ticker-pill--alert {
+  border-color: rgba(255, 158, 61, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 0 24px rgba(255, 158, 61, 0.08);
+}
+
+.ticker-pill--blue {
+  border-color: rgba(109, 232, 255, 0.22);
+}
+
+.ticker-pill__label,
+.ticker-pill__meta {
+  font-family: "Share Tech Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.ticker-pill__label {
+  color: var(--dim);
+  font-size: 0.58rem;
+}
+
+.ticker-pill__value {
+  grid-row: span 2;
+  align-self: center;
+  justify-self: end;
+  font-family: "Orbitron", monospace;
+  font-size: 0.92rem;
+  color: #f2fbff;
+}
+
+.ticker-pill__meta {
+  color: var(--jarvis-cyan);
+  font-size: 0.54rem;
 }
 
 .ops-nav {
@@ -190,8 +274,10 @@ select {
 .link-card {
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(16, 22, 36, 0.96), rgba(8, 12, 20, 0.95));
-  box-shadow: var(--shadow);
+  background:
+    linear-gradient(180deg, rgba(16, 22, 36, 0.98), rgba(7, 10, 18, 0.96)),
+    rgba(7, 13, 24, 0.74);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.03);
   position: relative;
   overflow: hidden;
 }
@@ -204,7 +290,8 @@ select {
   inset: 0;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent 32%),
-    linear-gradient(120deg, transparent 52%, rgba(42, 168, 255, 0.05) 78%, transparent 100%);
+    linear-gradient(120deg, transparent 48%, rgba(109, 232, 255, 0.06) 74%, transparent 100%),
+    linear-gradient(180deg, transparent 62%, rgba(255, 158, 61, 0.04) 100%);
   pointer-events: none;
 }
 
@@ -359,9 +446,9 @@ textarea {
 
 .hero {
   display: grid;
-  grid-template-columns: 1.2fr 0.9fr;
+  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
   gap: 18px;
-  padding: 22px;
+  padding: 24px;
   margin-top: 18px;
   overflow: hidden;
   position: relative;
@@ -372,9 +459,15 @@ textarea {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, transparent 12%, rgba(42, 168, 255, 0.08) 36%, transparent 60%),
-    linear-gradient(90deg, transparent, rgba(0, 229, 160, 0.06), transparent);
+    linear-gradient(120deg, transparent 12%, rgba(109, 232, 255, 0.08) 36%, transparent 60%),
+    linear-gradient(90deg, transparent, rgba(255, 158, 61, 0.06), transparent);
   pointer-events: none;
+}
+
+.hero-copy {
+  display: grid;
+  gap: 16px;
+  align-content: start;
 }
 
 .hero-side,
@@ -386,11 +479,219 @@ textarea {
 
 .hero-side {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  grid-auto-rows: minmax(136px, auto);
+  grid-auto-rows: minmax(150px, auto);
   align-content: start;
-  max-height: 430px;
+  max-height: 720px;
   overflow: auto;
   padding-right: 6px;
+}
+
+.detector-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detector-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(109, 232, 255, 0.18);
+  background: rgba(109, 232, 255, 0.08);
+  color: var(--jarvis-cyan);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.54rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.hero-ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.hero-ledger__card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(92, 121, 165, 0.18);
+  background:
+    linear-gradient(180deg, rgba(10, 15, 26, 0.92), rgba(7, 10, 18, 0.88)),
+    rgba(7, 10, 18, 0.6);
+}
+
+.hero-ledger__label,
+.hero-ledger__copy {
+  font-family: "Share Tech Mono", monospace;
+  text-transform: uppercase;
+}
+
+.hero-ledger__label {
+  color: var(--dim);
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
+}
+
+.hero-ledger__value {
+  font-size: 1rem;
+  color: #f5fbff;
+}
+
+.hero-ledger__copy {
+  color: var(--muted);
+  font-size: 0.54rem;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+}
+
+.command-core {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(109, 232, 255, 0.18);
+  background:
+    radial-gradient(circle at top center, rgba(109, 232, 255, 0.12), transparent 48%),
+    radial-gradient(circle at 50% 100%, rgba(255, 158, 61, 0.09), transparent 40%),
+    rgba(6, 10, 18, 0.86);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 0 32px rgba(109, 232, 255, 0.08);
+}
+
+.command-core__eyebrow,
+.telemetry-node__label,
+.telemetry-node__meta {
+  font-family: "Share Tech Mono", monospace;
+  text-transform: uppercase;
+}
+
+.command-core__eyebrow {
+  color: var(--jarvis-cyan);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+}
+
+.command-core__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+}
+
+.command-core__ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(109, 232, 255, 0.16);
+  animation: opsSpin 18s linear infinite;
+}
+
+.command-core__ring::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border-radius: inherit;
+  border: 1px dashed rgba(255, 158, 61, 0.16);
+}
+
+.command-core__ring--a {
+  width: 240px;
+  height: 240px;
+}
+
+.command-core__ring--b {
+  width: 188px;
+  height: 188px;
+  animation-duration: 12s;
+  animation-direction: reverse;
+}
+
+.command-core__ring--c {
+  width: 138px;
+  height: 138px;
+  animation-duration: 8s;
+}
+
+.command-core__center {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  border: 1px solid rgba(109, 232, 255, 0.22);
+  background:
+    radial-gradient(circle, rgba(109, 232, 255, 0.18), rgba(5, 8, 14, 0.96) 66%),
+    rgba(5, 8, 14, 0.92);
+  box-shadow:
+    0 0 28px rgba(109, 232, 255, 0.18),
+    inset 0 0 28px rgba(255, 158, 61, 0.12);
+  text-align: center;
+  padding: 10px;
+}
+
+.command-core__title {
+  display: block;
+  font-family: "Orbitron", monospace;
+  font-size: 0.92rem;
+  letter-spacing: 0.16em;
+  color: #f4fbff;
+}
+
+.command-core__sub {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.command-core__nodes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.telemetry-node {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(92, 121, 165, 0.18);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.telemetry-node--alert {
+  border-color: rgba(255, 158, 61, 0.26);
+}
+
+.telemetry-node--hot {
+  border-color: rgba(109, 232, 255, 0.24);
+}
+
+.telemetry-node__label {
+  color: var(--dim);
+  font-size: 0.54rem;
+  letter-spacing: 0.16em;
+}
+
+.telemetry-node__value {
+  font-family: "Orbitron", monospace;
+  font-size: 1.2rem;
+  color: #f3fbff;
+}
+
+.telemetry-node__meta {
+  color: var(--muted);
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
 }
 
 .hero-side::-webkit-scrollbar,
@@ -427,7 +728,7 @@ textarea {
   gap: 8px;
   min-height: 136px;
   background:
-    linear-gradient(180deg, rgba(17, 26, 42, 0.96), rgba(8, 12, 20, 0.95)),
+    linear-gradient(180deg, rgba(17, 26, 42, 0.98), rgba(8, 12, 20, 0.95)),
     rgba(11, 16, 28, 0.9);
 }
 
@@ -455,7 +756,7 @@ textarea {
 
 .metric-signal {
   margin-top: auto;
-  color: var(--blue);
+  color: var(--jarvis-cyan);
   font-family: "Share Tech Mono", monospace;
   font-size: 0.58rem;
   text-transform: uppercase;
@@ -490,7 +791,8 @@ textarea {
   border-radius: 18px;
   border: 1px solid rgba(92, 121, 165, 0.18);
   background:
-    radial-gradient(circle at top right, rgba(42, 168, 255, 0.12), transparent 42%),
+    radial-gradient(circle at top right, rgba(109, 232, 255, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(255, 158, 61, 0.03), transparent 60%),
     rgba(7, 10, 18, 0.7);
   min-height: 132px;
 }
@@ -523,7 +825,7 @@ textarea {
 }
 
 .signal-capsule__copy {
-  color: var(--blue);
+  color: var(--jarvis-cyan);
   font-size: 0.58rem;
 }
 
@@ -534,6 +836,7 @@ textarea {
   justify-content: space-between;
   padding: 18px 22px;
   border-bottom: 1px solid rgba(92, 121, 165, 0.16);
+  background: linear-gradient(180deg, rgba(109, 232, 255, 0.04), transparent);
 }
 
 .panel-head__actions {
@@ -622,8 +925,8 @@ textarea {
 }
 
 .tab-link:hover {
-  color: var(--teal);
-  border-color: rgba(0, 229, 160, 0.24);
+  color: var(--jarvis-cyan);
+  border-color: rgba(109, 232, 255, 0.24);
 }
 
 .ops-grid {
@@ -651,7 +954,12 @@ textarea {
   min-height: 180px;
 }
 
-.ops-panel--compact .panel-body {
+.ops-panel--auto-compact {
+  min-height: 180px;
+}
+
+.ops-panel--compact .panel-body,
+.ops-panel--auto-compact .panel-body {
   max-height: 220px;
   overflow: auto;
 }
@@ -927,9 +1235,32 @@ button[disabled] {
   cursor: not-allowed;
 }
 
+@keyframes opsTicker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes opsSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 1100px) {
   .hero,
   .form-grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-ledger,
+  .command-core__nodes {
     grid-template-columns: 1fr;
   }
 
@@ -962,6 +1293,14 @@ button[disabled] {
 
   .hero-side {
     grid-template-columns: 1fr;
+  }
+
+  .hero-ledger {
+    grid-template-columns: 1fr;
+  }
+
+  .market-strip__track {
+    animation-duration: 42s;
   }
 
   .panel-head {

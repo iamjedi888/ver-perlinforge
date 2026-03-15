@@ -148,6 +148,33 @@
 
   const opsGrid = document.querySelector(".ops-grid");
   const opsPanels = Array.from(document.querySelectorAll(".ops-panel"));
+  const panelStateKey = "triptokforge.ops.panelState.v2";
+  let savedPanelState = {};
+
+  try {
+    savedPanelState = JSON.parse(window.localStorage.getItem(panelStateKey) || "{}");
+  } catch (_error) {
+    savedPanelState = {};
+  }
+
+  function panelStorageId(panel, index) {
+    return panel.id || panel.dataset.panelId || "panel-" + index;
+  }
+
+  function persistPanelState() {
+    const payload = {};
+    opsPanels.forEach((panel, index) => {
+      payload[panelStorageId(panel, index)] = {
+        compact: panel.classList.contains("ops-panel--compact"),
+        maximized: panel.classList.contains("ops-panel--maximized"),
+      };
+    });
+    try {
+      window.localStorage.setItem(panelStateKey, JSON.stringify(payload));
+    } catch (_error) {
+      // Ignore storage errors and keep the console interactive.
+    }
+  }
 
   function panelRowSpan(panel) {
     if (!opsGrid || !panel) return;
@@ -161,9 +188,9 @@
 
   function syncPanelDensity(panel) {
     const count = Number(panel.dataset.panelCount || "0");
-    panel.classList.remove("ops-panel--compact", "ops-panel--highlight");
-    if (count === 0) {
-      panel.classList.add("ops-panel--compact");
+    panel.classList.remove("ops-panel--highlight", "ops-panel--auto-compact");
+    if (count === 0 && !panel.classList.contains("ops-panel--compact")) {
+      panel.classList.add("ops-panel--auto-compact");
     }
     if (count > 0) {
       panel.classList.add("ops-panel--highlight");
@@ -177,6 +204,12 @@
     });
   }
 
+  opsPanels.forEach((panel, index) => {
+    const state = savedPanelState[panelStorageId(panel, index)] || {};
+    if (state.compact) panel.classList.add("ops-panel--compact");
+    if (state.maximized) panel.classList.add("ops-panel--maximized");
+  });
+
   opsPanels.forEach((panel) => {
     panel.querySelectorAll("[data-panel-action]").forEach((button) => {
       button.addEventListener("click", function () {
@@ -188,6 +221,7 @@
           panel.classList.toggle("ops-panel--compact");
         }
         syncOpsPanels();
+        persistPanelState();
       });
     });
   });
@@ -201,4 +235,5 @@
 
   window.addEventListener("resize", syncOpsPanels);
   syncOpsPanels();
+  persistPanelState();
 })();
