@@ -1,6 +1,7 @@
 from flask import (
     Blueprint,
     Response,
+    current_app,
     flash,
     jsonify,
     redirect,
@@ -878,6 +879,21 @@ def _root_admin_alias(username: str) -> bool:
     return normalized in {"", "admin", "root", "root-admin", "rootadmin"}
 
 
+def _log_auth_attempt(surface: str, username: str, success: bool, note: str = "") -> None:
+    safe_username = str(username or "root-admin").strip() or "root-admin"
+    remote_addr = request.headers.get("X-Forwarded-For") or request.remote_addr or "-"
+    outcome = "success" if success else "failure"
+    message = f"[auth] surface={surface} username={safe_username} outcome={outcome} remote={remote_addr}"
+    if note:
+        message += f" note={note}"
+    logger = getattr(current_app, "logger", None)
+    if logger is not None:
+        if success:
+            logger.info(message)
+        else:
+            logger.warning(message)
+
+
 def _permission_overrides_from_form(form) -> dict:
     rows = {}
     for key in STAFF_PERMISSION_LABELS:
@@ -1099,9 +1115,11 @@ def ops():
             elif username:
                 account = authenticate_staff_account(username, password)
             if not account:
+                _log_auth_attempt("ops", username or "root-admin", False, "credentials rejected")
                 flash("Wrong username or password.", "error")
                 return _ops_redirect("login")
             _set_staff_session(account)
+            _log_auth_attempt("ops", account.get("username") or "root-admin", True, account.get("role") or "admin")
             log_operator_event(
                 _operator_username(),
                 _staff_role(),
@@ -1579,9 +1597,11 @@ def admin():
                         "active": 1,
                     }
                 )
+                _log_auth_attempt("admin", "root-admin", True, "legacy admin login")
                 flash("Admin session opened.", "success")
                 return _admin_redirect("overview")
             else:
+                _log_auth_attempt("admin", "root-admin", False, "legacy admin password rejected")
                 flash("Wrong admin password.", "error")
                 return _admin_redirect("login")
         if action == "logout":
