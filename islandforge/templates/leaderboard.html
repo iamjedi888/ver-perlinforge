@@ -3,655 +3,153 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Leaderboard — TriptokForge</title>
+<title>Leaderboard - TriptokForge</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/static/triptokforge.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
 <style>
-:root{
-  --bg:#07090d;--deep:#04060a;--panel:#0d1018;
-  --border:#1a2535;--border2:#243040;
-  --teal:#00e5a0;--teal-dim:rgba(0,229,160,.1);
-  --blue:#0091ff;--blue-dim:rgba(0,145,255,.08);
-  --amber:#ffaa00;--amber-dim:rgba(255,170,0,.08);
-  --red:#ff4060;--red-dim:rgba(255,64,96,.08);
-  --text:#c8d8e8;--mid:#7a8aa8;--dim:#3a4a60;
-  --gold:#ffd700;--silver:#b8c0cc;--bronze:#cd7f32;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh}
-
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;
-    padding:0 32px;background:rgba(7,9,13,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
-.nav-logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:var(--teal);letter-spacing:3px;text-decoration:none}
-.nav-logo em{color:var(--blue);font-style:normal}
-.nav-links{display:flex;gap:4px;margin-left:24px}
-.nav-links a{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;
-             padding:5px 10px;border-radius:3px;color:var(--dim);text-decoration:none;transition:all .15s}
-.nav-links a:hover{color:var(--teal);background:var(--teal-dim)}
-.nav-links a.active{color:var(--teal);border:1px solid var(--border2)}
-.nav-r{margin-left:auto;display:flex;gap:16px}
-.nav-r a{color:var(--dim);text-decoration:none;font-family:'Share Tech Mono',monospace;
-         font-size:.58rem;letter-spacing:2px;text-transform:uppercase;transition:color .15s}
-.nav-r a:hover{color:var(--teal)}
-
-/* PAGE SHELL */
-.lb-page{max-width:1060px;margin:0 auto;padding:80px 24px 60px}
-
-/* HERO HEADER */
-.lb-hero{
-  position:relative;text-align:center;padding:40px 0 36px;margin-bottom:8px;
-  overflow:hidden;
-}
-.lb-hero::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 60% 80% at 50% 0%,rgba(0,229,160,.06) 0%,transparent 70%);
-  pointer-events:none;
-}
-.lb-hero-line{
-  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
-  width:200px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--teal),transparent);
-}
-.lb-eyebrow{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:5px;
-            text-transform:uppercase;color:var(--teal);margin-bottom:10px}
-.lb-title{font-family:'Orbitron',monospace;font-size:2.4rem;font-weight:900;
-          color:#fff;letter-spacing:2px;line-height:1;margin-bottom:8px}
-.lb-title span{color:var(--teal)}
-.lb-sub{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:3px;
-        text-transform:uppercase;color:var(--dim)}
-
-/* TABS */
-.lb-tabs{
-  display:flex;gap:0;margin-bottom:28px;
-  border:1px solid var(--border);background:var(--panel);
-}
-.lb-tab{
-  flex:1;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;
-  text-transform:uppercase;padding:12px 8px;cursor:pointer;color:var(--dim);
-  border-right:1px solid var(--border);border-bottom:2px solid transparent;
-  transition:all .15s;text-align:center;background:none;
-}
-.lb-tab:last-child{border-right:none}
-.lb-tab:hover{color:var(--mid);background:rgba(0,229,160,.03)}
-.lb-tab.active{color:var(--teal);border-bottom-color:var(--teal);background:var(--teal-dim)}
-
-/* TAB PANELS */
-.lb-panel{display:none}
-.lb-panel.active{display:block}
-
-/* SEARCH BAR */
-.lb-search{
-  display:flex;gap:8px;margin-bottom:24px;
-}
-.lb-search input{
-  flex:1;background:rgba(0,229,160,.04);border:1px solid var(--border2);
-  color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.65rem;
-  padding:11px 16px;outline:none;border-radius:2px;letter-spacing:1px;
-  transition:border-color .15s;
-}
-.lb-search input:focus{border-color:var(--teal)}
-.lb-search input::placeholder{color:var(--dim)}
-.lb-search button{
-  font-family:'Orbitron',monospace;font-size:.6rem;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;padding:11px 24px;
-  background:var(--teal);color:#000;border:none;cursor:pointer;transition:background .15s;
-}
-.lb-search button:hover{background:#fff}
-.lb-search-msg{
-  font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;
-  color:var(--dim);padding:10px 0;
-}
-
-/* MODE SWITCHER */
-.mode-row{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
-.mode-btn{
-  font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:2px;
-  text-transform:uppercase;padding:6px 14px;
-  background:rgba(0,229,160,.04);border:1px solid var(--border2);
-  color:var(--dim);cursor:pointer;transition:all .15s;border-radius:2px;
-}
-.mode-btn:hover{border-color:var(--mid);color:var(--mid)}
-.mode-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
-
-/* PODIUM — top 3 */
-.podium{
-  display:grid;grid-template-columns:1fr 1.15fr 1fr;
-  gap:12px;margin-bottom:28px;align-items:end;
-}
-.podium-card{
-  background:var(--panel);border:1px solid var(--border);
-  padding:20px 16px;text-align:center;position:relative;overflow:hidden;
-  transition:border-color .2s;
-}
-.podium-card:hover{border-color:var(--border2)}
-.podium-card.p1{border-color:rgba(255,215,0,.25);background:linear-gradient(180deg,rgba(255,215,0,.04) 0%,var(--panel) 60%)}
-.podium-card.p2{border-color:rgba(184,192,204,.15)}
-.podium-card.p3{border-color:rgba(205,127,50,.15)}
-.podium-crown{
-  font-size:1.4rem;margin-bottom:6px;display:block;
-  filter:drop-shadow(0 0 8px rgba(255,215,0,.5));
-}
-.podium-rank{
-  font-family:'Orbitron',monospace;font-size:.55rem;font-weight:900;letter-spacing:3px;
-  text-transform:uppercase;margin-bottom:10px;
-}
-.p1 .podium-rank{color:var(--gold)}
-.p2 .podium-rank{color:var(--silver)}
-.p3 .podium-rank{color:var(--bronze)}
-.podium-avatar{
-  width:56px;height:56px;margin:0 auto 10px;
-  border-radius:4px;overflow:hidden;border:2px solid var(--border2);
-  background:var(--deep);display:flex;align-items:center;justify-content:center;
-}
-.p1 .podium-avatar{border-color:rgba(255,215,0,.4)}
-.podium-avatar img{width:100%;height:100%;object-fit:cover}
-.podium-initial{font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:900;color:var(--teal)}
-.podium-name{
-  font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;
-  color:#fff;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.podium-stat{
-  font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;
-  text-transform:uppercase;
-}
-.p1 .podium-stat{color:var(--teal)}
-.p2 .podium-stat{color:var(--silver)}
-.p3 .podium-stat{color:var(--bronze)}
-.podium-glow{
-  position:absolute;top:0;left:50%;transform:translateX(-50%);
-  width:80%;height:1px;
-}
-.p1 .podium-glow{background:linear-gradient(90deg,transparent,var(--gold),transparent);box-shadow:0 0 12px var(--gold)}
-.p2 .podium-glow{background:linear-gradient(90deg,transparent,var(--silver),transparent)}
-.p3 .podium-glow{background:linear-gradient(90deg,transparent,var(--bronze),transparent)}
-
-/* LEADERBOARD TABLE */
-.lb-table{width:100%;border-collapse:collapse}
-.lb-table th{
-  font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:3px;
-  text-transform:uppercase;color:var(--dim);padding:8px 14px;
-  border-bottom:1px solid var(--border);text-align:left;background:var(--panel);
-}
-.lb-table th.num{text-align:right}
-.lb-row{
-  border-bottom:1px solid rgba(26,37,53,.6);
-  transition:background .1s;cursor:default;
-}
-.lb-row:hover{background:rgba(0,229,160,.03)}
-.lb-row.me{background:rgba(0,229,160,.05);border-left:3px solid var(--teal)}
-.lb-row td{padding:10px 14px;vertical-align:middle}
-.td-rank{
-  font-family:'Orbitron',monospace;font-size:.7rem;font-weight:700;
-  color:var(--dim);width:48px;
-}
-.lb-row:nth-child(1) .td-rank{color:var(--gold)}
-.lb-row:nth-child(2) .td-rank{color:var(--silver)}
-.lb-row:nth-child(3) .td-rank{color:var(--bronze)}
-.td-player{display:flex;align-items:center;gap:10px}
-.td-avatar{
-  width:32px;height:32px;border-radius:3px;overflow:hidden;
-  background:var(--deep);flex-shrink:0;border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-}
-.td-avatar img{width:100%;height:100%;object-fit:cover}
-.td-avatar-init{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:900;color:var(--teal)}
-.td-name{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;color:var(--text)}
-.td-badge{
-  font-family:'Share Tech Mono',monospace;font-size:.45rem;letter-spacing:2px;
-  text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-left:6px;
-}
-.badge-member{border:1px solid var(--teal);color:var(--teal);background:var(--teal-dim)}
-.badge-top{border:1px solid var(--amber);color:var(--amber);background:var(--amber-dim)}
-.td-num{
-  font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:1px;
-  color:var(--text);text-align:right;
-}
-.td-num.hi{color:var(--teal)}
-.td-rank-badge{
-  font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:2px;
-  text-transform:uppercase;padding:3px 8px;border-radius:2px;text-align:center;
-}
-.rank-unreal{background:rgba(0,229,160,.12);border:1px solid var(--teal);color:var(--teal)}
-.rank-diamond{background:rgba(0,145,255,.12);border:1px solid var(--blue);color:var(--blue)}
-.rank-platinum{background:rgba(120,80,200,.12);border:1px solid #7850c8;color:#9870e8}
-.rank-gold{background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber)}
-.rank-silver{background:rgba(184,192,204,.08);border:1px solid var(--silver);color:var(--silver)}
-.rank-bronze{background:rgba(205,127,50,.08);border:1px solid var(--bronze);color:var(--bronze)}
-.rank-unknown{background:rgba(58,74,96,.2);border:1px solid var(--dim);color:var(--dim)}
-
-/* PLAYER STATS CARD */
-.stats-card{
-  background:var(--panel);border:1px solid var(--border);
-  padding:28px;margin-top:8px;display:none;
-  position:relative;overflow:hidden;
-}
-.stats-card.show{display:block}
-.stats-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--teal),transparent);
-}
-.sc-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
-.sc-avatar{
-  width:64px;height:64px;border-radius:4px;overflow:hidden;
-  border:2px solid var(--border2);background:var(--deep);flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-}
-.sc-avatar img{width:100%;height:100%;object-fit:cover}
-.sc-avatar-init{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:900;color:var(--teal)}
-.sc-name{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;color:#fff;margin-bottom:4px}
-.sc-meta{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:3px;color:var(--dim);text-transform:uppercase}
-.sc-close{
-  margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:2px;
-  text-transform:uppercase;padding:6px 14px;
-  background:rgba(255,64,96,.06);border:1px solid var(--border2);
-  color:var(--mid);cursor:pointer;transition:all .15s;border-radius:2px;
-}
-.sc-close:hover{border-color:var(--red);color:var(--red)}
-.sc-modes{display:flex;gap:6px;margin-bottom:20px}
-.sc-mode-btn{
-  font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:2px;
-  text-transform:uppercase;padding:5px 12px;
-  background:rgba(0,229,160,.04);border:1px solid var(--border2);
-  color:var(--dim);cursor:pointer;transition:all .15s;border-radius:2px;
-}
-.sc-mode-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
-.sc-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
-  gap:10px;margin-bottom:20px;
-}
-.sc-stat{
-  background:rgba(0,229,160,.03);border:1px solid var(--border);
-  padding:12px;text-align:center;
-}
-.sc-stat-v{
-  font-family:'Orbitron',monospace;font-size:1rem;font-weight:700;
-  color:var(--teal);display:block;margin-bottom:3px;
-}
-.sc-stat-l{
-  font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:2px;
-  text-transform:uppercase;color:var(--dim);
-}
-.sc-ranked{
-  background:rgba(0,145,255,.04);border:1px solid var(--border2);
-  padding:14px 16px;display:flex;align-items:center;gap:14px;
-}
-.sc-ranked-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim);flex:1}
-.sc-ranked-val{font-family:'Orbitron',monospace;font-size:.8rem;font-weight:700;color:var(--blue)}
-
-/* LOADING / EMPTY */
-.lb-loading{
-  text-align:center;padding:60px 20px;
-  font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:4px;
-  text-transform:uppercase;color:var(--dim);
-}
-.lb-loading::after{content:'...';animation:dots 1.2s infinite}
-@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
-.lb-empty{
-  text-align:center;padding:60px 20px;
-  font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:3px;
-  text-transform:uppercase;color:var(--dim);
-}
-
-/* REFRESH */
-.lb-meta-row{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:14px;flex-wrap:wrap;gap:8px;
-}
-.lb-updated{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
-.lb-refresh{
-  font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;
-  padding:4px 12px;background:rgba(0,229,160,.04);border:1px solid var(--border2);
-  color:var(--mid);cursor:pointer;transition:all .15s;border-radius:2px;
-}
-.lb-refresh:hover{border-color:var(--teal);color:var(--teal)}
-
-@media(max-width:768px){
-  nav{padding:0 14px}.nav-links{display:none}
-  .lb-page{padding:70px 12px 40px}
-  .podium{grid-template-columns:1fr 1fr 1fr;gap:6px}
-  .podium-card{padding:12px 8px}
-  .lb-title{font-size:1.6rem}
-  .sc-grid{grid-template-columns:repeat(3,1fr)}
-}
+:root{--bg:#07090d;--panel:#0d1018;--panel2:#090c12;--border:#243040;--text:#c8d8e8;--mid:#7a8aa8;--dim:#4a5a70;--teal:#00e5a0;--blue:#0091ff;--amber:#ffb347;--danger:#ff6578}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,rgba(0,145,255,.12),transparent 34%),linear-gradient(180deg,#07090d,#04060a 72%);color:var(--text);font-family:'Rajdhani',sans-serif}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,160,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.02) 1px,transparent 1px);background-size:52px 52px;pointer-events:none;z-index:0}
+.shell{position:relative;z-index:1;width:min(1360px,calc(100% - 24px));margin:0 auto;padding:28px 0 72px}.panel,.hero-box,.search-box,.table-box{border:1px solid var(--border);background:linear-gradient(180deg,rgba(13,16,24,.96),rgba(8,11,17,.98));box-shadow:0 18px 42px rgba(0,0,0,.28)}
+.hero-box{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,.9fr);gap:20px;padding:30px}.eyebrow{display:inline-block;margin-bottom:12px;color:var(--blue);font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.32em;text-transform:uppercase}
+h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}.hero-box h1{font-size:clamp(2.1rem,4vw,4.2rem);line-height:.95}.hero-box h1 span{display:block;color:var(--teal)}.hero-box p,.section-copy{color:var(--mid);line-height:1.65}
+.hero-side{display:grid;gap:12px}.hero-side article,.card,.note,.scope-card,.service-card,.signal-card,.mode-card,.stat-card{padding:16px;border:1px solid rgba(36,48,64,.92);background:rgba(9,12,18,.96)}.hero-side strong,.card strong,.scope-card strong,.service-card strong,.signal-card strong,.mode-card strong,.stat-card strong{display:block;margin-bottom:8px;font-family:'Orbitron',monospace;font-size:.9rem}
+.strip,.intel,.notes,.scope-grid,.service-grid,.signal-grid,.stats-grid,.modes{display:grid;gap:12px}.strip{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:16px}.tile{padding:16px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(12,16,23,.96),rgba(7,10,15,.98))}.tile small,.mini{display:block;color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase}.tile strong{display:block;margin-top:8px;font-family:'Orbitron',monospace;font-size:1.7rem}
+.tabs,.metric-tabs{display:flex;flex-wrap:wrap;gap:10px}.tabs{margin-top:24px}.tab,.metric,.action{appearance:none;border:1px solid rgba(0,145,255,.16);background:rgba(0,145,255,.05);color:var(--text);cursor:pointer;transition:.16s}.tab,.metric{padding:11px 16px;font-family:'Share Tech Mono',monospace;font-size:.64rem;letter-spacing:.2em;text-transform:uppercase}.tab:hover,.metric:hover,.action:hover{border-color:rgba(0,229,160,.28);color:var(--teal)}.tab.active,.metric.active{border-color:rgba(0,229,160,.42);background:rgba(0,229,160,.1);color:var(--teal)}
+.tab-panel{display:none;margin-top:18px}.tab-panel.active{display:block}.panel{padding:24px}.panel-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-bottom:18px}.panel-head h2{font-size:clamp(1.3rem,2vw,2rem)}.panel-head p{max-width:700px;margin:10px 0 0}
+.intel{grid-template-columns:repeat(4,minmax(0,1fr))}.notes,.scope-grid,.service-grid,.signal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.metric-bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin:18px 0}.metric-copy{max-width:760px;color:var(--mid);line-height:1.55}
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.podium .card strong{font-size:1.8rem;color:var(--teal)}.table-box{margin-top:16px;overflow:auto}table{width:100%;min-width:900px;border-collapse:collapse}th,td{padding:14px 16px;text-align:left}th{border-bottom:1px solid var(--border);color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.2em;text-transform:uppercase}td{border-top:1px solid rgba(24,33,46,.92)}tr:hover{background:rgba(0,145,255,.04)}tr.self{background:rgba(0,229,160,.06)}
+.player{display:flex;align-items:center;gap:12px}.player img,.avatar{width:42px;height:42px;border-radius:12px;border:1px solid rgba(36,48,64,.92);background:rgba(255,255,255,.02);object-fit:cover}.avatar{display:grid;place-items:center;color:var(--teal);font-family:'Orbitron',monospace;font-weight:700}
+.search-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:14px}.search-box{padding:22px}.search-row{display:flex;gap:10px}.search-box input{width:100%;padding:14px 16px;border:1px solid var(--border);background:rgba(255,255,255,.02);color:var(--text);font:inherit}.search-box input:focus{outline:none;border-color:rgba(0,229,160,.38);box-shadow:0 0 0 3px rgba(0,229,160,.08)}.action{padding:0 18px;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase}
+.stats-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}.modes{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:16px}.chip{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid rgba(36,48,64,.92);background:rgba(255,255,255,.02);font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase}.chip::before{content:'';width:8px;height:8px;border-radius:999px;background:currentColor;box-shadow:0 0 10px currentColor}.live,.ready{color:var(--teal)}.watch-ready,.key-needed,.pending{color:var(--amber)}.degraded{color:var(--danger)}
+.empty{padding:20px;border:1px dashed rgba(36,48,64,.92);color:var(--mid);line-height:1.7}
+@media (max-width:1100px){.hero-box,.search-grid{grid-template-columns:1fr}.strip,.intel,.notes,.scope-grid,.service-grid,.signal-grid,.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.podium,.modes{grid-template-columns:1fr 1fr}}
+@media (max-width:720px){.shell{width:min(100%,calc(100% - 12px))}.hero-box,.panel,.search-box{padding:18px}.strip,.intel,.notes,.scope-grid,.service-grid,.signal-grid,.stats-grid,.modes,.podium{grid-template-columns:1fr}.panel-head{display:block}}
 </style>
 </head>
 <body>
-<nav>
-  {% set brand_href = '/home' %}
-  {% set brand_tail = 'Stat Grid' %}
-  {% set brand_compact = true %}
-  {% include "_brand_lockup.html" %}
-  <div class="nav-links">
-    <a href="/home">Home</a>
-    <a href="/forge">Forge</a>
-    <a href="/channels">Channels</a>
-    <a href="/feed">Feed</a>
-    <a href="/leaderboard" class="active">Leaderboard</a>
-  </div>
-  <div class="nav-r">
-    <a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a>
-  </div>
-</nav>
-
-<div class="lb-page">
-
-  <!-- HERO -->
-  <div class="lb-hero">
-    <div class="lb-eyebrow">Season Rankings</div>
-    <h1 class="lb-title">Forge <span>Leaderboard</span></h1>
-    <div class="lb-sub">TriptokForge members · Fortnite BR stats · Global search</div>
-    <div class="lb-hero-line"></div>
-  </div>
-
-  <!-- TABS -->
-  <div class="lb-tabs">
-    <button class="lb-tab active" onclick="switchTab('members',this)">⬡ TF Members</button>
-    <button class="lb-tab" onclick="switchTab('search',this)">◎ Player Search</button>
-    <button class="lb-tab" onclick="switchTab('global',this)">◈ Global Top</button>
-  </div>
-
-  <!-- TAB: MEMBERS -->
-  <div class="lb-panel active" id="tab-members">
-    <div class="mode-row" id="membersModeRow">
-      <button class="mode-btn active" onclick="setMembersSort('wins',this)">Wins</button>
-      <button class="mode-btn" onclick="setMembersSort('kd',this)">K/D Ratio</button>
-      <button class="mode-btn" onclick="setMembersSort('tickets',this)">Tickets</button>
+{% include "_nav.html" %}
+<main class="shell">
+  <section class="hero-box">
+    <div>
+      <span class="eyebrow">Leaderboard Scope</span>
+      <h1>Signal Boards <span>That Match Reality</span></h1>
+      <p>This page separates TriptokForge local creator momentum, Fortnite Battle Royale player lookup, and public Epic ecosystem scope. No fake global ladder, just the surfaces that are real now and the ones that unlock later.</p>
     </div>
-    <div class="lb-meta-row">
-      <span class="lb-updated" id="membersUpdated">Loading members...</span>
-      <button class="lb-refresh" onclick="loadMembers()">↺ Refresh</button>
+    <div class="hero-side">
+      <article><strong>Local creator board</strong><span class="section-copy">Ranks members by tickets, islands, plots, posts, likes, channel work, and any competitive data that actually exists.</span></article>
+      <article><strong>Player lookup</strong><span class="section-copy">Uses Fortnite-API for Battle Royale stats when the key is configured and falls back to a clearly labeled preview mode when it is not.</span></article>
+      <article><strong>Epic public scope</strong><span class="section-copy">Official island analytics matter most after a published island code exists. That is where real public Epic performance belongs.</span></article>
     </div>
-    <div id="membersPodium" class="podium" style="display:none"></div>
-    <div id="membersTable"><div class="lb-loading">Loading</div></div>
+  </section>
+
+  <section class="strip">
+    <article class="tile"><small>Local Members</small><strong id="heroMembers">--</strong><span class="section-copy">Loading member board</span></article>
+    <article class="tile"><small>Saved Islands</small><strong id="heroIslands">--</strong><span class="section-copy">Forge outputs currently indexed</span></article>
+    <article class="tile"><small>Public Scope</small><strong id="heroScope">--</strong><span class="section-copy">Waiting on ecosystem signal</span></article>
+    <article class="tile"><small>Island Analytics</small><strong id="heroAnalytics">Watch</strong><span class="section-copy">Publish an island code to unlock official Epic analytics scope</span></article>
+  </section>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="members" type="button">TF Creators</button>
+    <button class="tab" data-tab="lookup" type="button">Player Lookup</button>
+    <button class="tab" data-tab="ecosystem" type="button">Ecosystem</button>
   </div>
 
-  <!-- TAB: SEARCH -->
-  <div class="lb-panel" id="tab-search">
-    <div class="lb-search">
-      <input type="text" id="searchInput" placeholder="Enter Epic display name..." 
-             onkeydown="if(event.key==='Enter')searchPlayer()"/>
-      <button onclick="searchPlayer()">Search</button>
-    </div>
-    <div id="searchMsg" class="lb-search-msg"></div>
-    <div id="searchResult"></div>
-  </div>
-
-  <!-- TAB: GLOBAL -->
-  <div class="lb-panel" id="tab-global">
-    <div class="mode-row" id="globalModeRow">
-      <button class="mode-btn active" onclick="setGlobalMode('wins',this)">Wins</button>
-      <button class="mode-btn" onclick="setGlobalMode('kd',this)">K/D</button>
-      <button class="mode-btn" onclick="setGlobalMode('kills',this)">Kills</button>
-    </div>
-    <div class="lb-meta-row">
-      <span class="lb-updated" id="globalUpdated">Loading global rankings...</span>
-      <button class="lb-refresh" onclick="loadGlobal()">↺ Refresh</button>
-    </div>
-    <div id="globalPodium" class="podium" style="display:none"></div>
-    <div id="globalTable"><div class="lb-loading">Loading</div></div>
-  </div>
-
-</div>
-
-<script>
-const ME = {{ current_user|tojson }};
-let membersData = [];
-let globalData   = [];
-let membersSort  = 'wins';
-let globalMode   = 'wins';
-
-/* ── TAB SWITCHING ─────────────────────────────────────── */
-function switchTab(id, btn) {
-  document.querySelectorAll('.lb-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.lb-tab').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + id).classList.add('active');
-  btn.classList.add('active');
-  if (id === 'members' && membersData.length === 0) loadMembers();
-  if (id === 'global'  && globalData.length  === 0) loadGlobal();
-}
-
-/* ── MEMBERS TAB ───────────────────────────────────────── */
-async function loadMembers() {
-  document.getElementById('membersTable').innerHTML = '<div class="lb-loading">Loading</div>';
-  document.getElementById('membersPodium').style.display = 'none';
-  try {
-    const r = await fetch('/api/leaderboard/members');
-    const d = await r.json();
-    membersData = d.members || [];
-    renderMembers();
-    document.getElementById('membersUpdated').textContent =
-      membersData.length + ' members · updated just now';
-  } catch(e) {
-    document.getElementById('membersTable').innerHTML =
-      '<div class="lb-empty">Could not load members</div>';
-  }
-}
-
-function setMembersSort(key, btn) {
-  membersSort = key;
-  document.querySelectorAll('#membersModeRow .mode-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderMembers();
-}
-
-function renderMembers() {
-  const sorted = [...membersData].sort((a,b) => (b[membersSort]||0) - (a[membersSort]||0));
-  renderPodium(sorted.slice(0,3), 'membersPodium', membersSort);
-  renderTable(sorted, 'membersTable', membersSort, true);
-}
-
-/* ── GLOBAL TAB ────────────────────────────────────────── */
-async function loadGlobal() {
-  document.getElementById('globalTable').innerHTML = '<div class="lb-loading">Loading</div>';
-  document.getElementById('globalPodium').style.display = 'none';
-  try {
-    const r = await fetch('/api/leaderboard/global?stat=' + globalMode);
-    const d = await r.json();
-    globalData = d.players || [];
-    renderGlobal();
-    document.getElementById('globalUpdated').textContent =
-      'Top ' + globalData.length + ' globally · ' + globalMode;
-  } catch(e) {
-    document.getElementById('globalTable').innerHTML =
-      '<div class="lb-empty">Could not load global rankings — API key may be missing</div>';
-  }
-}
-
-function setGlobalMode(mode, btn) {
-  globalMode = mode;
-  document.querySelectorAll('#globalModeRow .mode-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  loadGlobal();
-}
-
-function renderGlobal() {
-  renderPodium(globalData.slice(0,3), 'globalPodium', globalMode);
-  renderTable(globalData, 'globalTable', globalMode, false);
-}
-
-/* ── PODIUM ────────────────────────────────────────────── */
-function renderPodium(top3, elId, statKey) {
-  const el = document.getElementById(elId);
-  if (!top3 || top3.length < 1) { el.style.display='none'; return; }
-  const order = [1,0,2]; // 2nd, 1st, 3rd display order
-  const labels = ['2nd','1st','3rd'];
-  const crowns = ['🥈','👑','🥉'];
-  const cls    = ['p2','p1','p3'];
-  el.innerHTML = '';
-  el.style.display = 'grid';
-  order.forEach((idx,pos) => {
-    const p = top3[idx];
-    if (!p) return;
-    const card = document.createElement('div');
-    card.className = 'podium-card ' + cls[pos];
-    const initials = (p.display_name||p.name||'?')[0].toUpperCase();
-    const val = formatStat(p[statKey] ?? p.value, statKey);
-    card.innerHTML = `
-      <div class="podium-glow"></div>
-      <span class="podium-crown">${crowns[pos]}</span>
-      <div class="podium-rank">${labels[pos]}</div>
-      <div class="podium-avatar">
-        ${(p.skin_img||p.avatar) ? `<img src="${p.skin_img||p.avatar}" loading="lazy" alt=""/>` : `<div class="podium-initial">${initials}</div>`}
+  <section class="tab-panel active" id="tab-members">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">Local Board</span>
+          <h2>TriptokForge creator momentum</h2>
+          <p class="section-copy">The local board uses signals we control now. It rewards building, shipping, posting, and participating while keeping competitive fields honest if they are still sparse.</p>
+        </div>
       </div>
-      <div class="podium-name">${p.display_name||p.name||'Unknown'}</div>
-      <div class="podium-stat">${val}</div>
-    `;
-    el.appendChild(card);
-  });
-}
-
-/* ── TABLE ─────────────────────────────────────────────── */
-function renderTable(players, elId, statKey, showBadge) {
-  const el = document.getElementById(elId);
-  if (!players || players.length === 0) {
-    el.innerHTML = '<div class="lb-empty">No data available</div>';
-    return;
-  }
-  const statLabel = {wins:'Wins',kd:'K/D',kills:'Kills',tickets:'Tickets'}[statKey] || statKey;
-  let html = `
-    <table class="lb-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Player</th>
-          <th class="num">${statLabel}</th>
-          <th class="num" style="display:none" id="${elId}-col2">—</th>
-        </tr>
-      </thead>
-      <tbody>`;
-  players.forEach((p,i) => {
-    const name = p.display_name || p.name || 'Unknown';
-    const init = name[0].toUpperCase();
-    const val  = formatStat(p[statKey] ?? p.value, statKey);
-    const isMe = ME && (p.epic_id === ME.account_id || p.display_name === ME.display_name);
-    const badge = showBadge ? '<span class="td-badge badge-member">Member</span>' : '';
-    const crownBadge = i < 3 ? '<span class="td-badge badge-top">Top ' + (i+1) + '</span>' : '';
-    const rankDiv = p.ranked_division ? `<span class="td-rank-badge ${rankClass(p.ranked_division)}">${p.ranked_division}</span>` : '';
-    html += `
-      <tr class="lb-row${isMe?' me':''}">
-        <td class="td-rank">${i+1}</td>
-        <td>
-          <div class="td-player">
-            <div class="td-avatar">
-              ${(p.skin_img||p.avatar) ? `<img src="${p.skin_img||p.avatar}" loading="lazy" alt=""/>` : `<div class="td-avatar-init">${init}</div>`}
-            </div>
-            <span class="td-name">${name}</span>
-            ${crownBadge}${badge}
-            ${rankDiv}
-          </div>
-        </td>
-        <td class="td-num hi">${val}</td>
-      </tr>`;
-  });
-  html += '</tbody></table>';
-  el.innerHTML = html;
-}
-
-function formatStat(val, key) {
-  if (val == null) return '—';
-  if (key === 'kd') return parseFloat(val).toFixed(2);
-  return parseInt(val).toLocaleString();
-}
-
-function rankClass(div) {
-  if (!div) return 'rank-unknown';
-  const d = div.toLowerCase();
-  if (d.includes('unreal'))   return 'rank-unreal';
-  if (d.includes('diamond'))  return 'rank-diamond';
-  if (d.includes('platinum')) return 'rank-platinum';
-  if (d.includes('gold'))     return 'rank-gold';
-  if (d.includes('silver'))   return 'rank-silver';
-  if (d.includes('bronze'))   return 'rank-bronze';
-  return 'rank-unknown';
-}
-
-/* ── PLAYER SEARCH ─────────────────────────────────────── */
-async function searchPlayer() {
-  const name = document.getElementById('searchInput').value.trim();
-  if (!name) return;
-  const msg = document.getElementById('searchMsg');
-  const res = document.getElementById('searchResult');
-  msg.textContent = 'Searching for ' + name + '...';
-  res.innerHTML = '';
-  try {
-    const r = await fetch('/api/stats?name=' + encodeURIComponent(name));
-    const d = await r.json();
-    if (d.error || !d.data) {
-      msg.textContent = d.error || 'Player not found or stats are private.';
-      return;
-    }
-    msg.textContent = '';
-    renderStatsCard(d.data, res);
-  } catch(e) {
-    msg.textContent = 'Error fetching stats.';
-  }
-}
-
-function renderStatsCard(data, container) {
-  const name   = data.account?.name || data.name || 'Unknown';
-  const init   = name[0].toUpperCase();
-  const all    = data.stats?.all;
-  const solo   = data.stats?.all?.solo   || {};
-  const duo    = data.stats?.all?.duo    || {};
-  const squad  = data.stats?.all?.squad  || {};
-  const overall = data.stats?.all?.overall || {};
-
-  function modeStats(m) {
-    if (!m || !m.wins) return '<div class="lb-empty">No data for this mode</div>';
-    const rows = [
-      ['Wins',      m.wins?.value],
-      ['K/D',       m.kd?.value],
-      ['Kills',     m.kills?.value],
-      ['Matches',   m.matches?.value],
-      ['Win Rate',  m.winRate?.value ? (m.winRate.value+'%') : null],
-      ['Score/Min', m.scorePerMin?.value],
-      ['Top 10',    m.top10?.value],
-      ['Top 25',    m.top25?.value],
-    ];
-    return rows.filter(r=>r[1]!=null)
-      .map(r=>`<div class="sc-stat"><span class="sc-stat-v">${r[1]}</span><span class="sc-stat-l">${r[0]}</span></div>`)
-      .join('');
-  }
-
-  const card = document.createElement('div');
-  card.className = 'stats-card show';
-  card.innerHTML = `
-    <div class="sc-header">
-      <div class="sc-avatar"><div class="sc-avatar-init">${init}</div></div>
-      <div>
-        <div class="sc-name">${name}</div>
-        <div class="sc-meta">Fortnite BR · All Time</div>
+      <div class="intel" id="memberIntel"><div class="card"><span class="mini">Loading</span><strong>--</strong><span class="section-copy">Pulling local board signals</span></div></div>
+      <div class="metric-bar">
+        <div class="metric-copy" id="metricCopy">Sort the board by the signal you care about most. Forge Score is the default weighted rank until a real competitive season exists.</div>
+        <div class="metric-tabs" id="metricTabs">
+          <button class="metric active" data-sort="forge_score" type="button">Forge Score</button>
+          <button class="metric" data-sort="islands_created" type="button">Islands</button>
+          <button class="metric" data-sort="posts_created" type="button">Posts</button>
+          <button class="metric" data-sort="tickets" type="button">Tickets</button>
+          <button class="metric" data-sort="wins" type="button">Wins</button>
+          <button class="metric" data-sort="kd" type="button">K/D</button>
+        </div>
       </div>
-      <button class="sc-close" onclick="this.closest('.stats-card').remove()">✕ Close</button>
+      <div class="notes" id="memberNotes"></div>
+      <div class="podium" id="podium"></div>
+      <div class="table-box">
+        <table>
+          <thead><tr><th>Rank</th><th>Player</th><th id="metricHeader">Forge Score</th><th>Islands</th><th>Posts</th><th>Tickets</th><th>K/D</th></tr></thead>
+          <tbody id="memberRows"><tr><td colspan="7">Loading creator board...</td></tr></tbody>
+        </table>
+      </div>
     </div>
-    <div class="sc-modes">
-      <button class="sc-mode-btn active" onclick="switchCardMode(this,'overall-stats')">Overall</button>
-      <button class="sc-mode-btn" onclick="switchCardMode(this,'solo-stats')">Solo</button>
-      <button class="sc-mode-btn" onclick="switchCardMode(this,'duo-stats')">Duo</button>
-      <button class="sc-mode-btn" onclick="switchCardMode(this,'squad-stats')">Squad</button>
+  </section>
+
+  <section class="tab-panel" id="tab-lookup">
+    <div class="search-grid">
+      <div class="search-box">
+        <span class="eyebrow">Battle Royale Search</span>
+        <h2>Player lookup</h2>
+        <p class="section-copy">Search a Fortnite player by display name. This is Battle Royale account data, not TriptokForge site activity.</p>
+        <div class="search-row">
+          <input id="searchInput" type="text" placeholder="Search a player"/>
+          <button class="action" id="searchButton" type="button">Search</button>
+        </div>
+      </div>
+      <div class="search-box" id="searchResult">
+        <div class="empty">Run a search to load a stat card. Overall, solo, duo, and squad slices appear when the current data source provides them.</div>
+      </div>
     </div>
-    <div id="overall-stats" class="sc-grid">${modeStats(overall)}</div>
-    <div id="solo-stats"    class="sc-grid" style="display:none">${modeStats(solo)}</div>
-    <div id="duo-stats"     class="sc-grid" style="display:none">${modeStats(duo)}</div>
-    <div id="squad-stats"   class="sc-grid" style="display:none">${modeStats(squad)}</div>
-  `;
-  container.innerHTML = '';
-  container.appendChild(card);
-}
+  </section>
 
-function switchCardMode(btn, panelId) {
-  const card = btn.closest('.stats-card');
-  card.querySelectorAll('.sc-mode-btn').forEach(b=>b.classList.remove('active'));
-  card.querySelectorAll('.sc-grid').forEach(p=>p.style.display='none');
-  btn.classList.add('active');
-  document.getElementById(panelId).style.display='grid';
-}
-
-/* ── INIT ──────────────────────────────────────────────── */
-loadMembers();
-</script>
+  <section class="tab-panel" id="tab-ecosystem">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">Scope Matrix</span>
+          <h2>Epic and Fortnite data surfaces</h2>
+          <p class="section-copy">This section shows what is live now, what needs a key, and what unlocks later when TriptokForge has a published island code and official analytics to read from.</p>
+        </div>
+      </div>
+      <div class="scope-grid" id="scopeGrid"><div class="scope-card"><span class="mini">Loading</span><strong>--</strong><span class="section-copy">Reading ecosystem scope</span></div></div>
+      <div class="service-grid" id="serviceGrid" style="margin-top:14px"></div>
+      <div class="signal-grid" id="signalGrid" style="margin-top:14px"></div>
+      <div class="notes" id="ecosystemNotes"></div>
+    </div>
+  </section>
+</main>
 {% include "_site_footer.html" %}
+<script>
+const currentUserId={{ current_user.account_id|tojson }};
+const currentUserName={{ current_user.display_name|tojson }};
+let memberPayload={members:[],summary:{},notes:[]};
+let ecosystemPayload={scope:[],services:[],signals:[],notes:[]};
+let activeSort="forge_score";
+
+function tab(name){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));document.querySelectorAll(".tab-panel").forEach(p=>p.classList.toggle("active",p.id===`tab-${name}`))}
+function label(key){return{forge_score:"Forge Score",islands_created:"Islands",posts_created:"Posts",tickets:"Tickets",wins:"Wins",kd:"K/D"}[key]||"Value"}
+function fmt(key,value){if(key==="kd"){const n=Number(value||0);return Number.isFinite(n)?n.toFixed(2):"0.00"}return String(value??0)}
+function self(member){const id=String(member.epic_id||"");const name=String(member.display_name||"");return Boolean((currentUserId&&id&&currentUserId===id)||(currentUserName&&name&&currentUserName.toLowerCase()===name.toLowerCase()))}
+function sorted(){return [...(memberPayload.members||[])].sort((a,b)=>Number(b[activeSort]||0)-Number(a[activeSort]||0)||Number(b.forge_score||0)-Number(a.forge_score||0)||String(a.display_name||"").localeCompare(String(b.display_name||"")))}
+function hero(summary,ecosystem){document.getElementById("heroMembers").textContent=summary.members??"--";document.getElementById("heroIslands").textContent=summary.islands??"--";const fn=(ecosystem.scope||[]).find(x=>x.label==="Fortnite-API");const epic=(ecosystem.scope||[]).find(x=>x.label==="Epic Official");document.getElementById("heroScope").textContent=fn?fn.value:"--";document.getElementById("heroAnalytics").textContent=epic?epic.value:"Watch"}
+function intel(summary){const items=[["Local Members",summary.members??0,summary.local_signal_ready?"Oracle signals are live for ranking.":"Waiting on enough member activity to create real separation."],["Saved Islands",summary.islands??0,"Recent Forge outputs and saved island records."],["Feed Posts",summary.posts??0,"Approved posts contribute to local creator momentum."],["Approved Channels",summary.channels??0,summary.competitive_ready?"Competitive stat fields exist for at least one member.":"Competitive fields are still sparse, so local weights stay primary."]];document.getElementById("memberIntel").innerHTML=items.map(([l,v,m])=>`<article class="card"><span class="mini">${l}</span><strong>${v}</strong><span class="section-copy">${m}</span></article>`).join("")}
+function notes(target,items){document.getElementById(target).innerHTML=(items||[]).map(item=>`<article class="note">${item}</article>`).join("")||'<div class="empty">No notes yet.</div>'}
+function avatar(member){if(member.skin_img){return `<img src="${member.skin_img}" alt="${member.display_name||"Player"}"/>`}return `<div class="avatar">${String(member.display_name||"TF").slice(0,2).toUpperCase()}</div>`}
+function renderMembers(){const members=sorted();document.getElementById("metricHeader").textContent=label(activeSort);document.getElementById("podium").innerHTML=members.slice(0,3).map((m,i)=>`<article class="card"><span class="mini">Rank ${i+1}</span><strong>${fmt(activeSort,m[activeSort])}</strong><h3 style="margin-top:10px;font-size:1rem">${m.display_name||"Unknown"}</h3><span class="section-copy">${label(activeSort)} | ${m.islands_created||0} islands | ${m.posts_created||0} posts | ${m.tickets||0} tickets</span></article>`).join("")||'<div class="empty">No member activity yet.</div>';document.getElementById("memberRows").innerHTML=members.length?members.map((m,i)=>`<tr class="${self(m)?"self":""}"><td>${i+1}</td><td><div class="player">${avatar(m)}<div><strong style="display:block">${m.display_name||"Unknown"}</strong><span class="section-copy">${m.skin_name||"Locker not set"}</span></div></div></td><td>${fmt(activeSort,m[activeSort])}</td><td>${m.islands_created||0}</td><td>${m.posts_created||0}</td><td>${m.tickets||0}</td><td>${fmt("kd",m.kd)}</td></tr>`).join(""):'<tr><td colspan="7">No member ranking data yet.</td></tr>'}
+function setSort(sort){activeSort=sort;document.querySelectorAll(".metric").forEach(b=>b.classList.toggle("active",b.dataset.sort===sort));document.getElementById("metricCopy").textContent=`${label(sort)} is now the active sort. TriptokForge creator rankings stay grounded in live local data instead of a fake global ladder.`;renderMembers()}
+function statusClass(status){return String(status||"").toLowerCase().replace(/[^a-z-]+/g,"-")}
+function chips(status){return `<span class="chip ${statusClass(status)}">${status}</span>`}
+function cards(target,items,type){document.getElementById(target).innerHTML=(items||[]).map(item=>`<article class="${type}"><span class="mini">${item.label}</span><strong>${item.value}</strong><span class="section-copy">${item.detail}</span>${item.status?`<div style="margin-top:12px">${chips(item.status)}</div>`:""}</article>`).join("")}
+function statTiles(stats){const items=[["Wins",stats.wins||"0"],["K/D",stats.kd||"0"],["Matches",stats.matches||"0"],["Kills",stats.kills||"0"],["Win Rate",stats.winPct||"0%"],["Avg Eliminations",stats.avgElim||"0"]];return `<div class="stats-grid">${items.map(([l,v])=>`<article class="stat-card"><span class="mini">${l}</span><strong>${v}</strong></article>`).join("")}</div>`}
+function modeTiles(modes){const order=[["overall","Overall"],["solo","Solo"],["duo","Duo"],["squad","Squad"]];const html=order.filter(([k])=>modes&&modes[k]&&Object.keys(modes[k]).length).map(([k,l])=>`<article class="mode-card"><span class="mini">${l}</span><strong>${modes[k].wins||"0"}W / ${modes[k].kd||"0"} K/D</strong><span class="section-copy">${modes[k].matches||"0"} matches | ${modes[k].kills||"0"} eliminations | ${modes[k].winPct||"0%"}</span></article>`).join("");return html?`<div class="modes">${html}</div>`:""}
+async function loadMembers(){const r=await fetch("/api/leaderboard/members",{credentials:"same-origin"});const p=await r.json();memberPayload=p.ok?p:{members:[],summary:{},notes:[]};intel(memberPayload.summary||{});notes("memberNotes",memberPayload.notes||[]);renderMembers();hero(memberPayload.summary||{},ecosystemPayload)}
+async function loadEcosystem(){const r=await fetch("/api/leaderboard/global",{credentials:"same-origin"});const p=await r.json();if(!p.ok)return;ecosystemPayload=p;cards("scopeGrid",p.scope||[],"scope-card");cards("serviceGrid",p.services||[],"service-card");cards("signalGrid",p.signals||[],"signal-card");notes("ecosystemNotes",p.notes||[]);hero(memberPayload.summary||{},ecosystemPayload)}
+function renderSearch(payload){const shell=document.getElementById("searchResult");if(!payload.ok){shell.innerHTML=`<div class="empty">${payload.error||"Could not load player stats."}</div>`;return}const stats=payload.stats||{};const source=payload.source||"unknown";const copy=source==="fortnite-api"?"Live Battle Royale stats loaded through Fortnite-API.":"Preview mode only. Add FORTNITE_API_KEY to switch this card to live Battle Royale account lookup.";shell.innerHTML=`<span class="eyebrow">Player Card</span><h2>${(payload.player||{}).name||"Unknown"}</h2><div style="margin-top:12px">${chips(source==="fortnite-api"?"ready":"watch-ready")} ${chips(source)}</div><p class="section-copy" style="margin-top:14px">${copy}</p>${statTiles(stats)}${modeTiles(stats.modes)}`}
+async function search(){const input=document.getElementById("searchInput");const value=input.value.trim();const shell=document.getElementById("searchResult");if(!value){shell.innerHTML='<div class="empty">Enter a Fortnite display name to search.</div>';return}shell.innerHTML='<div class="empty">Loading player card...</div>';try{const r=await fetch(`/api/stats?name=${encodeURIComponent(value)}`,{credentials:"same-origin"});renderSearch(await r.json())}catch(_){shell.innerHTML='<div class="empty">Player lookup failed. Try again in a moment.</div>'}}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>tab(b.dataset.tab)));document.getElementById("metricTabs").addEventListener("click",e=>{const b=e.target.closest(".metric");if(b)setSort(b.dataset.sort)});document.getElementById("searchButton").addEventListener("click",search);document.getElementById("searchInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();search()}});Promise.all([loadMembers(),loadEcosystem()]).catch(()=>{document.getElementById("memberRows").innerHTML='<tr><td colspan="7">Leaderboard data could not be loaded.</td></tr>'});
+</script>
 </body>
 </html>

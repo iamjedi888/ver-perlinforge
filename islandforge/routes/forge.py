@@ -416,19 +416,42 @@ def random_seed():
 # ── FORTNITE API ─────────────────────────────────────────────
 @forge_bp.route("/api/stats")
 def api_stats():
-    name = request.args.get("name","")
-    if not name: return jsonify({"ok":False,"error":"No name"})
+    name = (request.args.get("name", "") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "No name"})
     try:
-        url = f"{FORTNITE_STATS_URL}?name={urllib.parse.quote(name)}"
-        req = urllib.request.Request(url, headers={"User-Agent":"TriptokForge/1.0"})
-        with urllib.request.urlopen(req, timeout=8) as r: data = json.loads(r.read().decode())
-        if data.get("status") != 200: return jsonify({"ok":False,"error":"Player not found"})
-        ov = data.get("data",{}).get("stats",{}).get("all",{}).get("overall",{})
-        wins=ov.get("wins",0); kills=ov.get("kills",0); matches=ov.get("matches",0)
-        kd=ov.get("kd",0.0); score=ov.get("scorePerMatch",0)
-        win_pct = f"{round(wins/matches*100,1)}%" if matches else "0%"
-        return jsonify({"ok":True,"stats":{"wins":wins,"kills":kills,"matches":matches,"kd":round(kd,2),"winPct":win_pct,"score":round(score,1)}})
-    except Exception as e: return jsonify({"ok":False,"error":str(e)})
+        from routes.epic_games_api import _live_stats_for_name, _mock_stats
+
+        stats_key_ready = bool(os.environ.get("FORTNITE_API_KEY", "").strip())
+        live_stats = _live_stats_for_name(name)
+        if live_stats:
+            return jsonify(
+                {
+                    "ok": True,
+                    "player": {"name": name},
+                    "stats": live_stats,
+                    "source": "fortnite-api",
+                }
+            )
+
+        if stats_key_ready:
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": "Player not found or live stats are unavailable.",
+                }
+            )
+
+        return jsonify(
+            {
+                "ok": True,
+                "player": {"name": name},
+                "stats": _mock_stats(name),
+                "source": "mock",
+            }
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
 
 @forge_bp.route("/api/cosmetics")
 def api_cosmetics():

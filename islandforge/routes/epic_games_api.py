@@ -56,6 +56,19 @@ def _mock_stats(display_name: str) -> dict:
     top10 = top5 + rng.randint(30, 200)
     avg_elim = round(kills / matches, 1)
 
+    def mode_slice(match_range, win_cap):
+        mode_matches = rng.randint(*match_range)
+        mode_wins = rng.randint(0, max(1, min(win_cap, mode_matches // 4)))
+        mode_kills = rng.randint(mode_matches, max(mode_matches + 1, mode_matches * 5))
+        mode_kd = round(mode_kills / max(mode_matches - mode_wins, 1), 2)
+        return {
+            "wins": str(mode_wins),
+            "kd": str(mode_kd),
+            "matches": str(mode_matches),
+            "kills": str(mode_kills),
+            "winPct": f"{round((mode_wins / mode_matches) * 100, 1) if mode_matches else 0}%",
+        }
+
     return {
         "wins": str(wins),
         "kd": str(kd),
@@ -66,8 +79,52 @@ def _mock_stats(display_name: str) -> dict:
         "top5": str(top5),
         "top10": str(top10),
         "avgElim": str(avg_elim),
+        "modes": {
+            "overall": {
+                "wins": str(wins),
+                "kd": str(kd),
+                "matches": str(matches),
+                "kills": str(kills),
+                "winPct": f"{win_pct}%",
+                "score": str(score),
+                "top5": str(top5),
+                "top10": str(top10),
+                "avgElim": str(avg_elim),
+            },
+            "solo": mode_slice((40, 900), wins),
+            "duo": mode_slice((40, 1200), wins),
+            "squad": mode_slice((40, 1500), wins),
+        },
         "_mock": True,
     }
+
+
+def _mode_snapshot(bucket: dict | None) -> dict:
+    bucket = bucket or {}
+    matches = _safe_int(bucket.get("matches"))
+    wins = _safe_int(bucket.get("wins"))
+    kills = _safe_int(bucket.get("kills"))
+    kd = _safe_float(bucket.get("kd"))
+    win_rate = _safe_float(bucket.get("winRate"))
+    avg_elims = _safe_float(bucket.get("killsPerMatch"))
+    if not avg_elims and matches:
+        avg_elims = kills / matches
+
+    snapshot = {
+        "wins": str(wins),
+        "kd": _format_float(kd),
+        "matches": str(matches),
+        "kills": str(kills),
+        "winPct": f"{_format_float(win_rate, 1)}%",
+        "score": str(_safe_int(bucket.get("score"))),
+        "top5": str(_safe_int(bucket.get("top5") or bucket.get("top6"))),
+        "top10": str(_safe_int(bucket.get("top10") or bucket.get("top12"))),
+        "avgElim": _format_float(avg_elims, 1),
+    }
+
+    if not any(value not in {"0", "0%", "0.0", ""} for value in snapshot.values()):
+        return {}
+    return snapshot
 
 
 def _fetch_json(url: str, headers: dict | None = None, timeout: int = 6, cache_key: str = "", ttl: int = 0) -> dict:
@@ -139,29 +196,22 @@ def _live_stats_for_name(display_name: str) -> dict | None:
         ttl=120,
     )
     data = payload.get("data") or {}
-    overall = (((data.get("stats") or {}).get("all") or {}).get("overall") or {})
+    all_modes = ((data.get("stats") or {}).get("all") or {})
+    overall = (all_modes.get("overall") or {})
     if not overall:
         return None
 
-    matches = _safe_int(overall.get("matches"))
-    wins = _safe_int(overall.get("wins"))
-    kills = _safe_int(overall.get("kills"))
-    kd = _safe_float(overall.get("kd"))
-    win_rate = _safe_float(overall.get("winRate"))
-    avg_elims = _safe_float(overall.get("killsPerMatch"))
-    if not avg_elims and matches:
-        avg_elims = kills / matches
+    overall_snapshot = _mode_snapshot(overall)
+    modes = {
+        "overall": overall_snapshot,
+        "solo": _mode_snapshot(all_modes.get("solo")),
+        "duo": _mode_snapshot(all_modes.get("duo")),
+        "squad": _mode_snapshot(all_modes.get("squad")),
+    }
 
     return {
-        "wins": str(wins),
-        "kd": _format_float(kd),
-        "matches": str(matches),
-        "kills": str(kills),
-        "winPct": f"{_format_float(win_rate, 1)}%",
-        "score": str(_safe_int(overall.get("score"))),
-        "top5": str(_safe_int(overall.get("top5") or overall.get("top6"))),
-        "top10": str(_safe_int(overall.get("top10") or overall.get("top12"))),
-        "avgElim": _format_float(avg_elims, 1),
+        **overall_snapshot,
+        "modes": modes,
         "_mock": False,
     }
 
