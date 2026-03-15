@@ -19,8 +19,10 @@ from oracle_db import (
     authenticate_staff_account,
     create_bot_profile,
     create_staff_account,
+    db_available,
     get_bot_profile_by_slug,
     get_staff_accounts,
+    status,
     update_staff_account,
 )
 
@@ -63,6 +65,30 @@ def _generate_password(length: int = 24) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
+def _backend_label() -> str:
+    return "oracle" if db_available() else "json-fallback"
+
+
+def _print_backend_warning() -> None:
+    state = status()
+    backend = _backend_label()
+    print(f"Backend: {backend}")
+    if backend == "json-fallback":
+        print(
+            "Warning: Oracle DB is not available in this shell, so this command is using local JSON fallback data."
+        )
+        print(
+            "Load the same environment file used by systemd before managing real site accounts."
+        )
+        print(
+            "Example: set -a && source /etc/islandforge.env && set +a"
+        )
+    else:
+        print(
+            f"Oracle online: {'yes' if state.get('oracle_online') else 'no'}"
+        )
+
+
 def _print_account(account: dict):
     role = account.get("role") or "unknown"
     username = account.get("username") or ""
@@ -103,6 +129,7 @@ def _ensure_bot_profile():
 
 
 def cmd_list(_args: argparse.Namespace) -> int:
+    _print_backend_warning()
     accounts = get_staff_accounts() or []
     if not accounts:
         print("No staff accounts found.")
@@ -113,6 +140,7 @@ def cmd_list(_args: argparse.Namespace) -> int:
 
 
 def cmd_upsert_staff(args: argparse.Namespace) -> int:
+    _print_backend_warning()
     username = args.username.strip().lower()
     role = args.role.strip().lower()
     if role not in STAFF_ROLE_OPTIONS:
@@ -164,6 +192,7 @@ def cmd_upsert_staff(args: argparse.Namespace) -> int:
 
 
 def cmd_reset_password(args: argparse.Namespace) -> int:
+    _print_backend_warning()
     username = args.username.strip().lower()
     existing = _find_staff_by_username(username)
     if not existing:
@@ -192,6 +221,7 @@ def cmd_reset_password(args: argparse.Namespace) -> int:
 
 
 def cmd_verify_login(args: argparse.Namespace) -> int:
+    _print_backend_warning()
     username = args.username.strip().lower()
     password = args.password or ""
     if not password:
@@ -210,6 +240,7 @@ def cmd_verify_login(args: argparse.Namespace) -> int:
 
 
 def cmd_ensure_colorstheforce(args: argparse.Namespace) -> int:
+    _print_backend_warning()
     _ensure_bot_profile()
     username = (args.username or "colorstheforce").strip().lower()
     display_name = args.display_name or "ColorsTheForce Operator"
