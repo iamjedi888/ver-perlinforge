@@ -32,9 +32,11 @@ journalctl -u islandforge -n 50 --no-pager
 
 ## First-time setup (already done — reference only)
 
+If the GitHub repository is private, configure a read-only deploy key on Oracle first and use the SSH remote instead of a public HTTPS clone.
+
 ```bash
 # Clone
-git clone https://github.com/iamjedi888/ver-perlinforge.git
+git clone git@github-triptokforge:iamjedi888/ver-perlinforge.git
 cd ver-perlinforge/islandforge
 
 # Install deps
@@ -67,22 +69,27 @@ WorkingDirectory=/home/ubuntu/ver-perlinforge/islandforge
 ExecStart=/usr/local/bin/gunicorn -w 2 -b 0.0.0.0:5000 wsgi:application
 Restart=always
 RestartSec=5
-Environment="EPIC_CLIENT_ID=YOUR_EPIC_CLIENT_ID_HERE"
-Environment="EPIC_CLIENT_SECRET=YOUR_EPIC_CLIENT_SECRET_HERE"
-Environment="EPIC_DEPLOYMENT_ID=YOUR_EPIC_DEPLOYMENT_ID_HERE"
-Environment="APP_BASE_URL=https://triptokforge.org"
-Environment="EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback"
-Environment="FLASK_SECRET_KEY=REPLACE_WITH_A_LONG_RANDOM_SECRET"
-Environment="ADMIN_PASSWORD=REPLACE_WITH_A_LONG_RANDOM_PASSWORD"
-Environment="FORTNITE_API_KEY=OPTIONAL_FORTNITE_API_KEY"
-Environment="FORTNITE_DATA_ISLAND_CODE=OPTIONAL_PUBLISHED_ISLAND_CODE"
+EnvironmentFile=/etc/islandforge.env
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-> ⚠️ Never commit `EPIC_CLIENT_SECRET` or `ADMIN_PASSWORD` to GitHub.  
-> Set them only in the systemd service file on the server.
+> Keep secrets in `/etc/islandforge.env` with mode `600`, not inline in tracked files or shell history.
+
+Example `/etc/islandforge.env`:
+
+```ini
+APP_BASE_URL=https://triptokforge.org
+EPIC_CLIENT_ID=YOUR_EPIC_CLIENT_ID_HERE
+EPIC_CLIENT_SECRET=YOUR_EPIC_CLIENT_SECRET_HERE
+EPIC_DEPLOYMENT_ID=YOUR_EPIC_DEPLOYMENT_ID_HERE
+EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback
+FLASK_SECRET_KEY=REPLACE_WITH_A_LONG_RANDOM_SECRET
+ADMIN_PASSWORD=REPLACE_WITH_A_LONG_RANDOM_PASSWORD
+FORTNITE_API_KEY=OPTIONAL_FORTNITE_API_KEY
+FORTNITE_DATA_ISLAND_CODE=OPTIONAL_PUBLISHED_ISLAND_CODE
+```
 
 Optional data surfaces:
 
@@ -163,6 +170,18 @@ gunicorn -w 1 -b 0.0.0.0:5000 wsgi:application
 #    - Wrong gunicorn path  → which gunicorn
 #    - Port conflict        → sudo lsof -i :5000
 ```
+
+---
+
+## Private repo note
+
+If you switch the repository to private:
+
+- keep Oracle on a read-only deploy key
+- switch Oracle `origin` to the SSH remote
+- continue deploying with `git pull origin main`
+
+Reference: `templates/whitepages/GITHUB_PRIVATE_DEPLOY.md`
 
 ---
 

@@ -65,18 +65,25 @@ Use `triptokdb1_high` for your DSN.
 
 ---
 
-## STEP 5 — Add Environment Variables to Service
+## STEP 5 — Add Environment Variables via Protected Env File
 
 ```bash
-sudo nano /etc/systemd/system/islandforge.service
+sudo install -m 600 /dev/null /etc/islandforge.env
+sudo nano /etc/islandforge.env
 ```
 
-Add these lines in the `[Service]` section:
+Add:
 ```ini
-Environment="ORACLE_DSN=triptokdb1_high"
-Environment="ORACLE_USER=ADMIN"
-Environment="ORACLE_PASSWORD=TriptokDB2026!"
-Environment="ORACLE_WALLET=/home/ubuntu/wallet"
+ORACLE_DSN=triptokdb1_high
+ORACLE_USER=ADMIN
+ORACLE_PASSWORD=TriptokDB2026!
+ORACLE_WALLET=/home/ubuntu/wallet
+```
+
+Then make sure the systemd unit contains:
+
+```ini
+EnvironmentFile=/etc/islandforge.env
 ```
 
 Then reload:
@@ -160,15 +167,15 @@ print('Namespace:', ns)
 ## STEP 10 — Add OCI Environment Variables
 
 ```bash
-sudo nano /etc/systemd/system/islandforge.service
+sudo nano /etc/islandforge.env
 ```
 
 Add:
 ```ini
-Environment="OCI_NAMESPACE=your_namespace_from_step9"
-Environment="OCI_BUCKET=triptokforge"
-Environment="OCI_REGION=us-ashburn-1"
-Environment="OCI_CONFIG_FILE=/home/ubuntu/.oci/config"
+OCI_NAMESPACE=your_namespace_from_step9
+OCI_BUCKET=triptokforge
+OCI_REGION=us-ashburn-1
+OCI_CONFIG_FILE=/home/ubuntu/.oci/config
 ```
 
 Reload:
