@@ -423,11 +423,12 @@
       <h3>Current handoff</h3>
       <ul>
         <li>The login flow fails safely when secrets are missing instead of using hardcoded values.</li>
+        <li>The current Flask website login uses only the approved client ID, client secret, deployment ID, and exact callback URL.</li>
         <li>The production base URL drives the redirect base for login and logout.</li>
         <li>The callback path must exactly match the value approved by Epic for the production app.</li>
         <li>The login app belongs to the Epic Account Services / Developer Portal lane, not Fortnite Creator Portal publishing.</li>
       </ul>
-      <p>Reference notes: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code> and <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code></p>
+      <p>Reference notes: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code>, <code>templates/whitepages/EPIC_LOGIN_READY_CHECKLIST.md</code>, and <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code></p>
     </div>
   </section>
 
@@ -437,12 +438,14 @@
     <div class="steps">
       <div class="step"><div class="step-n">01</div><div class="step-b"><strong>Confirm Epic setup</strong><p>Verify the approved app is tied to <code>triptokforge.org</code> and that the approved callback path exactly matches the server-side callback configuration on Oracle.</p></div></div>
       <div class="step"><div class="step-n">02</div><div class="step-b"><strong>Prefer the canonical callback</strong><p>Use <code>https://triptokforge.org/auth/callback</code> for new approval requests. If Epic has already approved <code>/auth/epic/callback</code>, keep using that exact value until Epic changes it.</p></div></div>
-      <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Update Oracle secrets</strong><p>Load the approved production Epic credentials and callback settings on Oracle only. Do not place sensitive values in WhitePages, screenshots, or tracked files.</p></div></div>
-      <div class="step"><div class="step-n">04</div><div class="step-b"><strong>Restart and verify</strong><p>Restart <code>islandforge</code>, test <code>/auth/epic</code>, confirm callback hits <code>/dashboard</code>, then test <code>/auth/logout</code>.</p></div></div>
+      <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Use only the values the website actually needs</strong><p>For the current Flask login lane, wire the approved client ID, client secret, deployment ID, and exact redirect URI. Keep product, sandbox, and application identifiers as private reference notes unless a later EOS SDK expansion requires them.</p></div></div>
+      <div class="step"><div class="step-n">04</div><div class="step-b"><strong>Update Oracle secrets with placeholders in docs only</strong><p>Load the approved production Epic credentials and callback settings on Oracle only. WhitePages examples should stay in placeholder form like <code>YOUR_APPROVED_CLIENT_ID</code> and <code>YOUR_ADMIN_PASSWORD_HERE</code>.</p></div></div>
+      <div class="step"><div class="step-n">05</div><div class="step-b"><strong>Restart and verify</strong><p>Restart <code>islandforge</code>, test <code>/auth/epic</code>, confirm callback hits <code>/dashboard</code>, then test <code>/auth/logout</code>.</p></div></div>
     </div>
+    <div class="callout green"><div class="callout-icon">&#10003;</div><div><div class="c-title">Staff-only readiness check</div><p>Use the dedicated internal checklist before calling the site production-ready: <code>templates/whitepages/EPIC_LOGIN_READY_CHECKLIST.md</code>.</p></div></div>
     <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Important boundary</div><p>Epic login gives us identity and approved product surfaces. It does not grant arbitrary private save data from unrelated Epic games.</p></div></div>
     <div class="prose">
-      <p>Reference notes: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code>, <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code>, and <code>templates/whitepages/EPIC_OUTREACH_BRIEF.md</code></p>
+      <p>Reference notes: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code>, <code>templates/whitepages/EPIC_LOGIN_READY_CHECKLIST.md</code>, <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code>, and <code>templates/whitepages/EPIC_OUTREACH_BRIEF.md</code></p>
     </div>
   </section>
   {% endif %}
@@ -637,6 +640,7 @@
       <p>Current target layout keeps all 32 farm plots in one shared coastal hub near town, with coherent Fortnite prefab kits assigned biome by biome instead of random prop mixing.</p>
       <p>The package is now intended to be theme-aware and concrete: the selected Fortnite chapter changes biome material guidance, gallery recommendations, landmark inspirations, foliage slot bindings, and placement-plan output instead of only changing a label.</p>
       <p>The important contract is now explicit: changing world scale changes the downstream UEFN steps. If Forge flags World Partition, the player needs to enable it before import instead of trying to brute-force the landscape into a default island.</p>
+      <p>Reference note: <code>templates/whitepages/FORGE_AUDIO_WORLD_MODEL.md</code></p>
     </div>
     <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Import rule</div><p>If the selected world scale exceeds roughly 2km, enable World Partition and Streaming in UEFN before importing the generated heightmap. The same warning is repeated in Forge, <code>layout.json</code>, and the generated package README.</p></div></div>
     <div class="prose" id="forge-runbook">

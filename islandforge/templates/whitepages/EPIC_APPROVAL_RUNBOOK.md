@@ -4,7 +4,7 @@
 
 When Epic approves the production domain, switch the site from pending OAuth state to a live Epic login flow on `https://triptokforge.org`.
 
-## Current code path
+## What the current website actually uses
 
 The site already reads Epic OAuth from environment variables:
 
@@ -18,6 +18,16 @@ Relevant code:
 
 - `routes/epic_auth_config.py`
 - `routes/auth.py`
+
+For the current Flask website login flow, this is the active credential set. The site does **not** currently need product-wide SDK identifiers beyond what is required to complete Epic Account Services login and token exchange.
+
+## Values that are useful reference, but not currently consumed by the Flask login flow
+
+- `PRODUCT_ID`
+- `APPLICATION_ID`
+- `SANDBOX_ID`
+
+Keep those recorded in your private Epic portal notes, but do not treat them as part of the current website login checklist unless the site later expands into deeper EOS SDK or game-service integration.
 
 The app accepts both callback routes:
 
@@ -43,19 +53,23 @@ The important rule is that the value configured in Epic must exactly match `EPIC
 4. If Epic approval was already processed against:
    `https://triptokforge.org/auth/epic/callback`
    keep that value on Oracle until Epic changes it.
-5. Put the approved values on Oracle.
-6. Restart `islandforge`.
-7. Test the full login and logout flow.
-8. Verify the member session lands on `/dashboard`.
+5. Confirm the approved deployment is the one you actually want to run on the public site.
+6. Put the approved values on Oracle.
+7. Restart `islandforge`.
+8. Test the full login and logout flow.
+9. Verify the member session lands on `/dashboard`.
+10. Verify logout returns cleanly to `/home`.
 
-## Oracle env pattern
+## Oracle config pattern
 
-Recommended:
+The current Oracle server may be using either:
 
-```bash
-sudo install -m 600 /dev/null /etc/islandforge.env
-sudo nano /etc/islandforge.env
-```
+1. inline `Environment="..."` lines inside the `islandforge.service` unit
+2. an `EnvironmentFile=/path/to/file`
+
+Use one pattern only. Do not mix both casually.
+
+### Placeholder-only variable set
 
 Add only the real approved values on Oracle. Do not place them in WhitePages, tracked files, screenshots, or chat logs.
 
@@ -71,13 +85,32 @@ FLASK_SECRET_KEY=REPLACE_WITH_LONG_RANDOM_VALUE
 ADMIN_PASSWORD=REPLACE_WITH_LONG_RANDOM_VALUE
 ```
 
-Then point systemd at that file:
+### If you use an EnvironmentFile
+
+```bash
+sudo install -m 600 /dev/null /etc/islandforge.env
+sudo nano /etc/islandforge.env
+```
+
+Then set the service to read it:
 
 ```ini
 EnvironmentFile=/etc/islandforge.env
 ```
 
-Restart:
+### If you keep inline systemd Environment lines
+
+Keep only placeholder-style examples in docs and write the real values directly on Oracle:
+
+```ini
+Environment="APP_BASE_URL=https://triptokforge.org"
+Environment="EPIC_CLIENT_ID=YOUR_APPROVED_CLIENT_ID"
+Environment="EPIC_CLIENT_SECRET=YOUR_APPROVED_CLIENT_SECRET"
+Environment="EPIC_DEPLOYMENT_ID=YOUR_APPROVED_DEPLOYMENT_ID"
+Environment="EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback"
+```
+
+### Restart after any change
 
 ```bash
 sudo systemctl daemon-reload
@@ -97,6 +130,12 @@ curl http://127.0.0.1:5000/health
    - Epic account id
    - dashboard nav
 6. Run logout and confirm it returns to `/home`
+
+## Quick decision rule
+
+- If `/auth/epic` redirects to Epic already, the site-side flow is wired.
+- If public users still are not supposed to log in yet, the remaining gate is on the Epic approval / app-review / deployment side, not the Flask route itself.
+- If you switch from `Dev` or `Stage` to `Live`, update the approved deployment value on Oracle before expecting production behavior.
 
 ## Epic mark handling
 
