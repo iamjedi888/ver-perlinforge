@@ -137,22 +137,25 @@ def apply_channel_override(name: str, channel: dict) -> dict:
     return updated
 
 
-def split_source_urls(value: str) -> list[str]:
-    raw = (value or "").strip()
-    if not raw:
-        return []
+def split_source_urls(value) -> list[str]:
+    if isinstance(value, (list, tuple, set)):
+        items = [str(item or "").strip() for item in value]
+    else:
+        raw = (value or "").strip()
+        if not raw:
+            return []
 
-    items = []
-    if raw.startswith("["):
-        try:
-            parsed = json.loads(raw)
-            if isinstance(parsed, list):
-                items.extend(str(item or "").strip() for item in parsed)
-        except json.JSONDecodeError:
-            pass
+        items = []
+        if raw.startswith("["):
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, list):
+                    items.extend(str(item or "").strip() for item in parsed)
+            except json.JSONDecodeError:
+                pass
 
-    if not items:
-        items.extend(part.strip() for part in re.split(r"[\r\n|]+", raw))
+        if not items:
+            items.extend(part.strip() for part in re.split(r"[\r\n|]+", raw))
 
     unique = []
     seen = set()
