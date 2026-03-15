@@ -51,6 +51,11 @@ PUBLIC_PATHS = {
     "/sitemap.xml",
 }
 
+PUBLIC_GET_ONLY_PATHS = {
+    "/whitepages",
+    "/api/whitepages/tracks",
+}
+
 PUBLIC_PREFIXES = (
     "/static/",
     "/auth/",
@@ -70,7 +75,6 @@ PROTECTED_PAGE_ROOTS = (
     "/leaderboard",
     "/news",
     "/cardgame",
-    "/whitepages",
     "/room",
     "/generate",
     "/upload_audio",
@@ -123,6 +127,8 @@ def _has_portal_access() -> bool:
 def _is_public_path(path: str) -> bool:
     normalized = (path or "/").rstrip("/") or "/"
     if normalized in PUBLIC_PATHS:
+        return True
+    if request.method == "GET" and normalized in PUBLIC_GET_ONLY_PATHS:
         return True
     return any(normalized.startswith(prefix) for prefix in PUBLIC_PREFIXES)
 

@@ -123,7 +123,6 @@ def run_tests(base_url: str) -> int:
         "/leaderboard",
         "/news",
         "/cardgame",
-        "/whitepages",
         "/dashboard",
         "/room",
     ]
@@ -143,7 +142,6 @@ def run_tests(base_url: str) -> int:
         ("/api/leaderboard/members", "GET", None),
         ("/api/leaderboard/global", "GET", None),
         ("/api/ecosystem/summary", "GET", None),
-        ("/api/whitepages/tracks", "GET", None),
         ("/api/news/latest", "GET", None),
         ("/api/news/preferences", "GET", None),
         ("/api/presets", "GET", None),
@@ -170,6 +168,26 @@ def run_tests(base_url: str) -> int:
                 "detail": "API/member gate",
             }
         )
+
+    checks.append(
+        {
+            "name": "whitepages_public",
+            "path": "/whitepages",
+            "method": "GET",
+            "validate": lambda s, h, b: s == 200 and "Whitepages" in b,
+            "detail": "public whitepages",
+        }
+    )
+
+    checks.append(
+        {
+            "name": "whitepages_tracks_public",
+            "path": "/api/whitepages/tracks",
+            "method": "GET",
+            "validate": lambda s, h, b: s == 200 and b.strip().startswith("["),
+            "detail": "public whitepages feed",
+        }
+    )
 
     failures = 0
     print(f"Smoke test base URL: {base_url}")

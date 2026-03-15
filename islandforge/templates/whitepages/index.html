@@ -27,18 +27,25 @@
   <div class="nav-links">
     <a href="#overview" class="nav-a">Platform</a>
     <a href="#member-hub" class="nav-a">Members</a>
+    <a href="#architecture" class="nav-a">Architecture</a>
+    <a href="#channels" class="nav-a">Channels</a>
+    <a href="#arena" class="nav-a">Arena</a>
+    <a href="#branding" class="nav-a">Branding</a>
+    <a href="#colorstheforce" class="nav-a">ColorsTheForce</a>
+    <a href="#forge-runbook" class="nav-a">Forge</a>
+    <a href="#roadmap" class="nav-a">Roadmap</a>
+    {% if portal_admin_authed %}
     <a href="#deploy" class="nav-a">Deploy</a>
     <a href="#repo-privacy" class="nav-a">Repo Privacy</a>
     <a href="#github-vault" class="nav-a">GitHub Vault</a>
     <a href="#epic-approval" class="nav-a">Epic Approval</a>
-    <a href="#branding" class="nav-a">Branding</a>
-    <a href="#colorstheforce" class="nav-a">ColorsTheForce</a>
     <a href="#staff-bots" class="nav-a">Staff + Bots</a>
-    <a href="#forge-runbook" class="nav-a">Forge</a>
     <a href="#workspace-audit" class="nav-a">Audit</a>
     <a href="#routes" class="nav-a">API</a>
     <a href="#ops" class="nav-a">Ops</a>
-    <a href="#roadmap" class="nav-a">Roadmap</a>
+    {% else %}
+    <a href="#staff-access" class="nav-a">Staff Docs</a>
+    {% endif %}
     <a href="{{ portal_exit_href }}" class="nav-a">{{ portal_exit_label }}</a>
     <span class="nav-pill">Builder Vault</span>
   </div>
@@ -60,20 +67,21 @@
     <a href="#arena" class="sb-a"><span class="ic">&#9654;</span>Arena</a>
   </div>
   <div class="sb-group">
-    <div class="sb-glabel">Deploy</div>
-    <a href="#deploy" class="sb-a"><span class="ic">&#8593;</span>Guide</a>
+    <div class="sb-glabel">Access</div>
+    <a href="#branding" class="sb-a"><span class="ic">&#9873;</span>Branding</a>
+    <a href="#epic-oauth" class="sb-a"><span class="ic">&#9889;</span>Epic OAuth <span class="sb-tag tag-wip">PENDING</span></a>
+    {% if portal_admin_authed %}
+    <a href="#deploy" class="sb-a"><span class="ic">&#8593;</span>Deploy Guide</a>
     <a href="#repo-privacy" class="sb-a"><span class="ic">&#128274;</span>Repo Privacy</a>
     <a href="#github-vault" class="sb-a"><span class="ic">&#128193;</span>GitHub Vault</a>
-    <a href="#ops" class="sb-a"><span class="ic">&#9673;</span>Runbook</a>
+    <a href="#ops" class="sb-a"><span class="ic">&#9673;</span>Ops Runbook</a>
     <a href="#workspace-audit" class="sb-a"><span class="ic">&#9881;</span>Workspace Audit</a>
-    <a href="#epic-oauth" class="sb-a"><span class="ic">&#9889;</span>Epic OAuth <span class="sb-tag tag-wip">PENDING</span></a>
     <a href="#epic-approval" class="sb-a"><span class="ic">&#10003;</span>Approval Day</a>
-    <a href="#branding" class="sb-a"><span class="ic">&#9873;</span>Branding</a>
-  </div>
-  <div class="sb-group">
-    <div class="sb-glabel">API &amp; Data</div>
     <a href="#routes" class="sb-a"><span class="ic">&#8644;</span>Routes <span class="sb-tag tag-live">LIVE</span></a>
     <a href="#database" class="sb-a"><span class="ic">&#9711;</span>Schema</a>
+    {% else %}
+    <a href="#staff-access" class="sb-a"><span class="ic">&#128274;</span>Staff Docs <span class="sb-tag tag-wip">LOCKED</span></a>
+    {% endif %}
   </div>
   <div class="sb-group">
     <div class="sb-glabel">Systems</div>
@@ -82,7 +90,9 @@
     <a href="#island-forge" class="sb-a"><span class="ic">&#9650;</span>Island Forge</a>
     <a href="#forge-runbook" class="sb-a"><span class="ic">&#9998;</span>Forge Runbook</a>
     <a href="#colorstheforce" class="sb-a"><span class="ic">&#9787;</span>ColorsTheForce</a>
+    {% if portal_admin_authed %}
     <a href="#staff-bots" class="sb-a"><span class="ic">&#9873;</span>Staff + Bots</a>
+    {% endif %}
   </div>
   <div class="sb-group">
     <div class="sb-glabel">Roadmap</div>
@@ -95,9 +105,9 @@
 <main class="content">
   <div class="hero">
     <div class="hero-bg-text">VAULT-TEC</div>
-    <div class="h-eye">Ops / Docs / Roadmap</div>
+    <div class="h-eye">Public Docs / Staff Vault / Roadmap</div>
     <h1>White<em>pages</em></h1>
-    <p>Internal operating manual for TriptokForge: platform architecture, Oracle deployment, APIs, live channels, and UEFN systems.</p>
+    <p>Public builder vault for TriptokForge: platform architecture, creator vision, branding, member experience, and UEFN systems, with staff-only appendices for deploy and operations.</p>
     <div class="h-stats">
       <div class="hs"><span class="v">v0.4.1</span><span class="l">Platform</span></div>
       <div class="hs"><span class="v">Flask / Oracle / OCI</span><span class="l">Stack</span></div>
@@ -106,10 +116,20 @@
     </div>
     <div class="hero-ticker">
       <div class="hero-ticker-inner">
-        STRUCT INTEGRITY: 47% | FUSION CORE: STABLE | THREAT LEVEL: NOMINAL | DOMAIN: TRIPTOKFORGE.ORG | SERVICE: ISLANDFORGE | OPERATOR AUTHENTICATED | STRUCT INTEGRITY: 47% | FUSION CORE: STABLE | THREAT LEVEL: NOMINAL | DOMAIN: TRIPTOKFORGE.ORG | SERVICE: ISLANDFORGE | OPERATOR AUTHENTICATED
+        {% if portal_admin_authed %}
+        STRUCT INTEGRITY: 47% | FUSION CORE: STABLE | THREAT LEVEL: NOMINAL | DOMAIN: TRIPTOKFORGE.ORG | SERVICE: ISLANDFORGE | STAFF VAULT UNLOCKED | STRUCT INTEGRITY: 47% | FUSION CORE: STABLE | THREAT LEVEL: NOMINAL | DOMAIN: TRIPTOKFORGE.ORG | SERVICE: ISLANDFORGE | STAFF VAULT UNLOCKED
+        {% else %}
+        PUBLIC WHITEPAGES ONLINE | BUILDER VAULT OPEN | DOMAIN: TRIPTOKFORGE.ORG | SERVICE: ISLANDFORGE | STAFF APPENDICES LOCKED | PUBLIC WHITEPAGES ONLINE | BUILDER VAULT OPEN | DOMAIN: TRIPTOKFORGE.ORG | SERVICE: ISLANDFORGE | STAFF APPENDICES LOCKED
+        {% endif %}
       </div>
     </div>
   </div>
+
+  {% if portal_admin_authed %}
+  <div class="callout green" id="staff-access"><div class="callout-icon">&#128274;</div><div><div class="c-title">Staff access enabled</div><p>You are seeing both the public WhitePages surface and the internal staff appendices for deploy, repo privacy, approval-day runbooks, routes, workspace audit, and bot operations.</p></div></div>
+  {% else %}
+  <div class="callout amber" id="staff-access"><div class="callout-icon">&#128274;</div><div><div class="c-title">Public WhitePages surface</div><p>This page is intentionally public. Internal runbooks for deploy, ops, repo privacy, approval-day handoff, workspace audit, and staff-bot management stay hidden until staff/admin login through <code>/ops</code>.</p></div></div>
+  {% endif %}
 
   <section class="doc" id="overview">
     <div class="dh"><div class="dh-num">01</div><div><h2>Platform <span>Overview</span></h2><p>Fortnite esports platform with island generation, live channels, social features, and authenticated player dashboards.</p></div></div>
@@ -196,6 +216,7 @@
     </div>
   </section>
 
+  {% if portal_admin_authed %}
   <section class="doc" id="deploy">
     <div class="dh"><div class="dh-num">03</div><div><h2>Deploy <span>Guide</span></h2><p>Push to GitHub main, pull on Oracle, restart the service, and verify health locally on the box.</p></div></div>
     <div class="steps">
@@ -349,6 +370,7 @@
       </tbody>
     </table></div>
   </section>
+  {% endif %}
 
   <section class="doc" id="database">
     <div class="dh"><div class="dh-num">06</div><div><h2>Database <span>Schema</span></h2><p>Oracle Autonomous Database tables currently powering identity, content, channels, and generated assets.</p></div></div>
@@ -408,6 +430,7 @@
     </div>
   </section>
 
+  {% if portal_admin_authed %}
   <section class="doc" id="epic-approval">
     <div class="dh"><div class="dh-num">09A</div><div><h2>Epic <span>Approval Day</span></h2><p>Exact handoff steps for switching from pending OAuth to a real production login flow on <code>triptokforge.org</code>.</p></div></div>
     <div class="steps">
@@ -421,6 +444,7 @@
       <p>Reference notes: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code>, <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code>, and <code>templates/whitepages/EPIC_OUTREACH_BRIEF.md</code></p>
     </div>
   </section>
+  {% endif %}
 
   <section class="doc" id="branding">
     <div class="dh"><div class="dh-num">09B</div><div><h2>Epic <span>Branding</span></h2><p>Use Epic marks narrowly, factually, and only from the official asset pack. Epic is part of how TriptokForge got here, but it is not the site's primary brand.</p></div></div>
@@ -430,25 +454,6 @@
       <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Review before publish</strong><p>Cross-check the live brand portal and Epic policy before shipping any new usage, especially after domain approval or any change to the auth flow.</p></div></div>
     </div>
     <div class="prose">
-      <h3>Local asset pack</h3>
-      <ul>
-        <li><code>EG-Shield-2023-logo-Black.svg</code></li>
-        <li><code>EG-Shield-2023-logo-White.svg</code></li>
-        <li>PNG, PDF, and EPS versions are also stored in the same local folder for design and print workflows.</li>
-      </ul>
-      <h3>Unreal trademark follow-up</h3>
-      <ul>
-        <li>If the Unreal Engine Trademark License Agreement is already accepted, standard Unreal logo use can follow the approved branding guide.</li>
-        <li>Custom treatments or side-by-side mockups should still be submitted to Epic for review before publication.</li>
-        <li>Assume any real <code>TriptokForge x Fortnite</code> or <code>TriptokForge x Epic</code> crossover lockup needs separate written permission.</li>
-      </ul>
-      <h3>Contact and routing split</h3>
-      <ul>
-        <li>Use Epic Account Services / Developer Portal for the website login application and callback approval.</li>
-        <li>Use Creator Portal for island publishing, analytics, teams, and creator growth features.</li>
-        <li>Use Unreal branding/legal contacts for Unreal marks and example submissions.</li>
-        <li>Use support channels to request routing when a branding or collaboration ask crosses those lanes.</li>
-      </ul>
       <h3>Implementation rule</h3>
       <ul>
         <li>Do not put Epic marks into the main site lockup, favicon, or footer identity stack.</li>
@@ -457,9 +462,6 @@
       </ul>
     </div>
     <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Brand boundary</div><p>TriptokForge should look like TriptokForge. Epic branding can confirm platform relationship and approval context, but it should not visually read as co-ownership or a site re-skin.</p></div></div>
-    <div class="prose">
-      <p>Reference notes: <code>templates/whitepages/EPIC_BRANDING.md</code>, <code>templates/whitepages/UE_TRADEMARK_SUBMISSION.md</code>, <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code>, and <code>templates/whitepages/EPIC_OUTREACH_BRIEF.md</code></p>
-    </div>
   </section>
 
   <section class="doc" id="colorstheforce">
@@ -493,6 +495,7 @@
     </div>
   </section>
 
+  {% if portal_admin_authed %}
   <section class="doc" id="staff-bots">
     <div class="dh"><div class="dh-num">09D</div><div><h2>Staff + Bot <span>Operations</span></h2><p>Role-aware ops model for admins, moderators, and bot operators, plus the curated LLM provider catalog used in the site console.</p></div></div>
     <div class="prose">
@@ -534,6 +537,7 @@
       <p>Reference note: <code>templates/whitepages/STAFF_BOT_OPERATIONS.md</code></p>
     </div>
   </section>
+  {% endif %}
 
   <section class="doc" id="verse">
     <div class="dh"><div class="dh-num">10</div><div><h2>Verse <span>Architecture</span></h2><p>Tarkov-Lite systems in Verse for UEFN using immutable player data and stateful UI overlays.</p></div></div>
@@ -659,7 +663,7 @@
   {% set brand_compact = true %}
   {% include "_brand_lockup.html" %}
   <span class="f-sep">/</span>
-  <span class="f-txt">Whitepages - Internal Builder Reference</span>
+  <span class="f-txt">Whitepages - Public Builder Reference{% if portal_admin_authed %} + Staff Vault{% endif %}</span>
   <span class="f-copy">&copy; 2026 EuphoriAE Studios</span>
 </footer>
 
