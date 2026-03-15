@@ -1195,7 +1195,10 @@ async function resolveChannelQueue(channel) {
     const response = await fetch('/api/channel_queue', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_urls: channel.source_urls }),
+      body: JSON.stringify({
+        source_urls: channel.source_urls,
+        search_terms: Array.isArray(channel.search_terms) ? channel.search_terms : [],
+      }),
     });
     const data = await response.json();
     if (!response.ok || !data.ok) {

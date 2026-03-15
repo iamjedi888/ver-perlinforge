@@ -38,13 +38,17 @@ def suggest_channel_route():
 def channel_queue_route():
     data = request.get_json(silent=True) or {}
     raw_sources = data.get("source_urls") or []
+    raw_terms = data.get("search_terms") or []
     if isinstance(raw_sources, str):
         raw_sources = split_source_urls(raw_sources)
+    if isinstance(raw_terms, str):
+        raw_terms = [raw_terms]
     sources = [str(item or "").strip() for item in raw_sources if str(item or "").strip()]
+    search_terms = [str(item or "").strip() for item in raw_terms if str(item or "").strip()]
     if not sources:
         return jsonify({"error": "required"}), 400
     try:
-        resolved = resolve_channel_rotation(sources)
+        resolved = resolve_channel_rotation(sources, search_terms=search_terms)
         if not resolved:
             return jsonify({"error": "unresolved"}), 404
         return jsonify({"ok": True, **resolved})

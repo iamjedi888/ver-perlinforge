@@ -104,6 +104,26 @@ CHANNEL_OVERRIDES = {
     },
 }
 
+CHANNEL_ROTATION_POOLS = {
+    "Video Game Music 24/7": {
+        "source_urls": [
+            "https://youtube.com/live/svb-FVtbDf8",
+            "https://www.youtube.com/channel/UCMx60HYcw1ieiPlZZagfqXQ/videos",
+            "https://youtu.be/MXSaSe1WECg",
+            "https://youtube.com/live/t9anxetj3Qg",
+        ],
+        "search_terms": [
+            "final fantasy",
+            "nier",
+            "kingdom hearts",
+            "piano",
+            "chill",
+            "kawaii",
+        ],
+        "label": "Square Enix mix",
+    },
+}
+
 _QUEUE_CACHE = {}
 _QUEUE_CACHE_TTL = 900
 
@@ -142,6 +162,26 @@ def split_source_urls(value: str) -> list[str]:
         seen.add(item)
         unique.append(item)
     return unique
+
+
+def pool_source_urls(name: str, raw_value: str) -> list[str]:
+    items = split_source_urls(raw_value)
+    pool = CHANNEL_ROTATION_POOLS.get(name, {})
+    items.extend(pool.get("source_urls", []))
+
+    unique = []
+    seen = set()
+    for item in items:
+        normalized = (item or "").strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        unique.append(normalized)
+    return unique
+
+
+def pool_search_terms(name: str) -> list[str]:
+    return [str(item or "").strip() for item in CHANNEL_ROTATION_POOLS.get(name, {}).get("search_terms", []) if str(item or "").strip()]
 
 
 def is_youtube_channel_feed_source(url: str) -> bool:
@@ -228,34 +268,53 @@ def _youtube_feed_items(source_url: str, limit: int = 18) -> list[dict]:
     if cached and (now - cached["time"]) < _QUEUE_CACHE_TTL:
         return list(cached["items"])
 
-    channel_id = _youtube_channel_id(source_url)
-    if not channel_id:
+    try:
+        channel_id = _youtube_channel_id(source_url)
+        if not channel_id:
+            return []
+
+        feed_text = _fetch_text(
+            f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}",
+            timeout=8,
+        )
+        root = ET.fromstring(feed_text)
+        ns = {
+            "atom": "http://www.w3.org/2005/Atom",
+            "yt": "http://www.youtube.com/xml/schemas/2015",
+        }
+        items = []
+        for entry in root.findall("atom:entry", ns)[:limit]:
+            video_id = entry.findtext("yt:videoId", default="", namespaces=ns).strip()
+            title = entry.findtext("atom:title", default="", namespaces=ns).strip()
+            text_blob = title
+            if not video_id:
+                continue
+            items.append(
+                {
+                    "title": title or "YouTube upload",
+                    "source_url": f"https://www.youtube.com/watch?v={video_id}",
+                    "search_text": text_blob.casefold(),
+                }
+            )
+        _QUEUE_CACHE[cache_key] = {"time": now, "items": items}
+        return list(items)
+    except Exception:
         return []
 
-    feed_text = _fetch_text(
-        f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}",
-        timeout=8,
-    )
-    root = ET.fromstring(feed_text)
-    ns = {
-        "atom": "http://www.w3.org/2005/Atom",
-        "yt": "http://www.youtube.com/xml/schemas/2015",
-    }
-    items = []
-    for entry in root.findall("atom:entry", ns)[:limit]:
-        video_id = entry.findtext("yt:videoId", default="", namespaces=ns).strip()
-        title = entry.findtext("atom:title", default="", namespaces=ns).strip()
-        if not video_id:
-            continue
-        items.append(
-            {
-                "title": title or "YouTube upload",
-                "source_url": f"https://www.youtube.com/watch?v={video_id}",
-            }
-        )
 
-    _QUEUE_CACHE[cache_key] = {"time": now, "items": items}
-    return list(items)
+def _matches_search_term(item: dict, term: str) -> bool:
+    query = " ".join(str(term or "").casefold().split())
+    if not query:
+        return False
+
+    text = (item.get("search_text") or item.get("title") or "").casefold()
+    if not text:
+        return False
+
+    tokens = [token for token in query.split() if len(token) > 1]
+    if not tokens:
+        return False
+    return all(token in text for token in tokens)
 
 
 def _youtube_embed_from_ids(video_ids: list[str]) -> str:
@@ -286,41 +345,64 @@ def _youtube_embed_from_ids(video_ids: list[str]) -> str:
     )
 
 
-def resolve_channel_rotation(source_urls: list[str], limit: int = 18) -> dict:
+def resolve_channel_rotation(source_urls: list[str], search_terms: list[str] | None = None, limit: int = 18) -> dict:
     normalized = [normalize_source_url(url) for url in (source_urls or []) if url]
     if not normalized:
         return {}
 
-    youtube_ids = [youtube_video_id(url) for url in normalized if youtube_video_id(url)]
-    if len(youtube_ids) >= 2:
-        random.shuffle(youtube_ids)
+    search_terms = [str(item or "").strip() for item in (search_terms or []) if str(item or "").strip()]
+    queue_ids = []
+    seen_ids = set()
+
+    def add_video_id(video_id: str):
+        clean = (video_id or "").strip()
+        if not clean or clean in seen_ids:
+            return
+        seen_ids.add(clean)
+        queue_ids.append(clean)
+
+    for source_url in normalized:
+        add_video_id(youtube_video_id(source_url))
+
+    matched_term_count = 0
+    feed_match_count = 0
+    for source_url in normalized:
+        if not is_youtube_channel_feed_source(source_url):
+            continue
+        items = _youtube_feed_items(source_url, limit=max(limit * 2, 24))
+        if not items:
+            continue
+
+        for item in items[:limit]:
+            before = len(queue_ids)
+            add_video_id(youtube_video_id(item.get("source_url", "")))
+            if len(queue_ids) > before:
+                feed_match_count += 1
+
+        for term in search_terms:
+            for item in items:
+                if not _matches_search_term(item, term):
+                    continue
+                before = len(queue_ids)
+                add_video_id(youtube_video_id(item.get("source_url", "")))
+                if len(queue_ids) > before:
+                    matched_term_count += 1
+
+    if len(queue_ids) >= 2:
+        random.shuffle(queue_ids)
+        summary_bits = [f"Random autoplay queue built from {len(queue_ids)} Square Enix-ready videos"]
+        if matched_term_count:
+            summary_bits.append(f"{matched_term_count} term-matched picks added")
+        elif feed_match_count:
+            summary_bits.append(f"{feed_match_count} official uploads mixed in")
         return {
-            "embed_url": _youtube_embed_from_ids(youtube_ids),
+            "embed_url": _youtube_embed_from_ids(queue_ids),
             "source_url": normalized[0],
             "mode": "replay",
             "mode_label": "Random Queue",
             "player_kind": "iframe",
-            "count": len(youtube_ids),
-            "summary": f"Random autoplay queue built from {len(youtube_ids)} YouTube videos.",
-        }
-
-    for source_url in normalized:
-        if not is_youtube_channel_feed_source(source_url):
-            continue
-        items = _youtube_feed_items(source_url, limit=limit)
-        video_ids = [youtube_video_id(item.get("source_url", "")) for item in items]
-        video_ids = [video_id for video_id in video_ids if video_id]
-        if not video_ids:
-            continue
-        random.shuffle(video_ids)
-        return {
-            "embed_url": _youtube_embed_from_ids(video_ids),
-            "source_url": source_url,
-            "mode": "replay",
-            "mode_label": "Random Queue",
-            "player_kind": "iframe",
-            "count": len(video_ids),
-            "summary": f"Random autoplay queue built from the latest {len(video_ids)} uploads.",
+            "count": len(queue_ids),
+            "summary": ". ".join(summary_bits) + ".",
         }
 
     playable = []
@@ -519,14 +601,15 @@ def build_channels_context(channels: list) -> dict:
         name = channel.get("name", "Unnamed")
         channel = apply_channel_override(name, channel)
         category = channel.get("category", "Other") or "Other"
-        source_urls = [normalize_source_url(url) for url in split_source_urls(channel.get("embed_url", ""))]
+        source_urls = [normalize_source_url(url) for url in pool_source_urls(name, channel.get("embed_url", ""))]
+        search_terms = pool_search_terms(name)
         source_url = source_urls[0] if source_urls else ""
         embed_url = detect_embed(source_url)
         mode = detect_feed_mode(source_url, embed_url)
         player_kind = detect_player_kind(source_url, embed_url)
         meta = CHANNEL_META.get(name, {})
         scope = meta.get("scope") or CATEGORY_SCOPES.get(category, "General")
-        has_rotation = len(source_urls) > 1 or any(is_youtube_channel_feed_source(url) for url in source_urls)
+        has_rotation = len(source_urls) > 1 or bool(search_terms) or any(is_youtube_channel_feed_source(url) for url in source_urls)
         seen_scopes.add(scope)
 
         group = groups.setdefault(
@@ -545,6 +628,7 @@ def build_channels_context(channels: list) -> dict:
                 "source_url": source_url,
                 "source_urls": source_urls,
                 "source_count": len(source_urls),
+                "search_terms": search_terms,
                 "playable": is_embeddable(embed_url),
                 "player_kind": player_kind,
                 "mode": mode,
