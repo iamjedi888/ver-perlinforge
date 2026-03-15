@@ -150,21 +150,20 @@ def run_tests(base_url: str) -> int:
         ("/api/save_island", "POST", b"{}"),
         ("/api/set_room_theme", "POST", b"{}"),
         ("/api/forge/download-verse", "POST", b"{}"),
+        ("/upload_audio", "POST", b""),
+        ("/audio/list", "GET", None),
+        ("/audio/select", "POST", b"{}"),
+        ("/random_seed", "GET", None),
         ("/generate", "POST", b"{}"),
     ]
     for path, method, data in api_checks:
-        expected = 302 if path == "/generate" else 401
         checks.append(
             {
                 "name": f"api_{path.strip('/').replace('/', '_')}",
                 "path": path,
                 "method": method,
                 "data": data,
-                "validate": (
-                    (lambda s, h, b: s == 302 and h.get("Location", "").endswith("/home"))
-                    if expected == 302
-                    else (lambda s, h, b: s == 401 and '"login_required"' in b)
-                ),
+                "validate": lambda s, h, b: s == 401 and '"login_required"' in b,
                 "detail": "API/member gate",
             }
         )
