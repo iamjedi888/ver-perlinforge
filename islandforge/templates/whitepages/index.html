@@ -241,6 +241,12 @@
         <li><strong>TriptokForge:</strong> curated links, featured integrations, and a small public-safe manifest if the site needs to surface the vault directly.</li>
         <li><strong>Oracle:</strong> only lightweight app metadata, never the full archive.</li>
       </ul>
+      <h3>Refined pattern</h3>
+      <ul>
+        <li><strong>Pointer manifest first:</strong> one small remote JSON file with title, tags, summary, and source URLs is enough for WhitePages, bots, and walkthrough generation.</li>
+        <li><strong>Public-safe only in browser:</strong> if the website reads it directly, it is public metadata, not encrypted source material.</li>
+        <li><strong>Private source on demand:</strong> keep full private notes in GitHub and let admin or bot tools fetch them server-side only when a digest or post is actually needed.</li>
+      </ul>
       <h3>Most valuable repo categories to mine</h3>
       <ul>
         <li><strong>3D / XR / graphics:</strong> Three.js, A-Frame, WebGL, shaders, and scene tooling for room, arena, and immersive dashboards.</li>
@@ -253,8 +259,8 @@
     </div>
     <div class="callout green"><div class="callout-icon">&#128193;</div><div><div class="c-title">Recommended architecture</div><p>Create one separate vault repo, generate a static manifest with GitHub's REST API, publish only the safe metadata through GitHub Pages if needed, and keep TriptokForge consuming that small manifest or linking out to the vault.</p></div></div>
     <div class="prose">
-      <p>This repo now includes <code>tools/build_repo_vault.py</code> and <code>config/repo_vault_sources.example.json</code> as the first-pass builder for that archive.</p>
-      <p>Reference note: <code>templates/whitepages/GITHUB_VAULT_RUNBOOK.md</code></p>
+      <p>This repo now includes <code>tools/build_repo_vault.py</code>, <code>config/repo_vault_sources.example.json</code>, and <code>config/knowledge_manifest.example.json</code> as the starting point.</p>
+      <p>Reference notes: <code>templates/whitepages/GITHUB_VAULT_RUNBOOK.md</code> and <code>templates/whitepages/REMOTE_KNOWLEDGE_PATTERN.md</code></p>
     </div>
   </section>
 

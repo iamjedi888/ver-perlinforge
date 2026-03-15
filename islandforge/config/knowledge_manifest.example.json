@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-03-15T00:00:00Z",
+  "owner": "TriptokForge",
+  "source": {
+    "type": "github_pages",
+    "manifest_url": "https://your-pages-site.example/knowledge/manifest.json"
+  },
+  "items": [
+    {
+      "id": "three-room-reference",
+      "title": "Three.js Room Reference",
+      "kind": "repo_note",
+      "tags": [
+        "graphics_3d",
+        "room",
+        "dashboard"
+      ],
+      "summary": "Reference repo and notes for cinematic control-room layouts, panels, and scene navigation.",
+      "repo_url": "https://github.com/iamjedi888/example-room-repo",
+      "reference_url": "https://github.com/iamjedi888/example-room-repo/blob/main/README.md",
+      "raw_url": "https://raw.githubusercontent.com/iamjedi888/example-room-repo/main/README.md",
+      "visibility": "public",
+      "integrity_hint": "sha256:replace_me",
+      "recommended_surfaces": [
+        "whitepages",
+        "room",
+        "arena"
+      ]
+    },
+    {
+      "id": "colorstheforce-moderation-playbook",
+      "title": "ColorsTheForce Moderation Playbook",
+      "kind": "playbook",
+      "tags": [
+        "bot",
+        "moderation",
+        "ops"
+      ],
+      "summary": "Bot-facing moderation and posting guidance for TriptokForge staff and house bots.",
+      "repo_url": "https://github.com/iamjedi888/forge-knowledge-vault",
+      "reference_url": "https://github.com/iamjedi888/forge-knowledge-vault/blob/main/playbooks/colorstheforce.md",
+      "raw_url": "",
+      "visibility": "private_admin_only",
+      "integrity_hint": "git:main@commit-sha",
+      "recommended_surfaces": [
+        "ops",
+        "whitepages"
+      ]
+    }
+  ]
+}
