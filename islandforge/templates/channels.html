@@ -29,9 +29,12 @@
   --mid:       #7a8aa8;
   --dim:       #3a4a60;
   --nav-h:     56px;
+  --dock-h:    62px;
   --stage-max: 1180px;
   --stage-gap: clamp(12px, 1.8vw, 22px);
   --viewport-h: 100vh;
+  --guide-collapsed: 58px;
+  --guide-expanded: clamp(296px, 28vw, 360px);
 }
 
 @supports (height: 100dvh) {
@@ -39,7 +42,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { min-height: 100%; overflow-x: hidden; background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; }
 
 nav.ch-nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 500;
@@ -77,8 +80,8 @@ nav.ch-nav {
 
 .ch-shell {
   display: flex; flex-direction: row;
-  min-height: calc(var(--viewport-h) - var(--nav-h)); margin-top: var(--nav-h);
-  overflow: visible; position: relative; align-items: flex-start;
+  height: calc(var(--viewport-h) - var(--nav-h) - var(--dock-h)); margin-top: var(--nav-h);
+  overflow: hidden; position: relative; align-items: stretch;
 }
 
 .ch-main {
@@ -88,6 +91,7 @@ nav.ch-nav {
     radial-gradient(circle at top, rgba(0,145,255,.06), transparent 42%),
     linear-gradient(180deg, #081019 0%, var(--deep) 52%, #030508 100%);
   position: relative;
+  overflow: hidden;
 }
 
 .jarvis-hud {
@@ -154,8 +158,14 @@ nav.ch-nav {
   margin-inline: auto;
   border-radius: 18px;
   touch-action: none;
+  transition: width .2s ease, transform .22s ease, box-shadow .22s ease;
 }
 .ch-player.resizing { cursor: nwse-resize; }
+.ch-player.preview-focus,
+.ch-player.active.focus-zoom {
+  transform: scale(1.02);
+  box-shadow: 0 0 54px rgba(0,145,255,.18), inset 0 0 54px rgba(0,145,255,.05);
+}
 @keyframes holo-border-pulse {
   0%, 100% { border-color: rgba(0,145,255,.2); box-shadow: 0 0 30px rgba(0,145,255,.08), inset 0 0 30px rgba(0,145,255,.03); }
   50% { border-color: rgba(0,234,255,.35); box-shadow: 0 0 60px rgba(0,145,255,.18), inset 0 0 60px rgba(0,145,255,.06); }
@@ -237,7 +247,74 @@ nav.ch-nav {
   max-width: 34ch;
   line-height: 1.6;
 }
+.stage-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 50ch;
+}
+.stage-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,145,255,.2);
+  background: rgba(0,145,255,.08);
+  color: var(--blue);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .48rem;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+.stage-pill.live {
+  color: var(--amber);
+  border-color: rgba(255,170,0,.24);
+  background: rgba(255,170,0,.08);
+}
+.stage-pill.replay {
+  color: var(--jarvis);
+  border-color: rgba(0,234,255,.24);
+  background: rgba(0,234,255,.08);
+}
+.stage-pill.feed {
+  color: var(--teal);
+  border-color: rgba(0,229,160,.24);
+  background: rgba(0,229,160,.08);
+}
+.stage-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,229,160,.24);
+  background: rgba(0,229,160,.08);
+  color: var(--teal);
+  text-decoration: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .54rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: transform .15s ease, border-color .15s ease;
+}
+.stage-link:hover {
+  transform: translateY(-1px);
+  border-color: var(--teal);
+}
+.ch-player.feed-mode .arc-reactor {
+  width: 108px;
+  height: 108px;
+}
+.ch-player.feed-mode .arc-text {
+  color: var(--teal);
+}
 #ch-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
+.ch-player.active #ch-iframe {
+  filter: brightness(1.08) contrast(1.08) saturate(1.06);
+}
 .player-resize {
   position: absolute;
   right: 10px;
@@ -307,13 +384,68 @@ nav.ch-nav {
 .gc-right { margin-left: auto; display: flex; gap: 8px; }
 
 .ch-guide {
-  width: clamp(260px, 24vw, 320px); flex-shrink: 0; display: flex; flex-direction: column;
+  width: var(--guide-collapsed); flex-shrink: 0; display: flex; flex-direction: column;
   background: var(--panel); border-left: 1px solid var(--border);
   overflow: hidden;
-  transition: width .3s cubic-bezier(.4,0,.2,1), opacity .3s ease;
+  transition: width .3s cubic-bezier(.4,0,.2,1), opacity .3s ease, border-color .2s ease;
+  position: relative;
+}
+.ch-guide.is-open {
+  width: var(--guide-expanded);
 }
 .ch-shell.theater .ch-guide {
-  width: 0; opacity: 0; pointer-events: none;
+  width: 0; opacity: 0; pointer-events: none; border-left-color: transparent;
+}
+
+.guide-dock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px;
+  background:
+    linear-gradient(180deg, rgba(0,145,255,.08), transparent 32%),
+    linear-gradient(180deg, rgba(13,16,24,.98), rgba(8,12,18,.98));
+}
+.guide-dock__button,
+.guide-dock__quick {
+  border: 1px solid rgba(0,145,255,.18);
+  background: rgba(0,145,255,.08);
+  color: var(--blue);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .52rem;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+.guide-dock__button {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 12px 7px;
+}
+.guide-dock__quick {
+  padding: 8px 10px;
+}
+.guide-dock__meta {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.guide-dock__count,
+.guide-dock__status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .5rem;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--dim);
+  text-align: center;
+}
+.ch-guide.is-open .guide-dock {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .guide-header {
@@ -333,6 +465,23 @@ nav.ch-nav {
 .guide-sub {
   font-family: 'Share Tech Mono', monospace; font-size: .52rem;
   letter-spacing: 2px; color: var(--dim);
+}
+
+.guide-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  opacity: 0;
+  transform: translateX(18px);
+  pointer-events: none;
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+.ch-guide.is-open .guide-panel {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .guide-search { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -364,20 +513,35 @@ nav.ch-nav {
   font-size: .48rem;
   letter-spacing: 1.4px;
   text-transform: uppercase;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.guide-scope:hover,
+.guide-scope.active {
+  color: var(--teal);
+  border-color: rgba(0,229,160,.24);
+  background: rgba(0,229,160,.08);
 }
 
 .guide-scroll {
   flex: 1; overflow-y: auto; overflow-x: hidden;
   scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
+  overscroll-behavior: contain;
+  scroll-snap-type: y proximity;
 }
 .guide-scroll::-webkit-scrollbar { width: 3px; }
 .guide-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-.cat-section { border-bottom: 1px solid var(--border); }
+.cat-section { border-bottom: 1px solid var(--border); scroll-snap-align: start; }
+.cat-section.hidden { display: none; }
 .cat-hd {
   display: flex; align-items: center; gap: 8px; padding: 9px 14px;
   cursor: pointer; transition: background .12s; user-select: none;
   position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(13,16,24,.94);
 }
 .cat-hd:hover { background: rgba(0,229,160,.04); }
 .cat-hd.open { background: rgba(0,229,160,.03); }
@@ -520,18 +684,99 @@ nav.ch-nav {
   margin-top: 4px; letter-spacing: 1px;
 }
 
+body.channels-console .console-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 420;
+  height: var(--dock-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 18px;
+  border-top: 1px solid rgba(0,145,255,.18);
+  background:
+    linear-gradient(180deg, rgba(7,9,13,.96), rgba(4,6,10,.98)),
+    radial-gradient(circle at top right, rgba(0,145,255,.08), transparent 26%);
+  backdrop-filter: blur(18px);
+}
+.console-dock__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.console-dock__logo {
+  font-family: 'Orbitron', monospace;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--teal);
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.console-dock__logo em {
+  color: var(--blue);
+  font-style: normal;
+}
+.console-dock__meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .5rem;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.console-dock__links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.console-dock__links a,
+.console-dock__links button {
+  border: 1px solid rgba(58,74,96,.45);
+  background: rgba(13,16,24,.82);
+  color: var(--mid);
+  border-radius: 999px;
+  padding: 8px 12px;
+  text-decoration: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .54rem;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.console-dock__links a:hover,
+.console-dock__links button:hover {
+  color: var(--teal);
+  border-color: rgba(0,229,160,.24);
+}
+
 @media (max-width: 1100px) {
   .ch-main { padding: 14px; gap: 14px; }
-  .ch-guide { width: 272px; }
+  .ch-guide.is-open { width: min(320px, 34vw); }
 }
 @media (max-width: 900px) {
-  .ch-guide { width: 240px; }
   .ch-nav-links { display: none; }
   nav.ch-nav { padding: 0 14px; }
   .hud-segment.side { display: none; }
+  .console-dock__meta { display: none; }
 }
 @media (max-width: 760px) {
+  html, body { overflow: auto; }
   .ch-main { padding: 12px; gap: 12px; }
+  .ch-shell {
+    height: auto;
+    min-height: calc(var(--viewport-h) - var(--nav-h));
+    padding-bottom: calc(var(--dock-h) + 10px);
+    overflow: visible;
+  }
+  .ch-main {
+    overflow: visible;
+  }
   .jarvis-hud {
     height: auto;
     min-height: 52px;
@@ -574,10 +819,26 @@ nav.ch-nav {
   .ch-desc {
     white-space: normal;
   }
+  .ch-guide,
+  .ch-guide.is-open {
+    width: 100%;
+    min-height: 0;
+  }
+  .guide-dock {
+    display: none;
+  }
+  .guide-panel {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+  body.channels-console .console-dock {
+    position: static;
+    height: auto;
+    padding: 14px 16px;
+  }
 }
 @media (max-width: 600px) {
-  .ch-guide { display: none; }
-  .ch-shell.theater .ch-guide { display: none; }
   .ch-player {
     min-width: 100%;
     width: 100%;
@@ -592,7 +853,7 @@ nav.ch-nav {
 }
 </style>
 </head>
-<body>
+<body class="channels-console">
 
 <nav class="ch-nav">
   <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
@@ -646,9 +907,14 @@ nav.ch-nav {
           <div class="arc-ring r4"></div>
           <div class="arc-core"></div>
         </div>
-        <div class="arc-text">AWAITING UPLINK</div>
+      <div class="arc-text">AWAITING UPLINK</div>
         <div class="arc-hint">Select a channel from the guide -&gt;</div>
         <div class="arc-subhint" id="playerMessage">Embeddable streams, replays, and curated feeds load here.</div>
+        <div class="stage-pills" id="stagePills">
+          <span class="stage-pill feed">Guide Ready</span>
+          <span class="stage-pill">Console View</span>
+        </div>
+        <a id="stageLink" class="stage-link" href="#" target="_blank" rel="noopener">Open Feed</a>
       </div>
 
       <iframe id="ch-iframe" src="" allow="autoplay; fullscreen; picture-in-picture"
@@ -674,85 +940,153 @@ nav.ch-nav {
   </div>
 
   <div class="ch-guide" id="chGuide">
-    <div class="guide-header">
-      <div class="guide-title">Live Channels</div>
-      <div class="guide-sub">{{ channel_total }} channels &middot; {{ category_total }} categories &middot; {{ scope_total }} scopes</div>
+    <div class="guide-dock" id="guideDock">
+      <button class="guide-dock__button" id="guideDockButton" type="button" onclick="toggleSidebar()">Open Guide</button>
+      <div class="guide-dock__meta">
+        <span class="guide-dock__count">{{ channel_total }}</span>
+        <span class="guide-dock__status" id="guideDockStatus">Guide closed</span>
+      </div>
+      <button class="guide-dock__quick" type="button" onclick="openSuggestPanel()">Submit</button>
     </div>
 
-    <div class="guide-search">
-      <input type="text" id="ch-search" placeholder="Search channels..."
-             oninput="filterChannels(this.value)"/>
-    </div>
+    <div class="guide-panel">
+      <div class="guide-header">
+        <div class="guide-title">Live Channels</div>
+        <div class="guide-sub">{{ channel_total }} channels &middot; {{ category_total }} categories &middot; {{ scope_total }} scopes</div>
+      </div>
 
-    <div class="guide-scopes">
-      {% for scope in channel_scopes %}
-        <span class="guide-scope">{{ scope }}</span>
-      {% endfor %}
-    </div>
+      <div class="guide-search">
+        <input type="text" id="ch-search" placeholder="Search channels..."
+               oninput="filterChannels(this.value)"/>
+      </div>
 
-    <div class="guide-scroll" id="guideScroll">
-      {% for group in channel_groups %}
-        <div class="cat-section" data-cat="{{ group.name }}">
-          <div class="cat-hd" onclick="toggleCat(this)">
-            <span class="cat-ic">{{ group.icon }}</span>
-            <span class="cat-nm">{{ group.name }}</span>
-            <span class="cat-ct">{{ group.channels|length }}</span>
-            <span class="cat-chevron">v</span>
-          </div>
-          <div class="cat-body">
-            {% for channel in group.channels %}
-              <div class="ch-row"
-                   onclick='loadChannel({{ channel.embed|tojson }}, {{ channel.name|tojson }}, {{ channel.source_url|tojson }}, {{ channel.playable|tojson }}, {{ channel.mode|tojson }})'
-                   data-name="{{ channel.name|e }}">
-                <span class="ch-live-dot"></span>
-                <div class="ch-info">
-                  <div class="ch-topline">
-                    <span class="ch-name">{{ channel.name }}</span>
-                    <div class="ch-badges">
-                      <span class="ch-badge scope">{{ channel.scope }}</span>
-                      {% if channel.official %}
-                        <span class="ch-badge official">Official</span>
-                      {% endif %}
-                      <span class="ch-badge mode-{{ channel.mode }}">{{ channel.mode_label }}</span>
+      <div class="guide-scopes">
+        <button class="guide-scope active" type="button" data-scope="all" onclick="setScope('all', this)">All</button>
+        {% for scope in channel_scopes %}
+          <button class="guide-scope" type="button" data-scope="{{ scope }}" onclick="setScope({{ scope|tojson }}, this)">{{ scope }}</button>
+        {% endfor %}
+      </div>
+
+      <div class="guide-scroll" id="guideScroll">
+        {% for group in channel_groups %}
+          <div class="cat-section" data-cat="{{ group.name }}">
+            <div class="cat-hd" onclick="toggleCat(this)">
+              <span class="cat-ic">{{ group.icon }}</span>
+              <span class="cat-nm">{{ group.name }}</span>
+              <span class="cat-ct">{{ group.channels|length }}</span>
+              <span class="cat-chevron">v</span>
+            </div>
+            <div class="cat-body">
+              {% for channel in group.channels %}
+                <div class="ch-row"
+                     onclick='loadChannel({{ channel|tojson }})'
+                     onmouseenter='previewChannel({{ channel.name|tojson }}, {{ channel.description|tojson }})'
+                     onmouseleave='clearPreviewFocus()'
+                     data-name="{{ channel.name|e }}"
+                     data-scope="{{ channel.scope|e }}"
+                     data-search="{{ (channel.name ~ ' ' ~ channel.description ~ ' ' ~ channel.scope ~ ' ' ~ channel.mode_label)|lower|e }}">
+                  <span class="ch-live-dot"></span>
+                  <div class="ch-info">
+                    <div class="ch-topline">
+                      <span class="ch-name">{{ channel.name }}</span>
+                      <div class="ch-badges">
+                        <span class="ch-badge scope">{{ channel.scope }}</span>
+                        {% if channel.official %}
+                          <span class="ch-badge official">Official</span>
+                        {% endif %}
+                        <span class="ch-badge mode-{{ channel.mode }}">{{ channel.mode_label }}</span>
+                      </div>
                     </div>
+                    <span class="ch-desc">{{ channel.description }}</span>
                   </div>
-                  <span class="ch-desc">{{ channel.description }}</span>
+                  <span class="ch-arr">&gt;</span>
                 </div>
-                <span class="ch-arr">&gt;</span>
-              </div>
-            {% endfor %}
+              {% endfor %}
+            </div>
           </div>
-        </div>
-      {% endfor %}
-    </div>
+        {% endfor %}
+      </div>
 
-    <div class="suggest-wrap">
-      <div class="suggest-toggle" onclick="toggleSuggest()">Submit</div>
-      <div id="suggest-form" style="display:none">
-        <input id="sg-name" type="text" placeholder="Channel name"/>
-        <input id="sg-cat"  type="text" placeholder="Category"/>
-        <input id="sg-url"  type="text" placeholder="Twitch / YouTube / Kick URL"/>
-        <input id="sg-desc" type="text" placeholder="Short description (optional)"/>
-        <button onclick="submitSuggest()">Submit</button>
-        <div id="sg-msg" style="display:none"></div>
+      <div class="suggest-wrap">
+        <div class="suggest-toggle" onclick="toggleSuggest()">Submit</div>
+        <div id="suggest-form" style="display:none">
+          <input id="sg-name" type="text" placeholder="Channel name"/>
+          <input id="sg-cat"  type="text" placeholder="Category"/>
+          <input id="sg-url"  type="text" placeholder="Twitch / YouTube / Kick URL"/>
+          <input id="sg-desc" type="text" placeholder="Short description (optional)"/>
+          <button onclick="submitSuggest()">Submit</button>
+          <div id="sg-msg" style="display:none"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-{% include "_site_footer.html" %}
+<footer class="console-dock">
+  <div class="console-dock__brand">
+    <a href="/home" class="console-dock__logo">Triptok<em>Forge</em></a>
+    <span class="console-dock__meta">Channels runs as a contained console surface. WhitePages stays in the bottom dock.</span>
+  </div>
+  <div class="console-dock__links">
+    <button type="button" onclick="toggleSidebar()">Guide</button>
+    <a href="/whitepages">WhitePages</a>
+    <a href="/news">News</a>
+    <a href="/community">Community</a>
+    <a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a>
+  </div>
+</footer>
 
 <script>
 const PLAYER_SIZE_KEY = 'ttf.channels.playerWidth';
+const defaultChannel = {{ default_channel|tojson if default_channel else 'null' }};
 let currentUrl = '';
 let currentSourceUrl = '';
+let currentChannel = null;
 let muted = false;
 let theater = false;
-let sidebarOpen = true;
+let sidebarOpen = false;
 let resizeState = null;
+let previewTimer = null;
+let activeScope = 'all';
 
 function setPlayerMessage(message) {
   document.getElementById('playerMessage').textContent = message;
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[char]));
+}
+
+function setStageState(channel, ctaLabel) {
+  const arcText = document.querySelector('.arc-text');
+  const arcHint = document.querySelector('.arc-hint');
+  const stagePills = document.getElementById('stagePills');
+  const stageLink = document.getElementById('stageLink');
+
+  if (!channel) {
+    arcText.textContent = 'AWAITING UPLINK';
+    arcHint.textContent = 'Select a channel from the guide ->';
+    stagePills.innerHTML = '<span class="stage-pill feed">Guide Ready</span><span class="stage-pill">Console View</span>';
+    stageLink.href = '#';
+    stageLink.textContent = 'Open Feed';
+    return;
+  }
+
+  arcText.textContent = channel.mode === 'live' ? 'LIVE UPLINK' : (channel.mode === 'replay' ? 'REPLAY DECK' : 'CHANNEL FEED');
+  arcHint.textContent = channel.name;
+  stagePills.innerHTML = [
+    `<span class="stage-pill ${escapeHtml(channel.mode)}">${escapeHtml(channel.mode_label)}</span>`,
+    `<span class="stage-pill">${escapeHtml(channel.scope)}</span>`,
+    `<span class="stage-pill">${channel.official ? 'Official' : 'Curated'}</span>`,
+  ].join('');
+  stageLink.href = channel.source_url || channel.embed || '#';
+  stageLink.textContent = ctaLabel;
 }
 
 function getPlayerBounds() {
@@ -794,6 +1128,55 @@ function resetPlayerSize() {
   localStorage.removeItem(PLAYER_SIZE_KEY);
 }
 
+function pulsePlayerZoom(persist) {
+  const player = document.getElementById('chPlayer');
+  player.classList.add(persist ? 'focus-zoom' : 'preview-focus');
+  clearTimeout(previewTimer);
+  if (!persist) {
+    previewTimer = window.setTimeout(() => {
+      player.classList.remove('preview-focus');
+    }, 240);
+  }
+}
+
+function autoFocusPlayer() {
+  if (window.innerWidth <= 760) return;
+  if (!localStorage.getItem(PLAYER_SIZE_KEY)) {
+    const bounds = getPlayerBounds();
+    applyPlayerSize(bounds.maxWidth);
+  }
+  pulsePlayerZoom(true);
+  window.setTimeout(() => {
+    document.getElementById('chPlayer').classList.remove('focus-zoom');
+  }, 900);
+}
+
+function previewChannel(name, description) {
+  if (window.innerWidth <= 760) return;
+  pulsePlayerZoom(false);
+  if (document.getElementById('ch-iframe').style.display === 'none') {
+    setPlayerMessage(description || ('Highlighting ' + name + ' in the guide. Load it to focus the stage.'));
+  }
+}
+
+function clearPreviewFocus() {
+  document.getElementById('chPlayer').classList.remove('preview-focus');
+  if (document.getElementById('ch-iframe').style.display === 'none') {
+    setPlayerMessage(currentChannel ? currentChannel.description : 'Embeddable streams, replays, and curated feeds load here.');
+  }
+}
+
+function syncGuideState() {
+  const shell = document.getElementById('chShell');
+  const guide = document.getElementById('chGuide');
+  const dockButton = document.getElementById('guideDockButton');
+  const dockStatus = document.getElementById('guideDockStatus');
+  guide.classList.toggle('is-open', sidebarOpen && !theater);
+  shell.classList.toggle('theater', theater);
+  dockButton.textContent = sidebarOpen && !theater ? 'Hide Guide' : 'Open Guide';
+  dockStatus.textContent = sidebarOpen && !theater ? 'Guide open' : 'Guide closed';
+}
+
 function beginPlayerResize(event) {
   if (window.innerWidth <= 760) return;
   const player = document.getElementById('chPlayer');
@@ -818,50 +1201,58 @@ function stopPlayerResize() {
   document.getElementById('chPlayer').classList.remove('resizing');
 }
 
-function loadChannel(url, name, sourceUrl, playable, mode) {
-  if (!sourceUrl && !url) return;
-  currentUrl = url || '';
-  currentSourceUrl = sourceUrl || url || '';
+function loadChannel(channel) {
+  if (!channel || (!channel.source_url && !channel.embed)) return;
+  currentChannel = channel;
+  currentUrl = channel.embed || '';
+  currentSourceUrl = channel.source_url || channel.embed || '';
 
-  const resolvedMode = mode || (playable ? 'live' : 'feed');
+  const resolvedMode = channel.mode || (channel.playable ? 'live' : 'feed');
   const hudStatus = document.getElementById('hudStatus');
-  document.getElementById('nowPlaying').textContent = name;
+  const placeholder = document.getElementById('placeholder');
+  const iframe = document.getElementById('ch-iframe');
+  const linkOut = document.getElementById('linkOut');
+  const player = document.getElementById('chPlayer');
+  const linkLabel = channel.player_kind === 'feed'
+    ? 'Open Feed'
+    : (resolvedMode === 'replay' ? 'Open Replay' : 'Open Live');
+
+  document.getElementById('nowPlaying').textContent = channel.name;
   hudStatus.textContent = resolvedMode.toUpperCase();
   hudStatus.classList.toggle('live', resolvedMode === 'live');
   hudStatus.classList.toggle('replay', resolvedMode === 'replay');
 
-  const placeholder = document.getElementById('placeholder');
-  const iframe = document.getElementById('ch-iframe');
-  const linkOut = document.getElementById('linkOut');
+  linkOut.href = currentSourceUrl || '#';
+  linkOut.classList.toggle('external', channel.player_kind === 'feed');
+  linkOut.textContent = linkLabel;
+  setStageState(channel, linkLabel);
 
-  let lo = sourceUrl || url;
-  linkOut.href = lo || '#';
-  linkOut.classList.toggle('external', !playable);
-  linkOut.textContent = playable
-    ? (resolvedMode === 'replay' ? 'Open Replay' : 'Open Live')
-    : 'Open Feed';
-
-  if (playable && url) {
+  if (channel.player_kind === 'iframe' && currentUrl) {
     placeholder.style.display = 'none';
     iframe.style.display = 'block';
-    iframe.src = muted ? url + (url.includes('?') ? '&' : '?') + 'muted=true' : url;
+    iframe.src = muted ? currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'muted=true' : currentUrl;
     setPlayerMessage(
-      resolvedMode === 'replay'
-        ? 'Embeddable replay and playlist feeds load here.'
-        : 'Embeddable live feeds and curated streams load here.'
+      channel.description || (
+        resolvedMode === 'replay'
+          ? 'Embeddable replay and playlist feeds load here.'
+          : 'Embeddable live feeds and curated streams load here.'
+      )
     );
+    player.classList.remove('feed-mode');
   } else {
     iframe.style.display = 'none';
     iframe.src = '';
     placeholder.style.display = 'flex';
-    setPlayerMessage('This source is currently best opened directly. A catalog refresh is in progress for more embed-ready feeds.');
+    setPlayerMessage(channel.description || 'This source is currently best opened directly.');
+    player.classList.add('feed-mode');
   }
 
-  document.getElementById('chPlayer').classList.add('active');
+  player.classList.add('active');
   document.getElementById('playerScanlines').style.opacity = '1';
+  autoFocusPlayer();
 
   document.querySelectorAll('.ch-row').forEach(r => {
-    r.classList.toggle('active', r.dataset.name === name);
+    r.classList.toggle('active', r.dataset.name === channel.name);
   });
 }
 
@@ -870,7 +1261,7 @@ function toggleMute() {
   const btn = document.getElementById('muteBtn');
   btn.textContent = muted ? 'UNMUTE' : 'MUTE';
   btn.classList.toggle('muted', muted);
-  if (currentUrl && document.getElementById('ch-iframe').style.display !== 'none') {
+  if (currentUrl && currentChannel && currentChannel.player_kind === 'iframe') {
     const iframe = document.getElementById('ch-iframe');
     iframe.src = muted
       ? currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'muted=true'
@@ -885,23 +1276,23 @@ function goFullscreen() {
 
 function toggleTheater() {
   theater = !theater;
-  document.getElementById('chShell').classList.toggle('theater', theater);
   const btn = document.getElementById('theaterBtn');
   btn.textContent = theater ? 'EXIT THEATER' : 'THEATER';
   btn.classList.toggle('on', theater);
-  sidebarOpen = !theater;
+  if (theater) {
+    sidebarOpen = false;
+  }
+  syncGuideState();
 }
 
 function toggleSidebar() {
   sidebarOpen = !sidebarOpen;
-  if (sidebarOpen) {
-    document.getElementById('chShell').classList.remove('theater');
+  if (sidebarOpen && theater) {
     theater = false;
     document.getElementById('theaterBtn').textContent = 'THEATER';
     document.getElementById('theaterBtn').classList.remove('on');
-  } else {
-    document.getElementById('chShell').classList.add('theater');
   }
+  syncGuideState();
 }
 
 function toggleCat(hd) {
@@ -916,24 +1307,58 @@ function toggleCat(hd) {
   }
 }
 
-function filterChannels(q) {
-  const ql = q.toLowerCase();
-  document.querySelectorAll('.ch-row').forEach(r => {
-    r.style.display = (!ql || r.dataset.name.toLowerCase().includes(ql)) ? '' : 'none';
+function setScope(scope, button) {
+  activeScope = scope || 'all';
+  document.querySelectorAll('.guide-scope').forEach((chip) => {
+    chip.classList.toggle('active', chip === button);
   });
-  if (ql) {
-    document.querySelectorAll('.cat-section').forEach(sec => {
-      const body = sec.querySelector('.cat-body');
-      const hd = sec.querySelector('.cat-hd');
-      body.style.maxHeight = 'none';
-      hd.classList.add('open');
+  filterChannels(document.getElementById('ch-search').value || '');
+}
+
+function filterChannels(query) {
+  const ql = String(query || '').trim().toLowerCase();
+  document.querySelectorAll('.cat-section').forEach((section) => {
+    let visibleCount = 0;
+    section.querySelectorAll('.ch-row').forEach((row) => {
+      const matchesText = !ql || row.dataset.search.includes(ql);
+      const matchesScope = activeScope === 'all' || row.dataset.scope === activeScope;
+      const show = matchesText && matchesScope;
+      row.style.display = show ? '' : 'none';
+      if (show) visibleCount += 1;
     });
-  }
+
+    const body = section.querySelector('.cat-body');
+    const header = section.querySelector('.cat-hd');
+    section.classList.toggle('hidden', visibleCount === 0);
+    if (visibleCount === 0) {
+      body.style.maxHeight = '0';
+      header.classList.remove('open');
+      return;
+    }
+    if (ql || activeScope !== 'all') {
+      body.style.maxHeight = 'none';
+      header.classList.add('open');
+    }
+  });
 }
 
 function toggleSuggest() {
   const form = document.getElementById('suggest-form');
   form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+}
+
+function openSuggestPanel() {
+  if (!sidebarOpen && window.innerWidth > 760) {
+    sidebarOpen = true;
+    if (theater) {
+      theater = false;
+      document.getElementById('theaterBtn').textContent = 'THEATER';
+      document.getElementById('theaterBtn').classList.remove('on');
+    }
+    syncGuideState();
+  }
+  const form = document.getElementById('suggest-form');
+  form.style.display = 'flex';
 }
 
 async function submitSuggest() {
@@ -978,12 +1403,25 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     if (window.innerWidth <= 760) {
       resetPlayerSize();
+      sidebarOpen = true;
+      theater = false;
+      syncGuideState();
       return;
     }
     if (localStorage.getItem(PLAYER_SIZE_KEY)) {
       restorePlayerSize();
     }
   });
+  if (window.innerWidth <= 760) {
+    sidebarOpen = true;
+  }
+  syncGuideState();
+  filterChannels('');
+  if (defaultChannel) {
+    loadChannel(defaultChannel);
+  } else {
+    setStageState(null, 'Open Feed');
+  }
 });
 </script>
 </body>

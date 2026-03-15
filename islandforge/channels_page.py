@@ -86,6 +86,26 @@ CHANNEL_META = {
     "Ali-A": {"priority": 73},
 }
 
+CHANNEL_OVERRIDES = {
+    "Video Game Music 24/7": {
+        "embed_url": "https://youtube.com/live/svb-FVtbDf8",
+        "description": "Official Square Enix 24/7 chill game-music video stream with a real live visual feed.",
+    },
+    "Retro Gaming 24/7": {
+        "embed_url": "https://www.youtube.com/channel/UCjFaPUcJU1vwk193mnW_w1w/videos",
+        "description": "Retro systems, emulation, and hardware preservation video feed anchored by Modern Vintage Gamer.",
+    },
+}
+
+
+def apply_channel_override(name: str, channel: dict) -> dict:
+    if name not in CHANNEL_OVERRIDES:
+        return channel
+
+    updated = dict(channel)
+    updated.update(CHANNEL_OVERRIDES[name])
+    return updated
+
 
 def detect_embed(url: str) -> str:
     """Convert a channel URL to an embeddable iframe src when supported."""
@@ -232,6 +252,12 @@ def label_for_mode(mode: str) -> str:
     }.get(mode, "Feed")
 
 
+def detect_player_kind(source_url: str, embed_url: str) -> str:
+    if is_embeddable(embed_url):
+        return "iframe"
+    return "feed"
+
+
 def ordered_scopes(seen_scopes: set[str]) -> list[str]:
     scopes = [scope for scope in SCOPE_ORDER if scope in seen_scopes]
     extras = sorted(scope for scope in seen_scopes if scope not in SCOPE_ORDER)
@@ -241,13 +267,16 @@ def ordered_scopes(seen_scopes: set[str]) -> list[str]:
 def build_channels_context(channels: list) -> dict:
     groups = OrderedDict()
     seen_scopes = set()
+    default_channel = None
 
     for channel in channels:
-        category = channel.get("category", "Other") or "Other"
         name = channel.get("name", "Unnamed")
+        channel = apply_channel_override(name, channel)
+        category = channel.get("category", "Other") or "Other"
         source_url = normalize_source_url(channel.get("embed_url", ""))
         embed_url = detect_embed(channel.get("embed_url", ""))
         mode = detect_feed_mode(source_url, embed_url)
+        player_kind = detect_player_kind(source_url, embed_url)
         meta = CHANNEL_META.get(name, {})
         scope = meta.get("scope") or CATEGORY_SCOPES.get(category, "General")
         seen_scopes.add(scope)
@@ -267,9 +296,11 @@ def build_channels_context(channels: list) -> dict:
                 "embed": embed_url,
                 "source_url": source_url,
                 "playable": is_embeddable(embed_url),
+                "player_kind": player_kind,
                 "mode": mode,
                 "mode_label": label_for_mode(mode),
                 "scope": scope,
+                "scope_slug": scope.lower().replace(" ", "-"),
                 "official": bool(meta.get("official", False)),
                 "priority": int(meta.get("priority", 999)),
             }
@@ -284,6 +315,15 @@ def build_channels_context(channels: list) -> dict:
                 item["name"].lower(),
             )
         )
+        if not default_channel:
+            default_channel = next(
+                (
+                    channel
+                    for channel in group["channels"]
+                    if channel["player_kind"] == "iframe"
+                ),
+                None,
+            )
 
     scope_labels = ordered_scopes(seen_scopes)
     return {
@@ -292,4 +332,5 @@ def build_channels_context(channels: list) -> dict:
         "category_total": len(groups),
         "channel_scopes": scope_labels,
         "scope_total": len(scope_labels),
+        "default_channel": default_channel,
     }

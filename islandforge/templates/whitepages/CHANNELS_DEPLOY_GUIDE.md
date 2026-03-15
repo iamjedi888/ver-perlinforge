@@ -8,7 +8,7 @@
 - Data source: Oracle `channels` table via `oracle_db.get_channels()`
 - Seed and refresh script: `seed_channels.py`
 
-The channels page now behaves more like the news page: curated scopes, stable player sizing, and clear separation between replay feeds, live feeds, and external feed pages.
+The channels page now behaves more like the news page: curated scopes, stable player sizing, richer stage fallback cards, and clear separation between replay feeds, live feeds, and external feed pages.
 
 ## Scope Model
 
@@ -44,7 +44,7 @@ Current feed labels on the page:
 - official Fortnite watch surfaces
 - official YouTube `/videos` or `/streams` feeds
 - official UEFN starter playlist links
-- long-form chill/replay sources for always-on value
+- themed video rows around artists, companies, teams, creators, or systems instead of brittle dead one-off links
 
 That keeps the page more comfortable than a catalog full of dead or weak raw channel handles.
 
@@ -68,7 +68,7 @@ sudo systemctl restart islandforge
 - The resized width is saved locally in the browser.
 - `Reset Size` returns the player to the default calculated layout.
 - The guide now exposes scope chips plus `Replay`, `Live`, and `Feed` badges.
-- If a source is not embed-ready yet, the page keeps the player shell stable and switches the call-to-action to `Open Feed`.
+- If a source is not embed-ready yet, the page keeps the player shell stable and renders a proper feed-state card instead of a black stage.
 
 ## Channel Roadmap
 
@@ -77,6 +77,7 @@ sudo systemctl restart islandforge
 - Keep the player comfortable and stable across desktop and mobile.
 - Refresh the Oracle catalog toward official replay, playlist, and feed URLs.
 - Keep channel scopes aligned with the calmer curation strategy already used on `/news`.
+- Keep each row anchored to a real theme, artist, player, team, company, or system.
 
 ### Next
 

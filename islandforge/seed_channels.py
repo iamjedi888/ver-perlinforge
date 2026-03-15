@@ -173,14 +173,14 @@ CHANNELS = [
     {
         "name": "Video Game Music 24/7",
         "category": "Chill Gaming",
-        "embed_url": "https://www.youtube.com/watch?v=OhcGNMGQBxU",
-        "description": "Long-form video game soundtrack mix for all-day sessions.",
+        "embed_url": "https://youtube.com/live/svb-FVtbDf8",
+        "description": "Official Square Enix 24/7 chill game-music video stream with a real live visual feed.",
     },
     {
         "name": "Retro Gaming 24/7",
         "category": "Chill Gaming",
-        "embed_url": "https://www.youtube.com/watch?v=wREBD2og5iE",
-        "description": "Retro gameplay and soundtrack loop for slower community hours.",
+        "embed_url": "https://www.youtube.com/channel/UCjFaPUcJU1vwk193mnW_w1w/videos",
+        "description": "Retro systems, emulation, and hardware preservation video feed anchored by Modern Vintage Gamer.",
     },
     # Gaming news / reviews
     {
