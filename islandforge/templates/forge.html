@@ -787,6 +787,29 @@ function toast(msg, err=false) {
 
 function setStatus(s) { $('status-text').textContent = s; }
 
+async function parseApiResponse(response, fallbackMessage = 'Request failed') {
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const isJson = contentType.includes('application/json');
+
+  if (!isJson) {
+    const body = await response.text();
+    const isHtml = /^\s*</.test(body || '');
+    if (response.status === 401 || response.redirected || isHtml) {
+      throw new Error('Login required or session expired. Sign back in, reopen Forge, and try again.');
+    }
+    throw new Error((body || fallbackMessage).slice(0, 220));
+  }
+
+  const data = await response.json();
+  if (!response.ok || !data?.ok) {
+    if (data?.error === 'login_required') {
+      throw new Error('Login required or session expired. Sign back in, reopen Forge, and try again.');
+    }
+    throw new Error(data?.error || `${fallbackMessage} (${response.status})`);
+  }
+  return data;
+}
+
 // ══════════════════════════════════════════════════════════════
 // AUDIO PLAYER ENGINE
 // ══════════════════════════════════════════════════════════════
@@ -1057,8 +1080,7 @@ async function uploadAudio(input) {
   fd.append('file', file);
   try {
     const r = await fetch('/upload_audio', { method:'POST', body:fd });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error);
+    const d = await parseApiResponse(r, 'Audio upload failed');
     applyWeights(d.weights);
     showBands(d.weights);
     await refreshAudioLib();
@@ -1102,8 +1124,7 @@ function showBands(w) {
 async function refreshAudioLib() {
   try {
     const r = await fetch('/audio/list');
-    const d = await r.json();
-    if (!d.ok) return;
+    const d = await parseApiResponse(r, 'Audio library load failed');
     const list = $('audio-file-list');
     if (!d.files.length) {
       list.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:4px 0">No saved files — upload one above</div>';
@@ -1148,8 +1169,7 @@ async function selectAudio(filename) {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({filename})
     });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error);
+    const d = await parseApiResponse(r, 'Audio selection failed');
     applyWeights(d.weights);
     showBands(d.weights);
     await playerLoad(filename, true);
@@ -1166,8 +1186,7 @@ async function deleteAudio(e, filename) {
   e.stopPropagation();
   try {
     const r = await fetch(`/audio/${encodeURIComponent(filename)}`, {method:'DELETE'});
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error);
+    const d = await parseApiResponse(r, 'Audio delete failed');
     if (filename === _playerFile) {
       _audio.pause();
       _audio.src = '';
@@ -1188,7 +1207,7 @@ async function deleteAudio(e, filename) {
 async function randomSeed() {
   try {
     const r = await fetch('/random_seed');
-    const d = await r.json();
+    const d = await parseApiResponse(r, 'Seed request failed');
     $('seed').value = d.seed;
   } catch {
     $('seed').value = Math.floor(Math.random()*99999)+1;
@@ -1334,8 +1353,7 @@ async function generate() {
         weights
       })
     });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error);
+    const d = await parseApiResponse(r, 'Island generation failed');
 
     // Show map
     $('map-img').src = 'data:image/png;base64,'+d.preview_b64;

@@ -103,6 +103,13 @@ PROTECTED_API_ROOTS = (
     "/api/forge",
 )
 
+PROTECTED_JSON_ROOTS = (
+    "/generate",
+    "/upload_audio",
+    "/audio",
+    "/random_seed",
+)
+
 
 def _path_matches(path: str, roots: tuple[str, ...]) -> bool:
     normalized = (path or "/").rstrip("/") or "/"
@@ -191,7 +198,7 @@ def enforce_member_gate():
         _path_matches(path, PROTECTED_PAGE_ROOTS)
         or _path_matches(path, PROTECTED_API_ROOTS)
     ):
-        if path.startswith("/api/"):
+        if path.startswith("/api/") or _path_matches(path, PROTECTED_JSON_ROOTS):
             return jsonify({"ok": False, "error": "login_required", "login_url": "/auth/epic"}), 401
         return redirect("/home")
     return None

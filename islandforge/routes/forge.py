@@ -123,6 +123,21 @@ def _download_name(suffix: str) -> str:
     return f"{prefix}_{suffix}"
 
 
+def _session_output_path(filename: str) -> str | None:
+    folder_name = os.path.basename(str(session.get("forge_output_folder") or "").strip())
+    if not folder_name:
+        return None
+    path = os.path.join(OUTPUT_DIR, folder_name, filename)
+    return path if os.path.exists(path) else None
+
+
+def _session_download_name(suffix: str) -> str:
+    prefix = str(session.get("forge_download_prefix") or "").strip()
+    if not prefix:
+        return _download_name(suffix)
+    return f"{prefix}_{suffix}"
+
+
 def _normalize_theme_name(value: str) -> str:
     text = str(value or "").strip()
     if not text:
@@ -312,6 +327,8 @@ def generate():
         _state["output_folder_name"] = output_folder_name
         _state["download_prefix"] = output_folder_name
         _state["verse_package"] = verse_package or None
+        session["forge_output_folder"] = output_folder_name
+        session["forge_download_prefix"] = output_folder_name
 
         return jsonify({
             "ok": True,
@@ -391,23 +408,39 @@ def audio_stream(filename):
 # ── DOWNLOADS ────────────────────────────────────────────────
 @forge_bp.route("/download/heightmap")
 def download_heightmap():
-    if not _state["heightmap_bytes"]: return "No heightmap yet", 404
-    return send_file(io.BytesIO(_state["heightmap_bytes"]), mimetype="image/png", as_attachment=True, download_name=_download_name("heightmap.png"))
+    if _state["heightmap_bytes"]:
+        return send_file(io.BytesIO(_state["heightmap_bytes"]), mimetype="image/png", as_attachment=True, download_name=_download_name("heightmap.png"))
+    path = _session_output_path("heightmap.png")
+    if not path:
+        return "No heightmap yet", 404
+    return send_file(path, mimetype="image/png", as_attachment=True, download_name=_session_download_name("heightmap.png"))
 
 @forge_bp.route("/download/layout")
 def download_layout():
-    if not _state["layout"]: return "No layout yet", 404
-    return send_file(io.BytesIO(json.dumps(_state["layout"],indent=2).encode()), mimetype="application/json", as_attachment=True, download_name=_download_name("layout.json"))
+    if _state["layout"]:
+        return send_file(io.BytesIO(json.dumps(_state["layout"],indent=2).encode()), mimetype="application/json", as_attachment=True, download_name=_download_name("layout.json"))
+    path = _session_output_path("layout.json")
+    if not path:
+        return "No layout yet", 404
+    return send_file(path, mimetype="application/json", as_attachment=True, download_name=_session_download_name("layout.json"))
 
 @forge_bp.route("/download/preview")
 def download_preview():
-    if not _state["preview_bytes"]: return "No preview yet", 404
-    return send_file(io.BytesIO(_state["preview_bytes"]), mimetype="image/png", as_attachment=True, download_name=_download_name("preview.png"))
+    if _state["preview_bytes"]:
+        return send_file(io.BytesIO(_state["preview_bytes"]), mimetype="image/png", as_attachment=True, download_name=_download_name("preview.png"))
+    path = _session_output_path("preview.png")
+    if not path:
+        return "No preview yet", 404
+    return send_file(path, mimetype="image/png", as_attachment=True, download_name=_session_download_name("preview.png"))
 
 @forge_bp.route("/download/verse_package")
 def download_verse_package():
-    if not _state["verse_zip_bytes"]: return "No verse package yet", 404
-    return send_file(io.BytesIO(_state["verse_zip_bytes"]), mimetype="application/zip", as_attachment=True, download_name=_download_name("verse_package.zip"))
+    if _state["verse_zip_bytes"]:
+        return send_file(io.BytesIO(_state["verse_zip_bytes"]), mimetype="application/zip", as_attachment=True, download_name=_download_name("verse_package.zip"))
+    path = _session_output_path("verse_package.zip")
+    if not path:
+        return "No verse package yet", 404
+    return send_file(path, mimetype="application/zip", as_attachment=True, download_name=_session_download_name("verse_package.zip"))
 
 @forge_bp.route("/random_seed")
 def random_seed():
