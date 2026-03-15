@@ -177,6 +177,7 @@ from routes.leaderboard import leaderboard_bp
 from routes.forge_upgrades import forge_upgrades_bp
 from routes.news import news_bp
 from routes.epic_games_api import epic_api_bp
+from routes.room import room_bp
 
 # Register blueprints
 app.register_blueprint(platform_bp)
@@ -190,6 +191,7 @@ app.register_blueprint(leaderboard_bp)
 app.register_blueprint(forge_upgrades_bp)
 app.register_blueprint(news_bp)
 app.register_blueprint(epic_api_bp)
+app.register_blueprint(room_bp)
 
 
 @app.route("/favicon.svg")

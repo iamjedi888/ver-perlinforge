@@ -1,0 +1,619 @@
+:root {
+  --room-bg: #05070b;
+  --room-panel: rgba(11, 16, 25, 0.92);
+  --room-panel-strong: rgba(14, 22, 34, 0.96);
+  --room-border: rgba(103, 168, 214, 0.18);
+  --room-border-strong: rgba(103, 168, 214, 0.3);
+  --room-copy: #cfe0ee;
+  --room-copy-dim: #7f94aa;
+  --room-accent: #67f0ff;
+  --room-accent-soft: rgba(103, 240, 255, 0.14);
+  --room-accent-strong: rgba(103, 240, 255, 0.34);
+  --room-accent-alt: #00e5a0;
+  --room-surface-top: rgba(103, 240, 255, 0.12);
+  --room-surface-bottom: rgba(4, 8, 14, 0.98);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body.member-room-body {
+  background:
+    radial-gradient(circle at top, var(--room-surface-top), transparent 30%),
+    linear-gradient(180deg, #060a11 0%, var(--room-bg) 42%, #030509 100%);
+  color: var(--room-copy);
+  font-family: "Rajdhani", sans-serif;
+}
+
+.member-room-body .site-shell,
+.member-room-body .site-nav,
+.member-room-body .global-footer {
+  position: relative;
+  z-index: 2;
+}
+
+.room-shell {
+  width: min(1380px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 96px 0 40px;
+  display: grid;
+  gap: 22px;
+}
+
+.panel-shell {
+  position: relative;
+  border: 1px solid var(--room-border);
+  border-radius: 28px;
+  background: linear-gradient(180deg, var(--room-panel-strong), var(--room-panel));
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.room-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.82fr);
+  gap: 22px;
+}
+
+.room-stage {
+  padding: 28px;
+}
+
+.room-stage__ambient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, var(--room-accent-soft), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0, rgba(255, 255, 255, 0.018) 1px, transparent 1px, transparent 64px);
+  pointer-events: none;
+}
+
+.room-stage__head,
+.section-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.room-kicker,
+.section-head__kicker,
+.screen-shell__kicker,
+.player-hero__eyebrow,
+.asset-card__kind,
+.theme-chip__meta,
+.metric-card__label,
+.screen-metric__label,
+.section-head__note,
+.theme-dock__label,
+.theme-brief__label {
+  display: block;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--room-copy-dim);
+}
+
+.room-stage h1,
+.section-head h2 {
+  margin: 10px 0 0;
+  font-family: "Orbitron", monospace;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.room-stage h1 {
+  font-size: clamp(1.65rem, 4vw, 2.8rem);
+}
+
+.room-copy,
+.theme-dock__current p,
+.player-hero__copy p,
+.empty-card p,
+.theme-brief__panel p {
+  color: var(--room-copy-dim);
+  line-height: 1.55;
+}
+
+.room-head__status {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.status-chip,
+.section-head__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--room-border-strong);
+  background: rgba(8, 13, 20, 0.84);
+  color: var(--room-copy);
+  text-decoration: none;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.status-chip--accent,
+.section-head__button:hover {
+  color: var(--room-accent);
+  border-color: var(--room-accent-strong);
+  background: var(--room-accent-soft);
+}
+
+.room-stage__screen {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(250px, 0.7fr);
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.screen-shell,
+.theme-brief__panel,
+.theme-dock,
+.metric-card,
+.player-hero,
+.island-tile,
+.asset-card,
+.empty-card {
+  border: 1px solid var(--room-border);
+  background: rgba(8, 13, 20, 0.78);
+}
+
+.screen-shell {
+  border-radius: 24px;
+  padding: 18px;
+}
+
+.screen-shell__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.screen-shell__head strong,
+.theme-brief__panel strong,
+.theme-dock__current strong,
+.player-hero__copy strong {
+  display: block;
+  margin-top: 8px;
+  font-family: "Orbitron", monospace;
+}
+
+.screen-shell__ambient {
+  color: var(--room-accent);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: right;
+}
+
+.room-telemetry {
+  display: block;
+  width: 100%;
+  height: 260px;
+  margin-top: 14px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%),
+    rgba(6, 11, 18, 0.86);
+}
+
+.screen-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.screen-metric {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--room-border);
+  background: rgba(13, 20, 31, 0.88);
+}
+
+.screen-metric strong {
+  display: block;
+  margin-top: 8px;
+  font-family: "Orbitron", monospace;
+  font-size: 1.16rem;
+}
+
+.theme-brief {
+  display: grid;
+  gap: 14px;
+}
+
+.theme-brief__panel {
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.theme-brief__list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--room-copy);
+  line-height: 1.55;
+}
+
+.theme-dock {
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+}
+
+.theme-dock__buttons {
+  display: grid;
+  gap: 10px;
+}
+
+.theme-chip {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--room-border);
+  background: rgba(9, 14, 23, 0.9);
+  color: var(--room-copy);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.theme-chip:hover,
+.theme-chip.is-active {
+  transform: translateY(-1px);
+  border-color: var(--room-accent-strong);
+  background: var(--room-accent-soft);
+}
+
+.theme-chip__label {
+  display: block;
+  font-family: "Orbitron", monospace;
+  font-size: 0.88rem;
+}
+
+.theme-dock__current {
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid var(--room-border);
+  background: rgba(10, 16, 25, 0.88);
+}
+
+.room-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.92fr);
+  gap: 22px;
+}
+
+.room-grid > .panel-shell,
+.room-locker {
+  padding: 22px;
+}
+
+.island-wall,
+.metric-wall,
+.asset-locker {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.island-wall {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.island-tile {
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.island-tile__preview {
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, rgba(12, 25, 37, 0.96), rgba(8, 12, 19, 0.96));
+}
+
+.island-tile__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.island-tile__fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-family: "Orbitron", monospace;
+  letter-spacing: 0.2em;
+  color: var(--room-accent);
+}
+
+.island-tile__body {
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.island-tile__body strong {
+  font-family: "Orbitron", monospace;
+  font-size: 0.88rem;
+}
+
+.island-tile__body span,
+.island-tile__meta {
+  color: var(--room-copy-dim);
+}
+
+.island-tile__tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.island-tile__tags span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--room-border);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.player-wall {
+  margin-top: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.player-hero {
+  border-radius: 22px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.player-hero__avatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 24px;
+  border: 1px solid var(--room-border-strong);
+  background: rgba(7, 12, 19, 0.94);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-family: "Orbitron", monospace;
+  font-size: 2.2rem;
+  color: var(--room-accent);
+}
+
+.player-hero__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.metric-wall {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metric-card {
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.metric-card__value {
+  display: block;
+  margin-top: 10px;
+  font-family: "Orbitron", monospace;
+  font-size: 1.2rem;
+  color: var(--room-accent);
+}
+
+.metric-card__meta {
+  display: block;
+  margin-top: 8px;
+  color: var(--room-copy-dim);
+}
+
+.room-locker {
+  padding: 22px;
+}
+
+.asset-locker {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.asset-card {
+  border-radius: 22px;
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.asset-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--room-accent-strong);
+  background: var(--room-accent-soft);
+}
+
+.asset-card strong {
+  display: block;
+  margin-top: 8px;
+  font-family: "Orbitron", monospace;
+  font-size: 0.94rem;
+}
+
+.asset-card__cta {
+  display: inline-block;
+  margin-top: 14px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--room-accent);
+}
+
+.empty-card {
+  padding: 18px;
+  border-radius: 22px;
+}
+
+.empty-card strong {
+  display: block;
+  font-family: "Orbitron", monospace;
+}
+
+.room-theme-coastal {
+  --room-bg: #04070c;
+  --room-accent: #67f0ff;
+  --room-accent-soft: rgba(103, 240, 255, 0.14);
+  --room-accent-strong: rgba(103, 240, 255, 0.34);
+  --room-surface-top: rgba(103, 240, 255, 0.12);
+}
+
+.room-theme-canopy {
+  --room-bg: #061009;
+  --room-accent: #6cff9b;
+  --room-accent-soft: rgba(108, 255, 155, 0.14);
+  --room-accent-strong: rgba(108, 255, 155, 0.34);
+  --room-surface-top: rgba(108, 255, 155, 0.12);
+}
+
+.room-theme-desert {
+  --room-bg: #0e0906;
+  --room-accent: #ffb15c;
+  --room-accent-soft: rgba(255, 177, 92, 0.16);
+  --room-accent-strong: rgba(255, 177, 92, 0.34);
+  --room-surface-top: rgba(255, 177, 92, 0.14);
+}
+
+.room-theme-alpine {
+  --room-bg: #050a11;
+  --room-accent: #b6e4ff;
+  --room-accent-soft: rgba(182, 228, 255, 0.14);
+  --room-accent-strong: rgba(182, 228, 255, 0.32);
+  --room-surface-top: rgba(182, 228, 255, 0.12);
+}
+
+.room-theme-volcanic {
+  --room-bg: #110706;
+  --room-accent: #ff6a4f;
+  --room-accent-soft: rgba(255, 106, 79, 0.16);
+  --room-accent-strong: rgba(255, 106, 79, 0.34);
+  --room-surface-top: rgba(255, 106, 79, 0.14);
+}
+
+.room-theme-wetlands {
+  --room-bg: #06100d;
+  --room-accent: #8fe0c1;
+  --room-accent-soft: rgba(143, 224, 193, 0.15);
+  --room-accent-strong: rgba(143, 224, 193, 0.34);
+  --room-surface-top: rgba(143, 224, 193, 0.13);
+}
+
+.room-telemetry .chart-grid,
+.room-telemetry .chart-axis {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.room-telemetry .chart-label {
+  fill: rgba(207, 224, 238, 0.68);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.room-telemetry .chart-area {
+  fill: var(--room-accent-soft);
+  stroke: none;
+}
+
+.room-telemetry .chart-line {
+  fill: none;
+  stroke: var(--room-accent);
+  stroke-width: 4;
+}
+
+.room-telemetry .chart-point {
+  fill: var(--room-accent);
+  stroke: rgba(9, 14, 23, 0.96);
+  stroke-width: 3;
+}
+
+.room-telemetry .chart-cap {
+  fill: var(--room-accent);
+  filter: drop-shadow(0 0 12px var(--room-accent-soft));
+}
+
+@media (max-width: 1100px) {
+  .room-hero,
+  .room-grid,
+  .room-stage__screen {
+    grid-template-columns: 1fr;
+  }
+
+  .screen-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .room-shell {
+    width: min(100%, calc(100% - 20px));
+    padding-top: 86px;
+  }
+
+  .room-stage,
+  .theme-dock,
+  .room-grid > .panel-shell,
+  .room-locker {
+    padding: 18px;
+  }
+
+  .player-hero,
+  .metric-wall {
+    grid-template-columns: 1fr;
+  }
+
+  .screen-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .section-head,
+  .room-stage__head,
+  .screen-shell__head {
+    flex-direction: column;
+  }
+}
