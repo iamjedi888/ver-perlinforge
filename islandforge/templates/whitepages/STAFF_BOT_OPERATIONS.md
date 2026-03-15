@@ -48,6 +48,36 @@ Bot Operator cannot:
 - use channel, broadcast, or staff modules
 - operate as a silent full admin
 
+### User
+
+User is a low-privilege internal profile type.
+
+Use it for:
+
+- QA walkthrough accounts
+- read-only or near-read-only staff presence
+- future limited operator lanes
+
+Do not use it as a public site signup path.
+
+## Profile Factory
+
+The preferred control surface is a single `Profile Factory` module in `/ops`.
+
+Admin can choose:
+
+- `Admin`
+- `Moderator`
+- `User`
+- `Bot`
+
+Behavior:
+
+- human profile kinds create staff logins
+- bot profile kind creates the bot identity and model configuration
+- privilege overrides can grant or remove capabilities from the human defaults
+- linked bot operators can be created separately for bot maintenance
+
 ## ColorsTheForce
 
 Recommended defaults:
@@ -79,10 +109,15 @@ The provider dropdown in `/ops` is curated from official vendor documentation ra
 
 Current anchors:
 
+- OpenAI
 - Google Vertex AI / Gemini
+- Anthropic / Claude
 - IBM watsonx.ai / Granite and partner-hosted models
+- Amazon Bedrock
 - NVIDIA NIM / Nemotron and partner models
+- Mistral
 - Meta Llama
+- Cohere
 - Hugging Face Inference Providers
 
 Why curated:

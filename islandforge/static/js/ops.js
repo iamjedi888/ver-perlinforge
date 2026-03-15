@@ -1,12 +1,19 @@
 (function () {
   const catalogNode = document.getElementById("llm-provider-catalog");
+  const defaultsNode = document.getElementById("role-default-permissions");
   if (!catalogNode) return;
 
   let catalog = [];
+  let roleDefaults = {};
   try {
     catalog = JSON.parse(catalogNode.textContent || "[]");
   } catch (_error) {
     catalog = [];
+  }
+  try {
+    roleDefaults = JSON.parse((defaultsNode && defaultsNode.textContent) || "{}");
+  } catch (_error) {
+    roleDefaults = {};
   }
 
   function renderProviderMeta(container, provider) {
@@ -83,4 +90,40 @@
     });
     syncProviderForm(form);
   });
+
+  const kindSelect = document.querySelector("[data-profile-kind-select]");
+  if (!kindSelect) return;
+
+  const kindCopy = document.querySelector("[data-profile-kind-copy]");
+  const humanPanel = document.querySelector('[data-profile-kind-panel="human"]');
+  const botPanel = document.querySelector('[data-profile-kind-panel="bot"]');
+  const roleInput = document.querySelector("[data-profile-role-input]");
+  const permissionInputs = Array.from(document.querySelectorAll("[data-permission-key]"));
+
+  const kindText = {
+    admin: "Admin opens the full control plane, including channels, broadcasts, staff, bots, and system modules.",
+    moderator: "Moderator focuses on community cleanup and post safety without broader site-control access.",
+    user: "User is a low-privilege internal profile for observation, QA, or future limited workflows.",
+    bot: "Bot creates a site-owned AI profile with provider, model, scope, and guardrail controls.",
+  };
+
+  function applyRoleDefaults(role) {
+    const defaults = roleDefaults[role] || {};
+    permissionInputs.forEach((input) => {
+      input.checked = Boolean(defaults[input.dataset.permissionKey]);
+    });
+  }
+
+  function syncProfileKind() {
+    const kind = kindSelect.value || "admin";
+    const isBot = kind === "bot";
+    if (humanPanel) humanPanel.hidden = isBot;
+    if (botPanel) botPanel.hidden = !isBot;
+    if (roleInput) roleInput.value = isBot ? "" : kind;
+    if (kindCopy) kindCopy.textContent = kindText[kind] || "";
+    if (!isBot) applyRoleDefaults(kind);
+  }
+
+  kindSelect.addEventListener("change", syncProfileKind);
+  syncProfileKind();
 })();

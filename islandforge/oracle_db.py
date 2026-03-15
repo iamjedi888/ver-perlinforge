@@ -265,6 +265,7 @@ CREATE TABLE staff_accounts (
     role           VARCHAR2(32)  DEFAULT 'moderator',
     password_hash  VARCHAR2(512) NOT NULL,
     linked_bot_slug VARCHAR2(64),
+    permission_overrides_json CLOB,
     active         NUMBER(1)     DEFAULT 1,
     created_at     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
@@ -467,7 +468,17 @@ def ensure_channel_schema():
 
 
 _ops_schema_checked = False
-STAFF_ROLE_OPTIONS = ("admin", "moderator", "bot_operator")
+STAFF_ROLE_OPTIONS = ("admin", "moderator", "bot_operator", "user")
+STAFF_PERMISSION_KEYS = (
+    "moderation",
+    "channels",
+    "broadcasts",
+    "announcements",
+    "staff",
+    "bots",
+    "system",
+    "members",
+)
 
 
 def _hash_password(password: str, salt_hex: str | None = None, iterations: int = 240000) -> str:
@@ -518,6 +529,29 @@ def _ops_text_to_blob(value) -> str:
     return "\n".join(_normalize_text_lines(value))
 
 
+def _normalize_permission_overrides(value):
+    if isinstance(value, dict):
+        parsed = value
+    elif not value:
+        parsed = {}
+    else:
+        try:
+            parsed = json.loads(str(value))
+        except Exception:
+            parsed = {}
+    rows = {}
+    for key in STAFF_PERMISSION_KEYS:
+        if key not in parsed:
+            continue
+        rows[key] = 1 if bool(parsed.get(key)) else 0
+    return rows
+
+
+def _permission_overrides_to_blob(value) -> str:
+    normalized = _normalize_permission_overrides(value)
+    return json.dumps(normalized, separators=(",", ":")) if normalized else ""
+
+
 def ensure_ops_schema():
     global _ops_schema_checked
     if _ops_schema_checked or not db_available():
@@ -534,6 +568,7 @@ def ensure_ops_schema():
                 role           VARCHAR2(32) DEFAULT 'moderator',
                 password_hash  VARCHAR2(512) NOT NULL,
                 linked_bot_slug VARCHAR2(64),
+                permission_overrides_json CLOB,
                 active         NUMBER(1) DEFAULT 1,
                 created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -578,6 +613,12 @@ def ensure_ops_schema():
             except Exception as e:
                 if "ORA-00955" not in str(e):
                     print(f"[oracle_db] ops schema warning: {e}")
+
+        if not _column_exists(cur, "STAFF_ACCOUNTS", "PERMISSION_OVERRIDES_JSON"):
+            try:
+                cur.execute("ALTER TABLE staff_accounts ADD permission_overrides_json CLOB")
+            except Exception as e:
+                print(f"[oracle_db] ops schema alter warning: {e}")
 
         cur.execute(
             "SELECT COUNT(*) FROM bot_profiles WHERE slug = :slug",
@@ -712,14 +753,17 @@ def get_operator_audit_log(limit=60):
 
 def get_staff_accounts():
     if not db_available():
-        return _json_load("staff_accounts.json", [])
+        items = _json_load("staff_accounts.json", [])
+        for item in items:
+            item["permission_overrides"] = _normalize_permission_overrides(item.get("permission_overrides"))
+        return items
     try:
         ensure_ops_schema()
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id, username, display_name, role, linked_bot_slug, active, created_at, updated_at
+            SELECT id, username, display_name, role, linked_bot_slug, permission_overrides_json, active, created_at, updated_at
               FROM staff_accounts
              ORDER BY role, username
             """
@@ -733,9 +777,10 @@ def get_staff_accounts():
                     "display_name": row[2] or "",
                     "role": row[3] or "moderator",
                     "linked_bot_slug": row[4] or "",
-                    "active": int(row[5] or 0),
-                    "created_at": row[6].isoformat() if hasattr(row[6], "isoformat") else str(row[6] or ""),
-                    "updated_at": row[7].isoformat() if hasattr(row[7], "isoformat") else str(row[7] or ""),
+                    "permission_overrides": _normalize_permission_overrides(row[5] or ""),
+                    "active": int(row[6] or 0),
+                    "created_at": row[7].isoformat() if hasattr(row[7], "isoformat") else str(row[7] or ""),
+                    "updated_at": row[8].isoformat() if hasattr(row[8], "isoformat") else str(row[8] or ""),
                 }
             )
         cur.close()
@@ -749,14 +794,17 @@ def get_staff_accounts():
 def get_staff_account(staff_id):
     if not db_available():
         items = _json_load("staff_accounts.json", [])
-        return next((item for item in items if int(item.get("id") or 0) == int(staff_id or 0)), None)
+        item = next((item for item in items if int(item.get("id") or 0) == int(staff_id or 0)), None)
+        if item:
+            item["permission_overrides"] = _normalize_permission_overrides(item.get("permission_overrides"))
+        return item
     try:
         ensure_ops_schema()
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id, username, display_name, role, linked_bot_slug, active, created_at, updated_at
+            SELECT id, username, display_name, role, linked_bot_slug, permission_overrides_json, active, created_at, updated_at
               FROM staff_accounts
              WHERE id = :id
             """,
@@ -773,9 +821,10 @@ def get_staff_account(staff_id):
             "display_name": row[2] or "",
             "role": row[3] or "moderator",
             "linked_bot_slug": row[4] or "",
-            "active": int(row[5] or 0),
-            "created_at": row[6].isoformat() if hasattr(row[6], "isoformat") else str(row[6] or ""),
-            "updated_at": row[7].isoformat() if hasattr(row[7], "isoformat") else str(row[7] or ""),
+            "permission_overrides": _normalize_permission_overrides(row[5] or ""),
+            "active": int(row[6] or 0),
+            "created_at": row[7].isoformat() if hasattr(row[7], "isoformat") else str(row[7] or ""),
+            "updated_at": row[8].isoformat() if hasattr(row[8], "isoformat") else str(row[8] or ""),
         }
     except Exception as e:
         print(f"[oracle_db] get_staff_account error: {e}")
@@ -793,6 +842,7 @@ def authenticate_staff_account(username, password):
             if not int(account.get("active") or 0):
                 return None
             if _verify_password(password, account.get("password_hash") or ""):
+                account["permission_overrides"] = _normalize_permission_overrides(account.get("permission_overrides"))
                 return account
         return None
     try:
@@ -801,7 +851,7 @@ def authenticate_staff_account(username, password):
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id, username, display_name, role, password_hash, linked_bot_slug, active
+            SELECT id, username, display_name, role, password_hash, linked_bot_slug, active, permission_overrides_json
               FROM staff_accounts
              WHERE LOWER(username) = :username
             """,
@@ -820,6 +870,7 @@ def authenticate_staff_account(username, password):
             "display_name": row[2] or "",
             "role": row[3] or "moderator",
             "linked_bot_slug": row[5] or "",
+            "permission_overrides": _normalize_permission_overrides(row[7] or ""),
             "active": int(row[6] or 0),
         }
     except Exception as e:
@@ -827,7 +878,7 @@ def authenticate_staff_account(username, password):
         return None
 
 
-def create_staff_account(username, display_name, role, password, linked_bot_slug="", active=1):
+def create_staff_account(username, display_name, role, password, linked_bot_slug="", active=1, permission_overrides=None):
     role = (role or "moderator").strip().lower()
     if role not in STAFF_ROLE_OPTIONS:
         role = "moderator"
@@ -848,6 +899,7 @@ def create_staff_account(username, display_name, role, password, linked_bot_slug
                 "role": role,
                 "password_hash": password_hash,
                 "linked_bot_slug": (linked_bot_slug or "").strip(),
+                "permission_overrides": _normalize_permission_overrides(permission_overrides),
                 "active": 1 if active else 0,
                 "created_at": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat(),
@@ -862,10 +914,10 @@ def create_staff_account(username, display_name, role, password, linked_bot_slug
         cur.execute(
             """
             INSERT INTO staff_accounts (
-                username, display_name, role, password_hash, linked_bot_slug, active
+                username, display_name, role, password_hash, linked_bot_slug, permission_overrides_json, active
             )
             VALUES (
-                :username, :display_name, :role, :password_hash, :linked_bot_slug, :active
+                :username, :display_name, :role, :password_hash, :linked_bot_slug, :permission_overrides_json, :active
             )
             """,
             {
@@ -874,6 +926,7 @@ def create_staff_account(username, display_name, role, password, linked_bot_slug
                 "role": role,
                 "password_hash": password_hash,
                 "linked_bot_slug": (linked_bot_slug or "").strip(),
+                "permission_overrides_json": _permission_overrides_to_blob(permission_overrides),
                 "active": 1 if active else 0,
             },
         )
@@ -887,7 +940,7 @@ def create_staff_account(username, display_name, role, password, linked_bot_slug
         return False
 
 
-def update_staff_account(staff_id, username, display_name, role, password="", linked_bot_slug="", active=1):
+def update_staff_account(staff_id, username, display_name, role, password="", linked_bot_slug="", active=1, permission_overrides=None):
     role = (role or "moderator").strip().lower()
     if role not in STAFF_ROLE_OPTIONS:
         role = "moderator"
@@ -904,6 +957,7 @@ def update_staff_account(staff_id, username, display_name, role, password="", li
             item["display_name"] = display_name
             item["role"] = role
             item["linked_bot_slug"] = (linked_bot_slug or "").strip()
+            item["permission_overrides"] = _normalize_permission_overrides(permission_overrides)
             item["active"] = 1 if active else 0
             item["updated_at"] = datetime.utcnow().isoformat()
             if password:
@@ -921,6 +975,7 @@ def update_staff_account(staff_id, username, display_name, role, password="", li
             "display_name": display_name,
             "role": role,
             "linked_bot_slug": (linked_bot_slug or "").strip(),
+            "permission_overrides_json": _permission_overrides_to_blob(permission_overrides),
             "active": 1 if active else 0,
         }
         if password:
@@ -933,6 +988,7 @@ def update_staff_account(staff_id, username, display_name, role, password="", li
                        role = :role,
                        password_hash = :password_hash,
                        linked_bot_slug = :linked_bot_slug,
+                       permission_overrides_json = :permission_overrides_json,
                        active = :active,
                        updated_at = CURRENT_TIMESTAMP
                  WHERE id = :id
@@ -947,6 +1003,7 @@ def update_staff_account(staff_id, username, display_name, role, password="", li
                        display_name = :display_name,
                        role = :role,
                        linked_bot_slug = :linked_bot_slug,
+                       permission_overrides_json = :permission_overrides_json,
                        active = :active,
                        updated_at = CURRENT_TIMESTAMP
                  WHERE id = :id

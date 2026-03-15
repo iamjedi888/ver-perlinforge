@@ -454,11 +454,13 @@
       <ul>
         <li><strong>Admin:</strong> full operations control, including staff accounts, bot profiles, channels, broadcasts, announcements, and legacy admin modules.</li>
         <li><strong>Moderator:</strong> community-post moderation only. This role can edit or remove posts without touching channels, bot settings, or sitewide UI controls.</li>
+        <li><strong>User:</strong> low-privilege internal profile for QA, walkthroughs, and future limited access lanes.</li>
         <li><strong>Bot Operator:</strong> can tune a linked bot profile such as <code>ColorsTheForce</code> without receiving the rest of the admin surface.</li>
       </ul>
       <h3>Ops surface</h3>
       <ul>
         <li><code>/ops</code> is the role-aware login and dashboard for staff accounts.</li>
+        <li>The top-level <code>Profile Factory</code> creates <code>Admin</code>, <code>Moderator</code>, <code>User</code>, or <code>Bot</code> profiles from one module.</li>
         <li>The old <code>/admin</code> route remains the legacy full-control console and should stay admin-only.</li>
         <li>Leave the username blank and use the root admin password only as a fallback, not as the long-term staff model.</li>
       </ul>

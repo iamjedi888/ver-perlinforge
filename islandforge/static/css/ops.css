@@ -283,6 +283,16 @@ textarea {
   align-items: center;
 }
 
+.factory-switcher {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.factory-field {
+  max-width: 320px;
+}
+
 .hero {
   display: grid;
   grid-template-columns: 1.2fr 0.9fr;
@@ -421,6 +431,59 @@ textarea {
 .bot-card,
 .empty-card {
   padding: 18px;
+}
+
+.permission-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(92, 121, 165, 0.18);
+  background: rgba(7, 10, 18, 0.64);
+}
+
+.permission-card__head {
+  display: grid;
+  gap: 6px;
+}
+
+.permission-card__head span {
+  color: var(--muted);
+}
+
+.permission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.permission-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(92, 121, 165, 0.16);
+  background: rgba(9, 13, 24, 0.66);
+  color: var(--muted);
+}
+
+.permission-toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.roster-note {
+  display: grid;
+  gap: 12px;
+}
+
+.simple-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  display: grid;
+  gap: 8px;
 }
 
 .table-wrap {

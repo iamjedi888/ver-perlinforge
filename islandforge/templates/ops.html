@@ -111,6 +111,7 @@
     <div class="panel-head">
       <h2>Role Modules</h2>
       <div class="tab-links">
+        {% if staff_permissions.staff %}<a href="#profile-factory" class="tab-link">Profile Factory</a>{% endif %}
         <a href="#moderation" class="tab-link">Moderation</a>
         {% if staff_permissions.staff %}<a href="#staff" class="tab-link">Staff</a>{% endif %}
         {% if staff_permissions.bots %}<a href="#bots" class="tab-link">Bots</a>{% endif %}
@@ -121,6 +122,107 @@
   </section>
 
   <div class="ops-grid">
+    {% if staff_permissions.staff %}
+    <section class="panel" id="profile-factory">
+      <div class="panel-head">
+        <h2>Profile Factory</h2>
+        <span class="panel-kicker">CREATE ADMIN / MODERATOR / USER / BOT</span>
+      </div>
+      <div class="panel-body">
+        <p class="section-copy">This is the primary account-and-bot creation lane. Pick the profile kind first, then the form reshapes around that type. Human profiles can have privilege overrides; bot profiles get provider, model, scope, and moderation-surface controls.</p>
+        <div class="factory-switcher">
+          <label class="field factory-field">
+            <span>Profile Kind</span>
+            <select id="profileKindSelect" data-profile-kind-select>
+              <option value="admin">Admin</option>
+              <option value="moderator">Moderator</option>
+              <option value="user">User</option>
+              <option value="bot">Bot</option>
+            </select>
+          </label>
+          <div class="helper-text" data-profile-kind-copy>
+            Admin opens the full control plane. Moderator is content-focused. User is a low-privilege internal profile. Bot creates a house-bot profile like ColorsTheForce.
+          </div>
+        </div>
+
+        <div data-profile-kind-panel="human">
+          <form method="post" class="form-card">
+            <input type="hidden" name="action" value="staff_create"/>
+            <input type="hidden" name="role" value="admin" data-profile-role-input/>
+            <h3>Create Human Profile</h3>
+            <div class="form-grid two">
+              <label class="field"><span>Username</span><input type="text" name="username" required/></label>
+              <label class="field"><span>Display Name</span><input type="text" name="display_name" required/></label>
+              <label class="field"><span>Password</span><input type="password" name="password" required/></label>
+              <label class="field"><span>Linked Bot</span>
+                <select name="linked_bot_slug">
+                  <option value="">None</option>
+                  {% for bot in bot_choices %}
+                  <option value="{{ bot.slug }}">{{ bot.display_name }} ({{ bot.slug }})</option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+            <div class="permission-card">
+              <div class="permission-card__head">
+                <strong>Privilege Overrides</strong>
+                <span>These start from the selected role defaults. Check or uncheck to give/remove capabilities.</span>
+              </div>
+              <div class="permission-grid">
+                {% for perm_key, perm_label in permission_labels.items() %}
+                <label class="permission-toggle">
+                  <input type="checkbox" name="perm_{{ perm_key }}" data-permission-key="{{ perm_key }}"/>
+                  <span>{{ perm_label }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+            <label class="toggle"><input type="checkbox" name="active" checked/> Active</label>
+            <div class="row-actions">
+              <button type="submit" class="btn btn-primary">Create Profile</button>
+            </div>
+          </form>
+        </div>
+
+        <div data-profile-kind-panel="bot" hidden>
+          <form method="post" class="form-card provider-form" data-provider-form>
+            <input type="hidden" name="action" value="bot_profile_create"/>
+            <h3>Create Bot Profile</h3>
+            <div class="form-grid two">
+              <label class="field"><span>Slug</span><input type="text" name="slug" placeholder="colorstheforce" required/></label>
+              <label class="field"><span>Display Name</span><input type="text" name="display_name" placeholder="ColorsTheForce" required/></label>
+              <label class="field"><span>Badge</span><input type="text" name="badge_label" value="AI Moderator"/></label>
+              <label class="field"><span>Role Label</span><input type="text" name="role_label" value="Moderator"/></label>
+              <label class="field field-span-2"><span>Bio</span><textarea name="bio" placeholder="Public bot identity and responsibilities."></textarea></label>
+              <label class="field"><span>Tone</span><input type="text" name="tone" value="Calm, high-signal, premium console operator"/></label>
+              <label class="field"><span>Language</span><input type="text" name="language_profile" value="American English"/></label>
+              <label class="field"><span>LLM Provider</span>
+                <select name="llm_provider" data-provider-select>
+                  <option value="">Select provider</option>
+                  {% for provider in llm_provider_catalog %}
+                  <option value="{{ provider.provider }}">{{ provider.provider }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="field"><span>LLM Model</span>
+                <select name="llm_model" data-model-select data-current-model=""></select>
+              </label>
+              <label class="field"><span>LLM Family</span><input type="text" name="llm_family" data-family-input value=""/></label>
+              <label class="field field-span-2"><span>Knowledge Domains</span><textarea name="scope_text" placeholder="Fortnite&#10;UEFN&#10;Code and computer languages&#10;Human communication"></textarea></label>
+              <label class="field field-span-2"><span>Operational Surfaces</span><textarea name="surfaces_text" placeholder="Community moderation&#10;WhitePages summaries&#10;Channel curation"></textarea></label>
+              <label class="field field-span-2"><span>System Prompt Guardrails</span><textarea name="system_prompt" placeholder="No impersonation, approval requirements, public identity boundaries."></textarea></label>
+            </div>
+            <div class="provider-notes" data-provider-meta></div>
+            <label class="toggle"><input type="checkbox" name="active" checked/> Active</label>
+            <div class="row-actions">
+              <button type="submit" class="btn btn-primary">Create Bot Profile</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
     <section class="panel" id="moderation">
       <div class="panel-head">
         <h2>Moderation Bay</h2>
@@ -177,32 +279,18 @@
         <span class="panel-kicker">ADMIN ONLY</span>
       </div>
       <div class="panel-body">
-        <p class="section-copy">Create separate logins for admins, moderators, and bot operators. Bot operators can be linked to one bot profile and kept away from broader site controls.</p>
+        <p class="section-copy">Use the Profile Factory above for new accounts. This deck is the roster editor for existing human profiles, including role changes, linked bots, and permission overrides.</p>
         <div class="form-grid two">
-          <form method="post" class="form-card">
-            <input type="hidden" name="action" value="staff_create"/>
-            <h3>Create Staff Account</h3>
-            <label class="field"><span>Username</span><input type="text" name="username" required/></label>
-            <label class="field"><span>Display Name</span><input type="text" name="display_name" required/></label>
-            <label class="field"><span>Role</span>
-              <select name="role">
-                {% for role_key in role_choices %}
-                <option value="{{ role_key }}">{{ role_labels.get(role_key, role_key.title()) }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label class="field"><span>Password</span><input type="password" name="password" required/></label>
-            <label class="field"><span>Linked Bot</span>
-              <select name="linked_bot_slug">
-                <option value="">None</option>
-                {% for bot in bot_choices %}
-                <option value="{{ bot.slug }}">{{ bot.display_name }} ({{ bot.slug }})</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label class="toggle"><input type="checkbox" name="active" checked/> Active</label>
-            <div class="row-actions"><button type="submit" class="btn btn-primary">Create Staff Login</button></div>
-          </form>
+          <div class="form-card roster-note">
+            <h3>Roster Rules</h3>
+            <ul class="simple-list">
+              <li><strong>Admin:</strong> full site control and profile creation.</li>
+              <li><strong>Moderator:</strong> post edit and removal lane.</li>
+              <li><strong>User:</strong> low-privilege internal profile.</li>
+              <li><strong>Bot Operator:</strong> linked bot maintenance only.</li>
+            </ul>
+            <p class="helper-text">If you want a bot-managed persona, create the bot profile first, then optionally create a linked bot-operator login.</p>
+          </div>
 
           <form method="post" class="form-card">
             <input type="hidden" name="action" value="staff_update"/>
@@ -226,6 +314,20 @@
                 {% endfor %}
               </select>
             </label>
+            <div class="permission-card field-span-2">
+              <div class="permission-card__head">
+                <strong>Privilege Overrides</strong>
+                <span>Only change what needs to differ from the role default.</span>
+              </div>
+              <div class="permission-grid">
+                {% for perm_key, perm_label in permission_labels.items() %}
+                <label class="permission-toggle">
+                  <input type="checkbox" name="perm_{{ perm_key }}" {% if edit_staff and edit_staff.permission_overrides and edit_staff.permission_overrides.get(perm_key) %}checked{% endif %}/>
+                  <span>{{ perm_label }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
             <label class="toggle"><input type="checkbox" name="active" {% if edit_staff and edit_staff.active %}checked{% endif %}/> Active</label>
             <div class="row-actions">
               <button type="submit" class="btn btn-primary" {% if not edit_staff %}disabled{% endif %}>Save Staff</button>
@@ -433,6 +535,7 @@
 {% endif %}
 
 <script id="llm-provider-catalog" type="application/json">{{ llm_provider_catalog|tojson }}</script>
+<script id="role-default-permissions" type="application/json">{{ role_default_permissions|tojson }}</script>
 <script src="/static/js/ops.js"></script>
 </body>
 </html>

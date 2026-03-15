@@ -99,14 +99,58 @@ STAFF_ROLE_LABELS = {
     "admin": "Admin",
     "moderator": "Moderator",
     "bot_operator": "Bot Operator",
+    "user": "User",
+}
+STAFF_PERMISSION_LABELS = {
+    "moderation": "Moderate posts",
+    "channels": "Manage channels",
+    "broadcasts": "Manage sitewide broadcasts",
+    "announcements": "Publish announcements",
+    "staff": "Create and edit staff profiles",
+    "bots": "Edit bot profiles",
+    "system": "View system-level controls",
+    "members": "Member directory and account controls",
+}
+STAFF_ROLE_DEFAULTS = {
+    "admin": {
+        "moderation": 1,
+        "channels": 1,
+        "broadcasts": 1,
+        "announcements": 1,
+        "staff": 1,
+        "bots": 1,
+        "system": 1,
+        "members": 1,
+    },
+    "moderator": {
+        "moderation": 1,
+    },
+    "bot_operator": {
+        "bots": 1,
+    },
+    "user": {},
 }
 BOT_PROVIDER_CATALOG = [
+    {
+        "provider": "OpenAI",
+        "family": "GPT",
+        "models": ["GPT-5", "GPT-5 mini", "GPT-5 nano"],
+        "notes": "Strong general reasoning, writing, coding, and tool-using assistants for premium operator workflows.",
+        "source": "https://platform.openai.com/docs/guides/models",
+    },
     {
         "provider": "Google Vertex AI",
         "family": "Gemini",
         "models": ["Gemini 2.5 Pro", "Gemini 2.5 Flash", "Gemini 2.5 Flash-Lite"],
         "notes": "Strong multimodal and reasoning surface for ops copilots and moderation summaries.",
         "source": "https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models",
+    },
+    {
+        "provider": "Anthropic",
+        "family": "Claude",
+        "models": ["Claude Sonnet", "Claude Haiku", "Claude Opus"],
+        "notes": "High-signal writing and safety-friendly assistants for moderation, summaries, and operator guidance.",
+        "source": "https://docs.anthropic.com/en/docs/about-claude/models",
     },
     {
         "provider": "IBM watsonx.ai",
@@ -116,6 +160,13 @@ BOT_PROVIDER_CATALOG = [
         "source": "https://www.ibm.com/products/watsonx-ai",
     },
     {
+        "provider": "Amazon Bedrock",
+        "family": "Foundation model gateway",
+        "models": ["Anthropic Claude via Bedrock", "Meta Llama via Bedrock", "Amazon Nova"],
+        "notes": "Useful if you want one managed provider layer for multiple model families with AWS-native controls.",
+        "source": "https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html",
+    },
+    {
         "provider": "NVIDIA NIM",
         "family": "Nemotron + partner models",
         "models": ["Nemotron Nano", "Nemotron Mini", "Llama 3.3 Nemotron Super"],
@@ -123,11 +174,25 @@ BOT_PROVIDER_CATALOG = [
         "source": "https://docs.nvidia.com/nim/large-language-models/latest/supported-models.html",
     },
     {
+        "provider": "Mistral",
+        "family": "Mistral",
+        "models": ["Mistral Large", "Mistral Small", "Codestral"],
+        "notes": "Strong compact model family for coding, tool use, and lower-latency assistants.",
+        "source": "https://docs.mistral.ai/getting-started/models/",
+    },
+    {
         "provider": "Meta Llama",
         "family": "Llama",
         "models": ["Llama 4 Scout", "Llama 4 Maverick", "Llama 3.3"],
         "notes": "Open-weight family often deployed through another provider or your own stack.",
         "source": "https://www.llama.com",
+    },
+    {
+        "provider": "Cohere",
+        "family": "Command",
+        "models": ["Command", "Command R", "Command R+"],
+        "notes": "Good enterprise and retrieval-friendly surface for grounded assistants and structured ops writing.",
+        "source": "https://docs.cohere.com/docs/models",
     },
     {
         "provider": "Hugging Face",
@@ -164,18 +229,31 @@ def _staff_name() -> str:
     )
 
 
-def _staff_permissions(role: str | None = None) -> dict:
+def _normalize_staff_override_map(value) -> dict:
+    if isinstance(value, dict):
+        raw = value
+    else:
+        raw = {}
+    return {key: 1 if bool(raw.get(key)) else 0 for key in STAFF_PERMISSION_LABELS if key in raw}
+
+
+def _staff_permissions(role: str | None = None, overrides: dict | None = None) -> dict:
     role = role or _staff_role()
+    if overrides is None:
+        overrides = session.get("staff_permission_overrides") or {}
+    base = dict(STAFF_ROLE_DEFAULTS.get(role, {}))
+    normalized = _normalize_staff_override_map(overrides)
+    base.update(normalized)
     return {
         "admin": role == "admin",
-        "moderation": role in {"admin", "moderator"},
-        "channels": role == "admin",
-        "broadcasts": role == "admin",
-        "announcements": role == "admin",
-        "staff": role == "admin",
-        "bots": role in {"admin", "bot_operator"},
-        "system": role == "admin",
-        "members": role == "admin",
+        "moderation": bool(base.get("moderation")),
+        "channels": bool(base.get("channels")),
+        "broadcasts": bool(base.get("broadcasts")),
+        "announcements": bool(base.get("announcements")),
+        "staff": bool(base.get("staff")),
+        "bots": bool(base.get("bots")),
+        "system": bool(base.get("system")),
+        "members": bool(base.get("members")),
     }
 
 
@@ -185,16 +263,18 @@ def _staff_authed() -> bool:
 
 def _set_staff_session(account: dict):
     role = str(account.get("role") or "moderator")
+    overrides = _normalize_staff_override_map(account.get("permission_overrides"))
     session["admin_authed"] = role == "admin"
     session["staff_role"] = role
     session["staff_name"] = account.get("display_name") or account.get("username") or STAFF_ROLE_LABELS.get(role, "Operator")
     session["staff_username"] = account.get("username") or ""
     session["staff_id"] = int(account.get("id") or 0)
     session["linked_bot_slug"] = account.get("linked_bot_slug") or ""
+    session["staff_permission_overrides"] = overrides
 
 
 def _clear_staff_session():
-    for key in ("admin_authed", "staff_role", "staff_name", "staff_username", "staff_id", "linked_bot_slug"):
+    for key in ("admin_authed", "staff_role", "staff_name", "staff_username", "staff_id", "linked_bot_slug", "staff_permission_overrides"):
         session.pop(key, None)
 
 ESPORTS_SECTIONS = [
@@ -727,6 +807,13 @@ def _operator_username() -> str:
     )
 
 
+def _permission_overrides_from_form(form) -> dict:
+    rows = {}
+    for key in STAFF_PERMISSION_LABELS:
+        rows[key] = 1 if _is_checked(form.get(f"perm_{key}")) else 0
+    return rows
+
+
 def _can_manage_bot_profile(role: str, linked_bot_slug: str, bot_profile: dict | None) -> bool:
     if not bot_profile:
         return False
@@ -852,26 +939,37 @@ def arena():
 @platform_bp.route("/dashboard")
 def dashboard():
     user = session.get("user")
+    staff_role = _staff_role()
+    staff_authed = _staff_authed()
     if not user:
         epic_id = session.get("epic_id")
-        if not epic_id:
+        if epic_id:
+            user = {
+                "display_name": session.get("display_name", epic_id),
+                "account_id": session.get("epic_account_id", epic_id),
+                "skin_img": session.get("skin_img", ""),
+                "skin_name": session.get("skin_name", "Default"),
+            }
+        elif staff_authed:
+            user = {
+                "display_name": _staff_name(),
+                "account_id": f"staff:{session.get('staff_username') or staff_role or 'ops'}",
+                "skin_img": "",
+                "skin_name": STAFF_ROLE_LABELS.get(staff_role, "Operator"),
+            }
+        else:
             return redirect("/home")
-        user = {
-            "display_name": session.get("display_name", epic_id),
-            "account_id": session.get("epic_account_id", epic_id),
-            "skin_img": session.get("skin_img", ""),
-            "skin_name": session.get("skin_name", "Default"),
-        }
     account_id = (
         user.get("account_id")
         or session.get("epic_account_id")
         or session.get("epic_id")
         or ""
     )
-    room_data = get_member_room(account_id) if account_id else {"theme": "", "tickets": 0}
-    tickets = get_member_tickets(account_id) if account_id else int(room_data.get("tickets") or 0)
-    islands = get_member_islands(account_id, limit=6) if account_id else []
-    uploads = (get_audio_tracks(account_id) or [])[:6] if account_id else []
+    account_is_staff = str(account_id).startswith("staff:")
+    room_data = get_member_room(account_id) if account_id and not account_is_staff else {"theme": "ops", "tickets": 0}
+    tickets = get_member_tickets(account_id) if account_id and not account_is_staff else int(room_data.get("tickets") or 0)
+    islands = get_member_islands(account_id, limit=6) if account_id and not account_is_staff else []
+    uploads = (get_audio_tracks(account_id) or [])[:6] if account_id and not account_is_staff else []
     announcements = (get_announcements() or [])[:4]
     return render_template("dashboard.html",
         name=user.get("display_name", "Player"),
@@ -887,8 +985,8 @@ def dashboard():
         upload_count=len(uploads),
         announcements=announcements,
         announcement_count=len(announcements),
-        epic_connected=bool(session.get("epic_access_token") or session.get("access_token") or account_id),
-        admin_authed=bool(session.get("admin_authed")))
+        epic_connected=bool(session.get("epic_access_token") or session.get("access_token") or (account_id and not account_is_staff)),
+        admin_authed=staff_role == "admin")
 
 @platform_bp.route("/privacy")
 def privacy():
@@ -995,7 +1093,16 @@ def ops():
             new_role = (request.form.get("role") or "moderator").strip().lower()
             password = request.form.get("password") or ""
             linked_slug = (request.form.get("linked_bot_slug") or "").strip().lower()
-            if create_staff_account(username, display_name, new_role, password, linked_bot_slug=linked_slug, active=_is_checked(request.form.get("active"))):
+            permission_overrides = _permission_overrides_from_form(request.form)
+            if create_staff_account(
+                username,
+                display_name,
+                new_role,
+                password,
+                linked_bot_slug=linked_slug,
+                active=_is_checked(request.form.get("active")),
+                permission_overrides=permission_overrides,
+            ):
                 log_operator_event(actor_username, actor_role, "staff_create", "staff", username, f"role={new_role}")
                 flash("Staff account created.", "success")
             else:
@@ -1012,7 +1119,17 @@ def ops():
             new_role = (request.form.get("role") or "moderator").strip().lower()
             password = request.form.get("password") or ""
             linked_slug = (request.form.get("linked_bot_slug") or "").strip().lower()
-            if update_staff_account(staff_id, username, display_name, new_role, password=password, linked_bot_slug=linked_slug, active=_is_checked(request.form.get("active"))):
+            permission_overrides = _permission_overrides_from_form(request.form)
+            if update_staff_account(
+                staff_id,
+                username,
+                display_name,
+                new_role,
+                password=password,
+                linked_bot_slug=linked_slug,
+                active=_is_checked(request.form.get("active")),
+                permission_overrides=permission_overrides,
+            ):
                 log_operator_event(actor_username, actor_role, "staff_update", "staff", username or str(staff_id), f"role={new_role}")
                 flash("Staff account updated.", "success")
             else:
@@ -1179,6 +1296,8 @@ def ops():
         llm_provider_catalog=BOT_PROVIDER_CATALOG,
         role_choices=STAFF_ROLE_OPTIONS,
         role_labels=STAFF_ROLE_LABELS,
+        permission_labels=STAFF_PERMISSION_LABELS,
+        role_default_permissions=STAFF_ROLE_DEFAULTS,
         legacy_admin_links=legacy_admin_links,
     )
 
