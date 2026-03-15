@@ -148,16 +148,24 @@
 
   const opsGrid = document.querySelector(".ops-grid");
   const opsPanels = Array.from(document.querySelectorAll(".ops-panel"));
+  const controlFolds = Array.from(document.querySelectorAll("details.control-fold"));
   const panelStateKey = "triptokforge.ops.panelState.v2";
   const clusterStateKey = "triptokforge.ops.cluster.v1";
+  const foldStateKey = "triptokforge.ops.folds.v1";
   const clusterTabs = Array.from(document.querySelectorAll("[data-cluster-tab]"));
   let savedPanelState = {};
+  let savedFoldState = {};
   let activeCluster = window.localStorage.getItem(clusterStateKey) || "all";
 
   try {
     savedPanelState = JSON.parse(window.localStorage.getItem(panelStateKey) || "{}");
   } catch (_error) {
     savedPanelState = {};
+  }
+  try {
+    savedFoldState = JSON.parse(window.localStorage.getItem(foldStateKey) || "{}");
+  } catch (_error) {
+    savedFoldState = {};
   }
 
   function panelStorageId(panel, index) {
@@ -174,6 +182,24 @@
     });
     try {
       window.localStorage.setItem(panelStateKey, JSON.stringify(payload));
+    } catch (_error) {
+      // Ignore storage errors and keep the console interactive.
+    }
+  }
+
+  function foldStorageId(fold, index) {
+    return fold.id || "fold-" + index;
+  }
+
+  function persistFoldState() {
+    const payload = {};
+    controlFolds.forEach((fold, index) => {
+      payload[foldStorageId(fold, index)] = {
+        open: fold.open,
+      };
+    });
+    try {
+      window.localStorage.setItem(foldStateKey, JSON.stringify(payload));
     } catch (_error) {
       // Ignore storage errors and keep the console interactive.
     }
@@ -246,6 +272,7 @@
     const fold = target.matches("details.control-fold") ? target : target.closest("details.control-fold");
     if (fold) {
       fold.open = true;
+      persistFoldState();
     }
   }
 
@@ -253,6 +280,17 @@
     const state = savedPanelState[panelStorageId(panel, index)] || {};
     if (state.compact) panel.classList.add("ops-panel--compact");
     if (state.maximized) panel.classList.add("ops-panel--maximized");
+  });
+
+  controlFolds.forEach((fold, index) => {
+    const state = savedFoldState[foldStorageId(fold, index)];
+    if (state && typeof state.open === "boolean") {
+      fold.open = state.open;
+    }
+    fold.addEventListener("toggle", function () {
+      persistFoldState();
+      syncOpsPanels();
+    });
   });
 
   opsPanels.forEach((panel) => {
@@ -297,4 +335,5 @@
   openFoldFromHash();
   syncOpsPanels();
   persistPanelState();
+  persistFoldState();
 })();

@@ -249,6 +249,34 @@
   }
   .audio-file-del:hover { color:var(--del); }
   .audio-active-tag { font-family:var(--mono); font-size:9px; color:var(--accent); margin-top:6px; min-height:14px; }
+  .audio-mission {
+    margin-top:10px; padding:10px 12px; border-radius:6px;
+    border:1px solid var(--border2); background:rgba(0,145,255,.05);
+    display:grid; gap:8px;
+  }
+  .audio-mission__head {
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    font-family:var(--mono); font-size:9px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--med);
+  }
+  .audio-mission__head strong { color:var(--accent); font-size:10px; }
+  .audio-mission__grid {
+    display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;
+  }
+  .audio-mission__cell {
+    min-width:0; padding:8px; border-radius:4px; border:1px solid var(--border);
+    background:rgba(10,12,16,.72); display:grid; gap:3px;
+  }
+  .audio-mission__cell span {
+    font-family:var(--mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--dim);
+  }
+  .audio-mission__cell strong {
+    font-family:var(--mono); font-size:10px; color:var(--bright);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .audio-mission__note {
+    font-family:var(--mono); font-size:9px; line-height:1.7; color:var(--med);
+  }
 
   /* GENERATE BTN */
   .btn-generate {
@@ -257,6 +285,7 @@
     border-radius:6px; color:var(--accent);
     font-family:var(--display); font-size:19px; letter-spacing:4px;
     cursor:pointer; position:relative; overflow:hidden; transition:all .25s;
+    display:grid; justify-items:center; gap:5px;
   }
   .btn-generate::before {
     content:''; position:absolute; inset:0; background:var(--accent);
@@ -265,6 +294,10 @@
   .btn-generate:hover::before { transform:translateX(0); }
   .btn-generate:hover { color:var(--bg); }
   .btn-generate span { position:relative; z-index:1; }
+  .btn-generate small {
+    position:relative; z-index:1; font-family:var(--mono); font-size:9px; letter-spacing:1px;
+    color:var(--med);
+  }
   .btn-generate:disabled { opacity:.4; cursor:not-allowed; }
   .btn-generate:disabled::before { display:none; }
 
@@ -696,6 +729,31 @@
 
       <!-- Active audio tag -->
       <div class="audio-active-tag" id="audio-active-tag"></div>
+      <div class="audio-mission" id="audio-mission">
+        <div class="audio-mission__head">
+          <span>Audio Mission</span>
+          <strong id="audio-mission-state">Locked</strong>
+        </div>
+        <div class="audio-mission__grid">
+          <div class="audio-mission__cell">
+            <span>Track</span>
+            <strong id="audio-track-name">No audio loaded</strong>
+          </div>
+          <div class="audio-mission__cell">
+            <span>Tempo</span>
+            <strong id="audio-tempo">-- bpm</strong>
+          </div>
+          <div class="audio-mission__cell">
+            <span>Duration</span>
+            <strong id="audio-duration">0:00</strong>
+          </div>
+          <div class="audio-mission__cell">
+            <span>Drive Profile</span>
+            <strong id="audio-profile">Awaiting analysis</strong>
+          </div>
+        </div>
+        <div class="audio-mission__note" id="audio-mission-note">Load and analyse a sound file to unlock generation. Forge uses the resulting audio weights, tempo, and duration as part of the terrain pass and UEFN export package.</div>
+      </div>
 
       <!-- Saved audio library -->
       <div class="audio-lib" id="audio-lib">
@@ -711,6 +769,7 @@
     <!-- GENERATE -->
     <button class="btn-generate" id="btn-gen" onclick="generate()">
       <span>GENERATE ISLAND</span>
+      <small id="btn-gen-sub">Audio analysis required before terrain pass</small>
     </button>
 
   </div><!-- /panel-left -->
@@ -1033,6 +1092,62 @@ function fmtTime(s) {
   return m + ':' + String(sec).padStart(2,'0');
 }
 
+const FORGE_RUN_STORAGE_KEY = 'triptokforge.forge.latestRun.v1';
+
+function safeStorageSet(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch (_error) {
+    // Ignore storage failures and keep Forge interactive.
+  }
+}
+
+function dominantAudioProfile(weights) {
+  if (!weights) return 'Awaiting analysis';
+  const bands = [
+    ['Sub-bass heavy', Number(weights.sub_bass || 0)],
+    ['Bass drive', Number(weights.bass || 0)],
+    ['Midrange body', Number(weights.midrange || 0)],
+    ['Presence edge', Number(weights.presence || 0)],
+    ['Brilliance air', Number(weights.brilliance || 0)],
+  ].sort((a, b) => b[1] - a[1]);
+  const strongest = bands[0];
+  const second = bands[1];
+  if ((weights.presence || 0) > 0.55 && (weights.brilliance || 0) > 0.55) {
+    return 'High-air detail';
+  }
+  if ((weights.sub_bass || 0) > 0.55 && (weights.bass || 0) > 0.55) {
+    return 'Low-end terrain push';
+  }
+  if (strongest && second && strongest[1] - second[1] < 0.08) {
+    return `${strongest[0]} + ${second[0]}`.slice(0, 28);
+  }
+  return strongest ? strongest[0] : 'Awaiting analysis';
+}
+
+function syncGenerateGate() {
+  const btn = $('btn-gen');
+  const sub = $('btn-gen-sub');
+  const ready = Boolean(_audioAnalysis && _playerFile);
+  btn.disabled = !ready;
+  sub.textContent = ready
+    ? 'Audio rail locked. Terrain pass will use the active file analysis.'
+    : 'Audio analysis required before terrain pass';
+}
+
+function updateAudioMission(filename = _playerFile) {
+  const ready = Boolean(_audioAnalysis && filename);
+  $('audio-mission-state').textContent = ready ? 'Armed' : 'Locked';
+  $('audio-track-name').textContent = filename || 'No audio loaded';
+  $('audio-tempo').textContent = ready ? `${Math.round(_audioAnalysis.tempo_bpm || 0)} bpm` : '-- bpm';
+  $('audio-duration').textContent = ready ? fmtTime(_audioAnalysis.duration_s || 0) : '0:00';
+  $('audio-profile').textContent = ready ? dominantAudioProfile(_audioAnalysis) : 'Awaiting analysis';
+  $('audio-mission-note').textContent = ready
+    ? `Active file ${filename} is driving the current terrain pass. Generate now to turn its tempo, duration, and spectral weighting into the latest island run and Verse handoff package.`
+    : 'Load and analyse a sound file to unlock generation. Forge uses the resulting audio weights, tempo, and duration as part of the terrain pass and UEFN export package.';
+  syncGenerateGate();
+}
+
 // ── Load a file into the player ──
 async function playerLoad(filename, autoplay = true) {
   _playerFile = filename;
@@ -1058,6 +1173,7 @@ async function playerLoad(filename, autoplay = true) {
 
   updateLibPlayingState();
   $('audio-active-tag').textContent = `▶ ${filename}`;
+  updateAudioMission(filename);
 }
 
 function updateLibPlayingState() {
@@ -1109,6 +1225,7 @@ function applyWeights(w) {
     $(id).value = Math.round(w[k]*100);
     $(labels[k]).textContent = w[k].toFixed(2);
   }
+  updateAudioMission();
 }
 
 function showBands(w) {
@@ -1128,6 +1245,7 @@ async function refreshAudioLib() {
     const list = $('audio-file-list');
     if (!d.files.length) {
       list.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:4px 0">No saved files — upload one above</div>';
+      if (!_playerFile) updateAudioMission();
       return;
     }
     list.innerHTML = d.files.map(f => `
@@ -1191,10 +1309,12 @@ async function deleteAudio(e, filename) {
       _audio.pause();
       _audio.src = '';
       _playerFile = null;
+      _audioAnalysis = null;
       $('player-wrap').classList.remove('visible');
       $('audio-active-tag').textContent = '';
       $('band-wrap').style.display = 'none';
       $('btn-play').textContent = '▶';
+      updateAudioMission();
     }
     await refreshAudioLib();
     toast(`Deleted: ${filename}`);
@@ -1316,6 +1436,11 @@ function wsUpdateInfo(cm, preset, recPx) {
 
 // ── GENERATE ──
 async function generate() {
+  if (!_audioAnalysis || !_playerFile) {
+    syncGenerateGate();
+    toast('Load and analyse a sound file before generating.', true);
+    return;
+  }
   const btn = $('btn-gen');
   btn.disabled = true;
   $('gen-overlay').classList.add('active');
@@ -1387,6 +1512,18 @@ async function generate() {
     }
     $('forge-output-title').textContent = `UEFN IMPORT LOCKER — ${d.output_folder_name || 'CURRENT RUN'}`;
     $('forge-output-copy').textContent = `Saved to outputs/${d.output_folder_name || 'Island#N'} with heightmap.png, preview.png, layout.json, manifest.json, placement_plan.json, and ${d.verse_file_count || 0} generated package file(s)${(d.verse_file_count || 0) > 0 ? ', including verse_package.zip when packaging succeeds' : ''}. ${d.meta?.world_partition_warning ? 'World Partition is required for this size: follow WhitePages -> Forge Runbook before importing.' : 'This size can import without World Partition, but the same runbook still applies.'} Bind the generated slot names to builtin Fortnite assets in UEFN before expecting runtime placement.`;
+    safeStorageSet(FORGE_RUN_STORAGE_KEY, JSON.stringify({
+      output_folder_name: d.output_folder_name || '',
+      island_name: $('island-name').value.trim() || d.output_folder_name || 'Island',
+      plots_found: d.plots_found || 0,
+      world_size_cm: d.world_size_cm || _currentWorldSizeCm || _wsCm,
+      theme: $('theme').value,
+      source_audio: _playerFile || '',
+      tempo_bpm: _audioAnalysis?.tempo_bpm || 0,
+      duration_s: _audioAnalysis?.duration_s || 0,
+      world_partition_warning: Boolean(d.meta?.world_partition_warning),
+      generated_at: new Date().toISOString(),
+    }));
 
     setStatus(`DONE — ${d.plots_found} PLOTS`);
     toast(`Generated — ${d.plots_found} plots  •  outputs/${d.output_folder_name || 'Island#N'}`);
@@ -1398,7 +1535,7 @@ async function generate() {
     console.error(e);
   } finally {
     clearInterval(ticker);
-    btn.disabled = false;
+    syncGenerateGate();
     $('gen-overlay').classList.remove('active');
   }
 }
@@ -1529,6 +1666,7 @@ updateCompass(135); // init
 
 // ── INIT ──
 refreshAudioLib();
+updateAudioMission();
 </script>
 {% include "_site_footer.html" %}
 </body>

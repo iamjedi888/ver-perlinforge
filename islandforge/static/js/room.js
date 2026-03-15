@@ -1,6 +1,8 @@
 (function () {
     const bootstrap = window.ROOM_BOOTSTRAP || {};
     const themeMap = new Map((bootstrap.themes || []).map((theme) => [theme.slug, theme]));
+    const ROOM_THEME_STORAGE_KEY = "triptokforge.room.theme.v1";
+    const FORGE_RUN_STORAGE_KEY = "triptokforge.forge.latestRun.v1";
     let currentTheme = bootstrap.theme || "coastal";
 
     function escapeHtml(value) {
@@ -23,6 +25,41 @@
             { label: "Islands", value: Number(stats.islands || 0), scale: 20 },
             { label: "Uploads", value: Number(stats.uploads || 0), scale: 20 },
         ];
+    }
+
+    function readStoredJson(key) {
+        try {
+            const raw = window.localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : null;
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    function writeStoredJson(key, value) {
+        try {
+            window.localStorage.setItem(key, JSON.stringify(value));
+        } catch (_error) {
+            // Ignore storage failures and keep the room interactive.
+        }
+    }
+
+    function relativeAge(isoString) {
+        if (!isoString) return "just now";
+        const delta = Math.max(0, Date.now() - Date.parse(isoString));
+        const minutes = Math.round(delta / 60000);
+        if (minutes < 1) return "just now";
+        if (minutes < 60) return minutes + "m ago";
+        const hours = Math.round(minutes / 60);
+        if (hours < 48) return hours + "h ago";
+        return Math.round(hours / 24) + "d ago";
+    }
+
+    function describeWorldSize(cm) {
+        const numeric = Number(cm || 0);
+        if (!numeric) return "custom scale";
+        const km = numeric / 100000;
+        return km.toFixed(km >= 10 ? 0 : 1) + "km world";
     }
 
     function pathFromPoints(points) {
@@ -91,6 +128,41 @@
         }).join("");
     }
 
+    function syncScreenMetrics(stats) {
+        const wins = document.getElementById("screenWins");
+        const kd = document.getElementById("screenKd");
+        const tickets = document.getElementById("screenTickets");
+        const islands = document.getElementById("screenIslands");
+        if (wins) wins.textContent = Number(stats.wins || 0);
+        if (kd) kd.textContent = Number(stats.kd || 0).toFixed(2);
+        if (tickets) tickets.textContent = Number(stats.tickets || 0);
+        if (islands) islands.textContent = Number(stats.islands || 0);
+    }
+
+    function renderLatestForgeRun() {
+        const titleNode = document.getElementById("latestForgeTitle");
+        const copyNode = document.getElementById("latestForgeCopy");
+        if (!titleNode || !copyNode) return;
+
+        const latestRun = readStoredJson(FORGE_RUN_STORAGE_KEY);
+        if (!latestRun) {
+            titleNode.textContent = "No recent run synced";
+            copyNode.textContent = "Generate a new run in Forge and the room will mirror the latest output locker summary here.";
+            return;
+        }
+
+        titleNode.textContent = latestRun.output_folder_name || latestRun.island_name || "Latest run";
+        copyNode.textContent =
+            (latestRun.plots_found || 0) +
+            " plots from " +
+            (latestRun.source_audio || "active audio") +
+            " on a " +
+            describeWorldSize(latestRun.world_size_cm) +
+            " build, " +
+            relativeAge(latestRun.generated_at) +
+            (latestRun.world_partition_warning ? ". World Partition required before import." : ".");
+    }
+
     function renderThemeSummary(theme) {
         const titleNode = document.getElementById("themeSummaryTitle");
         const copyNode = document.getElementById("themeSummaryCopy");
@@ -112,6 +184,13 @@
                 return "<li>" + escapeHtml(item) + "</li>";
             }).join("");
         }
+        writeStoredJson(ROOM_THEME_STORAGE_KEY, {
+            slug: theme.slug,
+            label: theme.label,
+            biome: theme.biome,
+            summary: theme.summary,
+            ambient: theme.ambient,
+        });
     }
 
     function applyTheme(slug, persist) {
@@ -131,7 +210,9 @@
 
         renderThemeSummary(theme);
         renderAssetLocker(theme);
+        syncScreenMetrics(bootstrap.stats || {});
         renderTelemetryChart(bootstrap.stats || {});
+        renderLatestForgeRun();
 
         if (persist !== false) {
             fetch("/api/set_room_theme", {
@@ -157,8 +238,10 @@
                 uploads: Number(forgeSpectrum.sample_size || bootstrap.stats.uploads || 0),
             };
             bootstrap.stats = nextStats;
+            syncScreenMetrics(nextStats);
             renderTelemetryChart(nextStats);
         } catch (error) {
+            syncScreenMetrics(bootstrap.stats || {});
             renderTelemetryChart(bootstrap.stats || {});
         }
     }
@@ -171,4 +254,16 @@
 
     applyTheme(currentTheme, false);
     loadLiveTelemetry();
+    renderLatestForgeRun();
+    window.addEventListener("storage", function (event) {
+        if (event.key === FORGE_RUN_STORAGE_KEY) {
+            renderLatestForgeRun();
+        }
+        if (event.key === ROOM_THEME_STORAGE_KEY) {
+            const themeState = readStoredJson(ROOM_THEME_STORAGE_KEY);
+            if (themeState && themeState.slug && themeState.slug !== currentTheme && themeMap.has(themeState.slug)) {
+                applyTheme(themeState.slug, false);
+            }
+        }
+    });
 })();

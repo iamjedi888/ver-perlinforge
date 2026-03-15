@@ -1,4 +1,32 @@
 let allSkins = [];
+const ROOM_THEME_STORAGE_KEY = "triptokforge.room.theme.v1";
+const FORGE_RUN_STORAGE_KEY = "triptokforge.forge.latestRun.v1";
+const ROOM_THEME_DETAILS = {
+    coastal: {
+        label: "Coastal Command",
+        copy: "Sea-cliff atmosphere with bright horizon spill and open-floor telemetry.",
+    },
+    canopy: {
+        label: "Canopy Garage",
+        copy: "Dense green cover, mossy floor language, and softer forge lounge lighting.",
+    },
+    desert: {
+        label: "Desert Relay",
+        copy: "Sandstone routing, high-heat reflections, and wide-open sight lines.",
+    },
+    alpine: {
+        label: "Alpine Deck",
+        copy: "Cold-air contrast, glacier glow, and clean signal visibility.",
+    },
+    volcanic: {
+        label: "Volcanic Core",
+        copy: "High-energy magma ambience and aggressive forge-reactor mood.",
+    },
+    wetlands: {
+        label: "Wetlands Lab",
+        copy: "Humid bioluminescent relay space with softer edges and ambient fog.",
+    },
+};
 
 function escapeHtml(value) {
     return String(value || "").replace(/[&<>"']/g, function (char) {
@@ -19,6 +47,69 @@ function getDisplayName() {
 function toNumber(value) {
     const numeric = parseFloat(String(value || "0").replace(/[%,$]/g, "").replace(/,/g, ""));
     return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function readStoredJson(key) {
+    try {
+        const raw = window.localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+    } catch (_error) {
+        return null;
+    }
+}
+
+function titleCaseSlug(value) {
+    return String(value || "")
+        .split(/[-_\s]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+}
+
+function describeWorldSize(cm) {
+    const numeric = Number(cm || 0);
+    if (!numeric) return "custom scale";
+    const km = numeric / 100000;
+    return `${km.toFixed(km >= 10 ? 0 : 1)}km world`;
+}
+
+function relativeAge(isoString) {
+    if (!isoString) return "just now";
+    const delta = Math.max(0, Date.now() - Date.parse(isoString));
+    const minutes = Math.round(delta / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 48) return `${hours}h ago`;
+    return `${Math.round(hours / 24)}d ago`;
+}
+
+function syncMemberSpace() {
+    const storedTheme = readStoredJson(ROOM_THEME_STORAGE_KEY);
+    const themeValue = document.getElementById("roomThemeValue");
+    const themeCopy = document.getElementById("roomThemeCopy");
+    if (themeValue && themeCopy) {
+        const slug = storedTheme && storedTheme.slug ? storedTheme.slug : themeValue.textContent.trim().toLowerCase();
+        const details = ROOM_THEME_DETAILS[slug] || {};
+        themeValue.textContent = ((storedTheme && storedTheme.label) || details.label || titleCaseSlug(slug)).toUpperCase();
+        themeCopy.textContent = (storedTheme && storedTheme.summary)
+            || details.copy
+            || "Room climate is synced from the active member suite selection.";
+    }
+
+    const latestRun = readStoredJson(FORGE_RUN_STORAGE_KEY);
+    const runValue = document.getElementById("roomForgeValue");
+    const runCopy = document.getElementById("roomForgeCopy");
+    if (!runValue || !runCopy) return;
+
+    if (!latestRun) {
+        runValue.textContent = "Awaiting run";
+        runCopy.textContent = "Generate and save a run in Forge to mirror its locker state back into the member hub.";
+        return;
+    }
+
+    runValue.textContent = latestRun.output_folder_name || latestRun.island_name || "Latest run";
+    runCopy.textContent = `${latestRun.plots_found || 0} plots from ${latestRun.source_audio || "active audio"} on a ${describeWorldSize(latestRun.world_size_cm)} build, ${relativeAge(latestRun.generated_at)}${latestRun.world_partition_warning ? ". World Partition required." : "."}`;
 }
 
 function normalizePercent(value, maxValue) {
@@ -427,8 +518,15 @@ window.filterSkins = filterSkins;
 window.selectSkin = selectSkin;
 
 document.addEventListener("DOMContentLoaded", function () {
+    syncMemberSpace();
     loadStats();
     loadEcosystem();
     loadTelemetry();
     loadSkins();
+});
+
+window.addEventListener("storage", function (event) {
+    if (event.key === ROOM_THEME_STORAGE_KEY || event.key === FORGE_RUN_STORAGE_KEY) {
+        syncMemberSpace();
+    }
 });

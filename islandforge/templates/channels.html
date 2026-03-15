@@ -1110,7 +1110,7 @@ body.channels-console .console-dock {
 </footer>
 
 <script>
-const PLAYER_SIZE_KEY = 'ttf.channels.playerWidth.v3';
+const PLAYER_SIZE_KEY = 'ttf.channels.playerWidth.v4';
 const defaultChannel = {{ default_channel|tojson if default_channel else 'null' }};
 let currentUrl = '';
 let currentSourceUrl = '';
@@ -1268,8 +1268,8 @@ function getPlayerBounds() {
   const stageMax = parseFloat(rootStyles.getPropertyValue('--stage-max')) || 1320;
   const navHeight = parseFloat(rootStyles.getPropertyValue('--nav-h')) || 56;
   const containerWidth = document.querySelector('.ch-main').clientWidth;
-  const minWidth = Math.min(Math.max(560, Math.floor(containerWidth * 0.72)), containerWidth);
-  const viewportBasedWidth = Math.max(560, Math.floor((window.innerHeight - navHeight - 164) * 16 / 9));
+  const minWidth = Math.min(Math.max(640, Math.floor(containerWidth * 0.76)), containerWidth);
+  const viewportBasedWidth = Math.max(640, Math.floor((window.innerHeight - navHeight - 140) * 16 / 9));
   const maxWidth = Math.max(minWidth, Math.min(stageMax, containerWidth, viewportBasedWidth));
   return { minWidth, maxWidth };
 }

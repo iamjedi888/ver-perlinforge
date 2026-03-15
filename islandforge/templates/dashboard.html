@@ -353,8 +353,8 @@
       <div class="room-grid">
         <article class="room-card">
           <span class="room-card__label">Room theme</span>
-          <strong class="room-card__value">{{ room_theme|upper }}</strong>
-          <p>Keep this as the member-facing lounge while the dashboard handles telemetry and switching.</p>
+          <strong class="room-card__value" id="roomThemeValue">{{ room_theme|upper }}</strong>
+          <p id="roomThemeCopy">Keep this as the member-facing lounge while the dashboard handles telemetry and switching.</p>
         </article>
         <article class="room-card">
           <span class="room-card__label">Ticket bank</span>
@@ -365,6 +365,11 @@
           <span class="room-card__label">Epic session</span>
           <strong class="room-card__value">{{ "LIVE" if epic_connected else "PENDING" }}</strong>
           <p>Current member identity is mapped from the active Epic login session.</p>
+        </article>
+        <article class="room-card">
+          <span class="room-card__label">Latest forge run</span>
+          <strong class="room-card__value" id="roomForgeValue">Awaiting run</strong>
+          <p id="roomForgeCopy">Generate and save a run in Forge to mirror its locker state back into the member hub.</p>
         </article>
       </div>
     </section>
