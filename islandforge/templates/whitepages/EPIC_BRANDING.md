@@ -91,6 +91,16 @@ Avoid placing the Epic mark in:
    - no fake partnership framing
    - no Epic mark becoming the main site identity
 
+## Unreal trademark examples
+
+If your Unreal Engine Trademark License Agreement is already accepted:
+
+- use approved standard Unreal marks per the branding guide
+- submit custom or co-branded examples to `branding@unrealengine.com` before publishing them
+- keep the completed legal agreement flow tied to `trademark@epicgames.com`
+
+Reference: `templates/whitepages/UE_TRADEMARK_SUBMISSION.md`
+
 ## TriptokForge rule
 
 Epic is a platform and approval path we respect.
