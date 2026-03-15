@@ -199,8 +199,8 @@ def _platform_snapshot() -> dict:
 def _shop_signal() -> dict:
     try:
         payload = _fetch_json(
-            "https://fortnite-api.com/v2/shop/br",
-            cache_key="fortnite-shop-br",
+            "https://fortnite-api.com/v2/shop",
+            cache_key="fortnite-shop",
             ttl=300,
         )
         data = payload.get("data") or {}

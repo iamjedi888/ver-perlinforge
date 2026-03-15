@@ -24,7 +24,7 @@ FORTNITE_COSMETICS = "https://fortnite-api.com/v2/cosmetics/br"
 try:
     from audio_to_heightmap import (
         analyse_audio, generate_terrain, generate_moisture,
-        classify_biomes, find_plot_positions, build_layout,
+        classify_biomes, classify_biomes_themed, find_plot_positions, build_layout,
         build_preview, paint_farm_biome, get_farm_cluster_info,
         BIOME_NAMES, BIOME_COLOURS,
         WORLD_SIZE_PRESETS, DEFAULT_WORLD_SIZE_CM,
@@ -135,6 +135,11 @@ def _normalize_theme_name(value: str) -> str:
             return label
     return "Chapter 1"
 
+
+def _theme_lookup_key(value: str) -> str:
+    compact = re.sub(r"[^0-9a-z]+", "", str(value or "").lower())
+    return compact or "chapter1"
+
 # ── FORGE PAGE ───────────────────────────────────────────────
 @forge_bp.route("/forge")
 def forge():
@@ -163,6 +168,7 @@ def generate():
         cluster_angle  = float(data.get("cluster_angle", 135.0))
         cluster_spread = float(data.get("cluster_spread", 1.0))
         theme_name     = _normalize_theme_name(data.get("theme"))
+        theme_key      = _theme_lookup_key(theme_name)
         ws_raw = data.get("world_size", "double_br")
         if isinstance(ws_raw, str) and ws_raw in WORLD_SIZE_PRESETS:
             world_size_cm = WORLD_SIZE_PRESETS[ws_raw]
@@ -174,7 +180,16 @@ def generate():
         for k, v in DEFAULT_WEIGHTS.items(): weights.setdefault(k, v)
         height, road_mask = generate_terrain(size, seed, weights, water_level)
         moisture = generate_moisture(size, seed)
-        biome    = classify_biomes(height, moisture, water_level)
+        themed_colours = BIOME_COLOURS
+        try:
+            biome, themed_colours, _ = classify_biomes_themed(
+                height,
+                moisture,
+                water_level=water_level,
+                theme_name=theme_key,
+            )
+        except Exception:
+            biome = classify_biomes(height, moisture, water_level)
         town_data = street_mask = town_mask = farm_mask = None
         if TOWN_GEN_AVAILABLE:
             from audio_to_heightmap import build_island_mask
@@ -188,6 +203,9 @@ def generate():
             plots = find_plot_positions(height, biome, n_plots, size, min_spacing=spacing, cluster_angle_deg=cluster_angle, cluster_spread=cluster_spread)
             biome = paint_farm_biome(biome, plots, size)
         layout = build_layout(height, biome, plots, size, seed, weights, water_level, world_wrap, world_size_cm)
+        layout["meta"]["theme"] = theme_name
+        layout["meta"]["theme_key"] = theme_key
+        layout["meta"]["uefn_asset_binding"] = "Bind generated Verse slot names to builtin Fortnite assets in UEFN editor"
         run_name, output_folder_name, output_run_dir = _allocate_output_run(island_name)
         layout["meta"]["island_name"] = run_name
         layout["meta"]["output_folder_name"] = output_folder_name
@@ -229,7 +247,7 @@ def generate():
             p_dn = [(r // factor, c // factor) for r, c in plots]
         else:
             h_dn, b_dn, p_dn, rm_dn = height, biome, plots, road_mask
-        prev_rgb = build_preview(h_dn, b_dn, p_dn, prev_size, rm_dn)
+        prev_rgb = build_preview(h_dn, b_dn, p_dn, prev_size, rm_dn, biome_colours=themed_colours)
         if TOWN_GEN_AVAILABLE and town_data and street_mask is not None:
             from town_generator import build_street_grid, classify_blocks, place_lots_in_block, render_town_overlay
             tc = town_data["center_pixel"]; scale = prev_size / size
@@ -282,6 +300,7 @@ def generate():
                 "heightmap": "heightmap.png",
                 "layout": "layout.json",
                 "preview": "preview.png",
+                "placement_plan": "placement_plan.json" if "placement_plan.json" in verse_package else "",
                 "verse_zip": "verse_package.zip" if _state.get("verse_zip_bytes") else "",
                 "verse_files": sorted(list(verse_package.keys())),
             },

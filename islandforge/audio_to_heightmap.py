@@ -809,7 +809,7 @@ def classify_biomes_themed(height, moisture, water_level=0.20, theme_name="chapt
     from scipy.ndimage import gaussian_filter
 
     th = get_theme(theme_name)
-    wl = th.get("water_level", water_level)
+    wl = water_level if water_level is not None else th.get("water_level", 0.20)
 
     size  = height.shape[0]
     biome = np.zeros((size, size), dtype=np.uint8)
@@ -1075,7 +1075,7 @@ def build_layout(height, biome, plot_positions, size, seed, weights,
 # PREVIEW RENDERER  — Fortnite-style map look
 # ─────────────────────────────────────────────────────────────
 
-def build_preview(height, biome, plot_positions, size, road_mask=None):
+def build_preview(height, biome, plot_positions, size, road_mask=None, biome_colours=None):
     """
     Renders a Fortnite-map-style top-down preview:
     - Biome colours (large zones)
@@ -1087,8 +1087,10 @@ def build_preview(height, biome, plot_positions, size, road_mask=None):
     """
     rgb = np.zeros((size, size, 3), dtype=np.uint8)
 
+    colours = biome_colours or BIOME_COLOURS
+
     # Base biome colours
-    for b, col in BIOME_COLOURS.items():
+    for b, col in colours.items():
         mask = biome == b
         for c in range(3):
             rgb[:,:,c][mask] = col[c]

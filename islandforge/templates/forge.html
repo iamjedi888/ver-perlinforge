@@ -748,7 +748,7 @@
     </div>
     <div id="forge-output-note" style="margin-top:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-family:var(--mono);line-height:1.7">
       <div id="forge-output-title" style="font-size:9px;letter-spacing:2px;color:var(--med);margin-bottom:4px">UEFN IMPORT LOCKER</div>
-      <div id="forge-output-copy" style="font-size:10px;color:var(--dim)">Generate a run to save heightmap, preview, layout, manifest, and Verse files into outputs/Island#N. Use the WhitePages Forge Runbook when world scale crosses into World Partition territory.</div>
+      <div id="forge-output-copy" style="font-size:10px;color:var(--dim)">Generate a run to save heightmap, preview, layout, placement plan, manifest, and Verse files into outputs/Island#N. Use the WhitePages Forge Runbook when world scale crosses into World Partition territory, then bind the generated slot names to builtin Fortnite assets in UEFN.</div>
     </div>
   </div>
 </main>
@@ -1368,7 +1368,7 @@ async function generate() {
       $('dl-vz').classList.add('btn-disabled');
     }
     $('forge-output-title').textContent = `UEFN IMPORT LOCKER — ${d.output_folder_name || 'CURRENT RUN'}`;
-    $('forge-output-copy').textContent = `Saved to outputs/${d.output_folder_name || 'Island#N'} with heightmap.png, preview.png, layout.json, manifest.json, ${d.verse_file_count || 0} Verse file(s)${(d.verse_file_count || 0) > 0 ? ', and verse_package.zip' : ''}. ${d.meta?.world_partition_warning ? 'World Partition is required for this size: follow WhitePages -> Forge Runbook before importing.' : 'This size can import without World Partition, but the same runbook still applies.'}`;
+    $('forge-output-copy').textContent = `Saved to outputs/${d.output_folder_name || 'Island#N'} with heightmap.png, preview.png, layout.json, manifest.json, placement_plan.json, and ${d.verse_file_count || 0} generated package file(s)${(d.verse_file_count || 0) > 0 ? ', including verse_package.zip when packaging succeeds' : ''}. ${d.meta?.world_partition_warning ? 'World Partition is required for this size: follow WhitePages -> Forge Runbook before importing.' : 'This size can import without World Partition, but the same runbook still applies.'} Bind the generated slot names to builtin Fortnite assets in UEFN before expecting runtime placement.`;
 
     setStatus(`DONE — ${d.plots_found} PLOTS`);
     toast(`Generated — ${d.plots_found} plots  •  outputs/${d.output_folder_name || 'Island#N'}`);
