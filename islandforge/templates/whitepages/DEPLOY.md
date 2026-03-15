@@ -74,6 +74,8 @@ Environment="APP_BASE_URL=https://triptokforge.org"
 Environment="EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback"
 Environment="FLASK_SECRET_KEY=REPLACE_WITH_A_LONG_RANDOM_SECRET"
 Environment="ADMIN_PASSWORD=REPLACE_WITH_A_LONG_RANDOM_PASSWORD"
+Environment="FORTNITE_API_KEY=OPTIONAL_FORTNITE_API_KEY"
+Environment="FORTNITE_DATA_ISLAND_CODE=OPTIONAL_PUBLISHED_ISLAND_CODE"
 
 [Install]
 WantedBy=multi-user.target
@@ -81,6 +83,11 @@ WantedBy=multi-user.target
 
 > ⚠️ Never commit `EPIC_CLIENT_SECRET` or `ADMIN_PASSWORD` to GitHub.  
 > Set them only in the systemd service file on the server.
+
+Optional data surfaces:
+
+- `FORTNITE_API_KEY` enables live Battle Royale stat lookups in the member hub.
+- `FORTNITE_DATA_ISLAND_CODE` gives the site a published island code to anchor official Fortnite Data API views once your island is live.
 
 ### Epic approval hand-off
 

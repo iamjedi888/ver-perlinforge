@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Esports - TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #06080d;
+  --deep: #04060a;
+  --panel: rgba(13, 16, 24, 0.94);
+  --panel-2: rgba(17, 21, 32, 0.96);
+  --line: rgba(36, 48, 64, 0.92);
+  --teal: #00e5a0;
+  --teal-dim: rgba(0, 229, 160, 0.08);
+  --blue: #0091ff;
+  --blue-dim: rgba(0, 145, 255, 0.08);
+  --amber: #ffaa00;
+  --red: #ff4060;
+  --text: #c8d8e8;
+  --mid: #7a8aa8;
+  --dim: #3a4a60;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(0, 145, 255, 0.12), transparent 28%),
+    radial-gradient(circle at top left, rgba(0, 229, 160, 0.08), transparent 24%),
+    linear-gradient(180deg, #05070b 0%, #090d14 45%, #06080d 100%);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 160, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 160, 0.02) 1px, transparent 1px);
+  background-size: 72px 72px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.esports-page {
+  position: relative;
+  z-index: 1;
+  max-width: 1420px;
+  margin: 0 auto;
+  padding: 82px 24px 72px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 145, 255, 0.12), transparent 28%),
+    linear-gradient(145deg, rgba(0, 229, 160, 0.08), transparent 28%),
+    var(--panel);
+  padding: 34px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 31px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
+.hero-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 420px);
+  gap: 24px;
+  align-items: start;
+}
+
+.hero-kicker,
+.section-kicker,
+.eyebrow {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.hero h1 {
+  margin: 14px 0 14px;
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(2rem, 5vw, 4.4rem);
+  line-height: 0.95;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero h1 span {
+  color: var(--blue);
+}
+
+.hero-copy {
+  max-width: 62ch;
+  color: var(--mid);
+  font-size: 1.08rem;
+  line-height: 1.62;
+}
+
+.hero-side {
+  border: 1px solid rgba(0, 145, 255, 0.2);
+  border-radius: 24px;
+  padding: 20px 20px 22px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.hero-side h2 {
+  margin: 10px 0 12px;
+  font-family: 'Orbitron', monospace;
+  font-size: 1.02rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero-side p {
+  margin: 0;
+  color: var(--mid);
+  line-height: 1.55;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.hero-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.hero-actions a:hover {
+  transform: translateY(-1px);
+}
+
+.hero-actions .primary {
+  background: var(--teal);
+  border: 1px solid var(--teal);
+  color: #041008;
+}
+
+.hero-actions .secondary {
+  background: var(--blue-dim);
+  border: 1px solid rgba(0, 145, 255, 0.24);
+  color: var(--blue);
+}
+
+.hero-actions .ghost {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(58, 74, 96, 0.48);
+  color: var(--mid);
+}
+
+.stat-band {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.stat-card {
+  border: 1px solid rgba(36, 48, 64, 0.9);
+  border-radius: 22px;
+  padding: 18px 20px;
+  background: var(--panel-2);
+}
+
+.stat-card strong {
+  display: block;
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(1.1rem, 2vw, 1.8rem);
+  color: #fff;
+}
+
+.stat-card span {
+  display: block;
+  margin-top: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.section {
+  margin-top: 26px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px 28px 20px;
+  border-bottom: 1px solid rgba(36, 48, 64, 0.7);
+}
+
+.section-head h2 {
+  margin: 10px 0 0;
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(1.2rem, 2vw, 1.9rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section-head p {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--mid);
+}
+
+.ops-grid,
+.lane-grid,
+.idea-grid {
+  display: grid;
+  gap: 16px;
+  padding: 22px 24px 26px;
+}
+
+.ops-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lane-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.idea-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ops-card,
+.lane-card,
+.idea-card,
+.watch-card,
+.signal-card,
+.roadmap-card,
+.post-card {
+  border: 1px solid rgba(36, 48, 64, 0.85);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ops-card,
+.lane-card,
+.watch-card,
+.signal-card,
+.roadmap-card,
+.post-card {
+  padding: 18px;
+}
+
+.ops-status,
+.lane-meta,
+.roadmap-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.54rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ops-status {
+  border: 1px solid rgba(0, 229, 160, 0.24);
+  background: var(--teal-dim);
+  color: var(--teal);
+}
+
+.lane-meta {
+  border: 1px solid rgba(0, 145, 255, 0.22);
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+
+.roadmap-status {
+  border: 1px solid rgba(255, 170, 0, 0.22);
+  background: rgba(255, 170, 0, 0.08);
+  color: var(--amber);
+}
+
+.ops-card h3,
+.lane-card h3,
+.watch-card h3,
+.signal-card h3,
+.roadmap-card h3,
+.post-card h3 {
+  margin: 14px 0 10px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.96rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ops-card p,
+.lane-card p,
+.watch-card p,
+.signal-card p,
+.roadmap-card p,
+.post-card p,
+.idea-card p {
+  margin: 0;
+  color: var(--mid);
+  line-height: 1.55;
+}
+
+.split-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 0;
+}
+
+.watch-stack,
+.signal-stack {
+  padding: 22px 24px 26px;
+  display: grid;
+  gap: 14px;
+}
+
+.watch-card h3 {
+  margin-top: 0;
+}
+
+.watch-card__meta,
+.signal-card__meta,
+.post-meta {
+  display: block;
+  margin-top: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.54rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.watch-card__link,
+.post-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 12px;
+  color: var(--teal);
+  text-decoration: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.watch-card__link:hover,
+.post-link:hover {
+  color: #fff;
+}
+
+.signal-card.pinned {
+  border-color: rgba(255, 170, 0, 0.24);
+  background: rgba(255, 170, 0, 0.04);
+}
+
+.signal-card__badge {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 170, 0, 0.24);
+  color: var(--amber);
+  background: rgba(255, 170, 0, 0.08);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.idea-card {
+  padding: 16px 14px;
+  text-align: center;
+}
+
+.idea-card strong {
+  display: block;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.idea-card p {
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+.roadmap-grid,
+.post-grid {
+  display: grid;
+  gap: 16px;
+  padding: 22px 24px 26px;
+}
+
+.roadmap-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.post-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.post-card h3 {
+  margin-top: 0;
+}
+
+.post-card__author {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(58, 74, 96, 0.48);
+  color: var(--mid);
+  background: rgba(255, 255, 255, 0.03);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.empty-state {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px dashed rgba(58, 74, 96, 0.48);
+  color: var(--mid);
+}
+
+@media (max-width: 1120px) {
+  .hero-top,
+  .split-grid,
+  .ops-grid,
+  .lane-grid,
+  .idea-grid,
+  .roadmap-grid,
+  .post-grid,
+  .stat-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .esports-page {
+    padding: 74px 14px 52px;
+  }
+
+  .hero,
+  .section {
+    border-radius: 22px;
+  }
+
+  .hero,
+  .section-head,
+  .ops-grid,
+  .lane-grid,
+  .watch-stack,
+  .signal-stack,
+  .idea-grid,
+  .roadmap-grid,
+  .post-grid {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .hero-top,
+  .split-grid,
+  .ops-grid,
+  .lane-grid,
+  .idea-grid,
+  .roadmap-grid,
+  .post-grid,
+  .stat-band {
+    grid-template-columns: 1fr;
+  }
+
+  .section-head {
+    display: grid;
+  }
+}
+</style>
+</head>
+<body>
+
+{% include "_nav.html" %}
+
+<main class="esports-page">
+  <section class="hero">
+    <div class="hero-top">
+      <div>
+        <span class="hero-kicker">Esports Section</span>
+        <h1>Arena <span>/</span> Tournaments <span>/</span> Watch</h1>
+        <p class="hero-copy">
+          This turns all of the existing esports-adjacent pieces into one real section.
+          Channels already gives you arena watch surfaces, leaderboard already gives you stat gravity,
+          and the older notes already point toward tournaments, replay systems, and ranked ladders.
+          This page becomes the command deck that ties those together.
+        </p>
+        <div class="hero-actions">
+          <a href="/channels" class="primary">Open Watch Deck</a>
+          <a href="/leaderboard" class="secondary">Open Leaderboards</a>
+          <a href="#tournaments" class="ghost">Tournament Lanes</a>
+        </div>
+      </div>
+
+      <aside class="hero-side">
+        <span class="eyebrow">Current read</span>
+        <h2>No standalone arena existed before this</h2>
+        <p>
+          Arena was only living as scattered intent across channels, leaderboard, feed, card game notes,
+          and older patch files. This section makes esports a first-class site area instead of a side effect.
+        </p>
+      </aside>
+    </div>
+
+    <div class="stat-band">
+      <article class="stat-card">
+        <strong>{{ members_total }}</strong>
+        <span>Members in ecosystem</span>
+      </article>
+      <article class="stat-card">
+        <strong>{{ arena_channel_total }}</strong>
+        <span>Arena watch sources</span>
+      </article>
+      <article class="stat-card">
+        <strong>{{ post_total }}</strong>
+        <span>Recent feed items</span>
+      </article>
+      <article class="stat-card">
+        <strong>{{ announcements_total }}</strong>
+        <span>Active announcements</span>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="subsections">
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">Section Map</span>
+        <h2>Core subsections to build around</h2>
+      </div>
+      <p>These are the real section anchors that make esports feel deliberate instead of scattered.</p>
+    </div>
+    <div class="ops-grid">
+      {% for item in esports_sections %}
+      <article class="ops-card" id="{{ item.slug }}">
+        <span class="ops-status">{{ item.status }}</span>
+        <h3>{{ item.title }}</h3>
+        <p>{{ item.copy }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section" id="tournaments">
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">Tournament Ops</span>
+        <h2>Three launch-ready event lanes</h2>
+      </div>
+      <p>Start with event types that are easy to message, schedule, and moderate before you overbuild bracket logic.</p>
+    </div>
+    <div class="lane-grid">
+      {% for lane in tournament_lanes %}
+      <article class="lane-card">
+        <span class="lane-meta">{{ lane.format }} / {{ lane.cadence }}</span>
+        <h3>{{ lane.name }}</h3>
+        <p>{{ lane.copy }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section" id="watch">
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">Watch + Signal</span>
+        <h2>Existing live surfaces to route through esports</h2>
+      </div>
+      <p>Channels, feed, and announcements already exist. Esports should orchestrate them instead of rebuilding them.</p>
+    </div>
+    <div class="split-grid">
+      <div class="watch-stack">
+        {% if arena_channels %}
+          {% for channel in arena_channels %}
+          <article class="watch-card">
+            <h3>{{ channel.name }}</h3>
+            <p>{{ channel.description or "Arena watch source ready to be featured inside the esports watch deck." }}</p>
+            <span class="watch-card__meta">{{ channel.category or "Arena" }}</span>
+            <a href="/channels" class="watch-card__link">Watch in channels</a>
+          </article>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            Arena watch cards will populate from the approved channels catalog once esports categories are seeded there.
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="signal-stack">
+        {% if announcements %}
+          {% for item in announcements %}
+          <article class="signal-card{% if item.pinned %} pinned{% endif %}">
+            {% if item.pinned %}
+            <span class="signal-card__badge">Pinned</span>
+            {% endif %}
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.body or "No body text yet." }}</p>
+            <span class="signal-card__meta">{{ item.posted_by }} - {{ item.created_at }}</span>
+          </article>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            No active ops signal yet. The admin panel can already populate this column through announcements.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="ideas">
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">Brainstorm Stack</span>
+        <h2>High-value subsection ideas worth building next</h2>
+      </div>
+      <p>These are the kinds of modules that make the section feel deep and valuable for players, creators, and admins.</p>
+    </div>
+    <div class="idea-grid">
+      {% for idea in subsection_ideas %}
+      <article class="idea-card">
+        <strong>{{ idea }}</strong>
+        <p>{{ "Good candidate for the esports shell." }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section" id="roadmap">
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">Build Order</span>
+        <h2>What to do now, next, and later</h2>
+      </div>
+      <p>This keeps the section honest: route what already exists first, then deepen it with tournament and team systems.</p>
+    </div>
+    <div class="roadmap-grid">
+      {% for card in esports_roadmap %}
+      <article class="roadmap-card">
+        <span class="roadmap-status">{{ card.status }}</span>
+        <h3>{{ card.phase }}</h3>
+        <p>{{ card.copy }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section" id="posts">
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">Feed Pull</span>
+        <h2>Recent social or replay-ready posts</h2>
+      </div>
+      <p>Esports should have a social layer. The existing feed can become the recap and hype rail instead of living alone.</p>
+    </div>
+    <div class="post-grid">
+      {% if highlighted_posts %}
+        {% for post in highlighted_posts %}
+        <article class="post-card">
+          <span class="post-card__author">{{ post.display_name or "Anonymous" }}</span>
+          <h3>{{ post.caption or "Platform update" }}</h3>
+          <p>{{ post.embed_url or "Text-first post ready for esports recap or highlight rotation." }}</p>
+          <span class="post-meta">{{ post.platform or "Feed" }}</span>
+          <a href="/feed" class="post-link">Open feed</a>
+        </article>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          No recent feed items yet. Once clips and event posts are flowing, this becomes the recap strip.
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</main>
+
+{% include "_site_footer.html" %}
+</body>
+</html>

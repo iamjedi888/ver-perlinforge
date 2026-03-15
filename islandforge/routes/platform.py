@@ -44,6 +44,99 @@ COMMON_CHANNEL_CATEGORIES = [
     "Chill Gaming",
 ]
 
+ESPORTS_SECTIONS = [
+    {
+        "slug": "arena",
+        "title": "Arena",
+        "status": "Active build",
+        "copy": "Competitive hub for ranked ladders, customs, scrims, replay review, and watch-party routing.",
+    },
+    {
+        "slug": "tournaments",
+        "title": "Tournaments",
+        "status": "Planned ops",
+        "copy": "Bracketed events, finals nights, creator cups, rulesets, prize messaging, and admin check-in flow.",
+    },
+    {
+        "slug": "watch",
+        "title": "Watch",
+        "status": "Live now",
+        "copy": "Pull the existing channels rail, replay feeds, and arena watchlist into one esports surface.",
+    },
+    {
+        "slug": "leaderboards",
+        "title": "Leaderboards",
+        "status": "Live now",
+        "copy": "Member stats, ranked divisions, and global Fortnite snapshots already exist and should route through esports.",
+    },
+    {
+        "slug": "teams",
+        "title": "Teams + Calendar",
+        "status": "Next up",
+        "copy": "Squad finder, team cards, match calendar, check-in windows, and season schedules.",
+    },
+    {
+        "slug": "rewards",
+        "title": "Rewards + Replay Lab",
+        "status": "Next up",
+        "copy": "Prize vault, ticket rewards, VOD study rooms, featured clips, and coaching-style breakdowns.",
+    },
+]
+
+TOURNAMENT_LANES = [
+    {
+        "name": "Night Customs",
+        "format": "Open queue",
+        "cadence": "Nightly",
+        "copy": "Fast queue for customs, scrims, and warmup lobbies with replay capture and mod tools.",
+    },
+    {
+        "name": "Creator Cup",
+        "format": "Invite + qualifiers",
+        "cadence": "Weekly",
+        "copy": "Spotlight creators, UEFN builders, and featured islands with a cleaner broadcast shell.",
+    },
+    {
+        "name": "Forge Finals",
+        "format": "Bracket finals",
+        "cadence": "Seasonal",
+        "copy": "Final-stage event surface for brackets, finals timing, prize messaging, and featured match cards.",
+    },
+]
+
+ESPORTS_SUBSECTION_IDEAS = [
+    "Scrims",
+    "Replay Review",
+    "Team HQ",
+    "Schedule",
+    "Creator Cups",
+    "Prize Vault",
+    "Rules Center",
+    "Clips",
+    "Stats Lab",
+    "Watch Parties",
+    "Check-In Desk",
+    "Coaching Lab",
+]
+
+ESPORTS_ROADMAP = [
+    {
+        "phase": "Now",
+        "status": "Build",
+        "copy": "Create the esports hub, route traffic from leaderboard and channels, and define the section architecture.",
+    },
+    {
+        "phase": "Next",
+        "status": "Ops",
+        "copy": "Add tournament cards, bracket states, team surfaces, schedule rails, and admin-run event tools.",
+    },
+    {
+        "phase": "Later",
+        "status": "Depth",
+        "copy": "Bring in replay review, coaching overlays, prize flows, squad profiles, and more serious event automation.",
+    },
+]
+
 def serve_index():
     return send_from_directory(ROOT, "index.html")
 
@@ -114,6 +207,32 @@ def community():
     if os.path.exists(t):
         return render_template("community.html", members=get_all_members(), announcements=get_announcements())
     return serve_index()
+
+@platform_bp.route("/esports")
+def esports():
+    channels = get_channels() or []
+    posts = get_posts(limit=6) or []
+    announcements = get_announcements() or []
+    members = get_all_members() or []
+    arena_channels = [
+        channel for channel in channels
+        if (channel.get("category") or "") in {"Esports", "Fortnite Competitive"}
+    ][:6]
+    highlighted_posts = [post for post in posts if post.get("embed_url") or post.get("caption")][:4]
+    return render_template(
+        "esports.html",
+        members_total=len(members),
+        announcements_total=len(announcements),
+        arena_channel_total=len(arena_channels),
+        post_total=len(posts),
+        arena_channels=arena_channels,
+        highlighted_posts=highlighted_posts,
+        announcements=announcements[:4],
+        esports_sections=ESPORTS_SECTIONS,
+        tournament_lanes=TOURNAMENT_LANES,
+        subsection_ideas=ESPORTS_SUBSECTION_IDEAS,
+        esports_roadmap=ESPORTS_ROADMAP,
+    )
 
 @platform_bp.route("/dashboard")
 def dashboard():

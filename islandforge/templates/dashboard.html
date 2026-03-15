@@ -95,7 +95,7 @@
           <span class="panel-top__kicker">Telemetry Nexus</span>
           <h1>Ironcore member wall with pit-lane signal flow</h1>
         </div>
-        <p class="panel-top__copy">This pass is driven by live member data plus the current Fortnite snapshot pipe. Multi-surface Epic feeds can slot into the same wall once their source map is approved.</p>
+        <p class="panel-top__copy">This wall blends member telemetry, public Fortnite signals, and keyed services as they come online so the member hub can grow into a real operations console instead of a static profile page.</p>
       </div>
 
       <div class="nexus-grid">
@@ -196,6 +196,44 @@
           <span class="stats-pulse__label">Telemetry note</span>
           <span class="stats-pulse__text" id="statsMsg">Loading current signal.</span>
         </div>
+      </div>
+    </section>
+
+    <section class="panel-shell panel-radar" id="ecosystem">
+      <div class="section-head">
+        <div>
+          <span class="section-head__kicker">Ecosystem Radar</span>
+          <h2>Public Fortnite signal and keyed service map</h2>
+        </div>
+        <button class="section-head__button section-head__button--link" type="button" onclick="loadEcosystem()">Refresh radar</button>
+      </div>
+      <div class="radar-summary">
+        <article class="radar-hero">
+          <span class="radar-hero__label">Signal bus</span>
+          <strong class="radar-hero__value" id="ecoMode">BOOTING</strong>
+          <p class="radar-hero__copy" id="ecoMsg">Reading platform telemetry and Fortnite surfaces.</p>
+        </article>
+        <div class="radar-mini-grid">
+          <article class="radar-mini">
+            <span class="radar-mini__label">Members</span>
+            <strong class="radar-mini__value" id="ecoMembers">--</strong>
+          </article>
+          <article class="radar-mini">
+            <span class="radar-mini__label">Channels</span>
+            <strong class="radar-mini__value" id="ecoChannels">--</strong>
+          </article>
+          <article class="radar-mini">
+            <span class="radar-mini__label">Shop entries</span>
+            <strong class="radar-mini__value" id="ecoShop">--</strong>
+          </article>
+          <article class="radar-mini">
+            <span class="radar-mini__label">Outfits</span>
+            <strong class="radar-mini__value" id="ecoOutfits">--</strong>
+          </article>
+        </div>
+      </div>
+      <div class="source-grid" id="sourceGrid">
+        <div class="source-loading">Loading source map...</div>
       </div>
     </section>
 
@@ -342,6 +380,18 @@ const DISPLAY_NAME = {{ name|tojson }};
 
 let allSkins = [];
 
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, function (char) {
+    return {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    }[char];
+  });
+}
+
 function normalizePercent(value, maxValue) {
   const numeric = parseFloat(String(value || '0').replace('%', ''));
   if (!Number.isFinite(numeric) || maxValue <= 0) {
@@ -354,6 +404,28 @@ function setMeter(id, value, maxValue) {
   const meter = document.getElementById(id);
   if (!meter) return;
   meter.style.width = `${normalizePercent(value, maxValue)}%`;
+}
+
+function renderServices(services) {
+  const grid = document.getElementById('sourceGrid');
+  if (!grid) return;
+  if (!services.length) {
+    grid.innerHTML = '<div class="source-loading">No source map is available yet.</div>';
+    return;
+  }
+
+  grid.innerHTML = services.map((service) => {
+    const statusClass = String(service.status || 'idle').replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
+    return `<article class="source-card source-card--${statusClass}">
+      <div class="source-card__top">
+        <span class="source-card__label">${escapeHtml(service.label)}</span>
+        <span class="source-card__status">${escapeHtml(service.status)}</span>
+      </div>
+      <strong class="source-card__value">${escapeHtml(service.value)}</strong>
+      <span class="source-card__unit">${escapeHtml(service.unit)}</span>
+      <p class="source-card__copy">${escapeHtml(service.detail)}</p>
+    </article>`;
+  }).join('');
 }
 
 async function loadStats() {
@@ -392,10 +464,48 @@ async function loadStats() {
     setMeter('m-avgelim', stats.avgElim, 10);
 
     msg.textContent = data.source === 'mock'
-      ? 'Preview stats are active. Wire a real stats provider later without changing the layout.'
-      : 'Live stats synced.';
+      ? 'Preview stats are active. Add FORTNITE_API_KEY to switch this rail to live player stats.'
+      : 'Live Battle Royale stats synced from fortnite-api.com.';
   } catch (error) {
     msg.textContent = 'Stats are offline right now. The rest of the member hub is still live.';
+  }
+}
+
+async function loadEcosystem() {
+  const mode = document.getElementById('ecoMode');
+  const msg = document.getElementById('ecoMsg');
+  mode.textContent = 'SYNCING';
+  msg.textContent = 'Reading site telemetry and Fortnite surfaces.';
+
+  try {
+    const response = await fetch('/api/ecosystem/summary');
+    const data = await response.json();
+    if (!data.ok) {
+      throw new Error('ecosystem unavailable');
+    }
+
+    const site = data.site || {};
+    const signals = data.signals || {};
+    const shop = signals.shop || {};
+    const cosmetics = signals.cosmetics || {};
+    const services = data.services || [];
+    const statsService = services.find((service) => service.id === 'fortnite-stats') || {};
+
+    document.getElementById('ecoMembers').textContent = site.members != null ? site.members : '--';
+    document.getElementById('ecoChannels').textContent = site.channels != null ? site.channels : '--';
+    document.getElementById('ecoShop').textContent = shop.entries != null ? shop.entries : '--';
+    document.getElementById('ecoOutfits').textContent = cosmetics.outfits != null ? cosmetics.outfits : '--';
+
+    mode.textContent = data.identity && data.identity.epic_connected ? 'LIVE GRID' : 'OPEN GRID';
+    msg.textContent = statsService.status === 'key-needed'
+      ? 'Public Fortnite feeds are live. Add FORTNITE_API_KEY to unlock player stat lookups.'
+      : 'Public Fortnite feeds and keyed services are online.';
+
+    renderServices(services);
+  } catch (error) {
+    mode.textContent = 'DEGRADED';
+    msg.textContent = 'Ecosystem radar is unavailable right now. Core member tools are still live.';
+    renderServices([]);
   }
 }
 
@@ -457,6 +567,7 @@ async function selectSkin(button, id, name, img) {
 }
 
 loadStats();
+loadEcosystem();
 loadSkins();
 </script>
 

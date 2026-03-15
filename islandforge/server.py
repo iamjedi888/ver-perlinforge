@@ -94,7 +94,7 @@ def cardgame():
 @app.route("/sitemap.xml")
 def sitemap():
     base = "https://triptokforge.org"
-    pages = ["", "/home", "/forge", "/gallery", "/feed", "/channels", "/community", "/whitepages", "/cardgame"]
+    pages = ["", "/home", "/forge", "/gallery", "/feed", "/channels", "/esports", "/community", "/whitepages", "/cardgame"]
     urls = "\n".join(f"  <url><loc>{base}{page}</loc></url>" for page in pages)
     return (
         f"""<?xml version="1.0" encoding="UTF-8"?>
