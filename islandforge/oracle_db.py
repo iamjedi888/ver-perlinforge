@@ -229,6 +229,23 @@ CREATE TABLE channels (
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE site_broadcasts (
+    id               NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    title            VARCHAR2(128) NOT NULL,
+    body             VARCHAR2(1024),
+    variant          VARCHAR2(24)  DEFAULT 'info',
+    display_mode     VARCHAR2(24)  DEFAULT 'banner',
+    dismiss_mode     VARCHAR2(24)  DEFAULT 'manual',
+    duration_seconds NUMBER(6,2)   DEFAULT 8,
+    cta_label        VARCHAR2(64),
+    cta_href         VARCHAR2(512),
+    closable         NUMBER(1)     DEFAULT 1,
+    active           NUMBER(1)     DEFAULT 1,
+    created_by       VARCHAR2(64),
+    priority         NUMBER        DEFAULT 0,
+    created_at       TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE wp_tracks (
     id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title        VARCHAR2(256) NOT NULL,
@@ -1361,6 +1378,224 @@ def delete_channel(channel_id):
         return True
     except Exception as e:
         print(f"[oracle_db] delete_channel error: {e}")
+        return False
+
+
+def create_site_broadcast(
+    title,
+    body="",
+    variant="info",
+    display_mode="banner",
+    dismiss_mode="manual",
+    duration_seconds=8,
+    cta_label="",
+    cta_href="",
+    closable=1,
+    active=1,
+    created_by="admin",
+    priority=0,
+):
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO site_broadcasts (
+                title, body, variant, display_mode, dismiss_mode, duration_seconds,
+                cta_label, cta_href, closable, active, created_by, priority
+            )
+            VALUES (
+                :title, :body, :variant, :display_mode, :dismiss_mode, :duration_seconds,
+                :cta_label, :cta_href, :closable, :active, :created_by, :priority
+            )
+            """,
+            {
+                "title": title,
+                "body": body,
+                "variant": variant,
+                "display_mode": display_mode,
+                "dismiss_mode": dismiss_mode,
+                "duration_seconds": float(duration_seconds or 8),
+                "cta_label": cta_label,
+                "cta_href": cta_href,
+                "closable": 1 if closable else 0,
+                "active": 1 if active else 0,
+                "created_by": created_by,
+                "priority": int(priority or 0),
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close(); conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] create_site_broadcast error: {e}")
+        return False
+
+
+def update_site_broadcast(
+    broadcast_id,
+    title,
+    body="",
+    variant="info",
+    display_mode="banner",
+    dismiss_mode="manual",
+    duration_seconds=8,
+    cta_label="",
+    cta_href="",
+    closable=1,
+    active=1,
+    priority=0,
+):
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE site_broadcasts
+               SET title = :title,
+                   body = :body,
+                   variant = :variant,
+                   display_mode = :display_mode,
+                   dismiss_mode = :dismiss_mode,
+                   duration_seconds = :duration_seconds,
+                   cta_label = :cta_label,
+                   cta_href = :cta_href,
+                   closable = :closable,
+                   active = :active,
+                   priority = :priority
+             WHERE id = :id
+            """,
+            {
+                "id": broadcast_id,
+                "title": title,
+                "body": body,
+                "variant": variant,
+                "display_mode": display_mode,
+                "dismiss_mode": dismiss_mode,
+                "duration_seconds": float(duration_seconds or 8),
+                "cta_label": cta_label,
+                "cta_href": cta_href,
+                "closable": 1 if closable else 0,
+                "active": 1 if active else 0,
+                "priority": int(priority or 0),
+            },
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close(); conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] update_site_broadcast error: {e}")
+        return False
+
+
+def get_site_broadcast(broadcast_id):
+    if not db_available():
+        return None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, title, body, variant, display_mode, dismiss_mode, duration_seconds,
+                   cta_label, cta_href, closable, active, created_by, priority, created_at
+              FROM site_broadcasts
+             WHERE id = :id
+            """,
+            {"id": broadcast_id},
+        )
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if not row:
+            return None
+        cols = [
+            "id", "title", "body", "variant", "display_mode", "dismiss_mode", "duration_seconds",
+            "cta_label", "cta_href", "closable", "active", "created_by", "priority", "created_at",
+        ]
+        return dict(zip(cols, row))
+    except Exception as e:
+        print(f"[oracle_db] get_site_broadcast error: {e}")
+        return None
+
+
+def get_site_broadcasts(active_only=False, limit=50):
+    if not db_available():
+        return []
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        if active_only:
+            cur.execute(
+                """
+                SELECT id, title, body, variant, display_mode, dismiss_mode, duration_seconds,
+                       cta_label, cta_href, closable, active, created_by, priority, created_at
+                  FROM site_broadcasts
+                 WHERE active = 1
+                 ORDER BY priority DESC, created_at DESC
+                 FETCH FIRST :limit ROWS ONLY
+                """,
+                {"limit": limit},
+            )
+        else:
+            cur.execute(
+                """
+                SELECT id, title, body, variant, display_mode, dismiss_mode, duration_seconds,
+                       cta_label, cta_href, closable, active, created_by, priority, created_at
+                  FROM site_broadcasts
+                 ORDER BY active DESC, priority DESC, created_at DESC
+                 FETCH FIRST :limit ROWS ONLY
+                """,
+                {"limit": limit},
+            )
+        cols = [
+            "id", "title", "body", "variant", "display_mode", "dismiss_mode", "duration_seconds",
+            "cta_label", "cta_href", "closable", "active", "created_by", "priority", "created_at",
+        ]
+        rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+        cur.close(); conn.close()
+        return rows
+    except Exception as e:
+        print(f"[oracle_db] get_site_broadcasts error: {e}")
+        return []
+
+
+def set_site_broadcast_active(broadcast_id, active):
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE site_broadcasts SET active = :active WHERE id = :id",
+            {"id": broadcast_id, "active": 1 if active else 0},
+        )
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close(); conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] set_site_broadcast_active error: {e}")
+        return False
+
+
+def delete_site_broadcast(broadcast_id):
+    if not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM site_broadcasts WHERE id = :id", {"id": broadcast_id})
+        conn.commit()
+        ok = cur.rowcount > 0
+        cur.close(); conn.close()
+        return ok
+    except Exception as e:
+        print(f"[oracle_db] delete_site_broadcast error: {e}")
         return False
 
 

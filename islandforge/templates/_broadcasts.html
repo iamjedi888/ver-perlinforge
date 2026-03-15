@@ -1,0 +1,96 @@
+{% if site_broadcasts %}
+{% set banner_broadcasts = site_broadcasts | selectattr("display_mode", "equalto", "banner") | list %}
+{% set ticker_broadcasts = site_broadcasts | selectattr("display_mode", "equalto", "ticker") | list %}
+{% set blip_broadcasts = site_broadcasts | selectattr("display_mode", "equalto", "blip") | list %}
+{% set modal_broadcasts = site_broadcasts | selectattr("display_mode", "equalto", "modal") | list %}
+<style>@import url('/static/css/site-broadcasts.css');</style>
+
+{% macro render_broadcast(broadcast) -%}
+{% set variant = (broadcast.variant or "info") | lower %}
+{% set mode = (broadcast.display_mode or "banner") | lower %}
+<section
+  class="site-broadcast site-broadcast--{{ mode }} site-broadcast--{{ variant }}"
+  data-site-broadcast
+  data-broadcast-id="{{ broadcast.id }}"
+  data-display-mode="{{ mode }}"
+  data-dismiss-mode="{{ (broadcast.dismiss_mode or 'manual') | lower }}"
+  data-duration="{{ broadcast.duration_seconds or 8 }}"
+  data-closable="{{ 1 if broadcast.closable else 0 }}"
+>
+  {% if mode == "ticker" %}
+  <div class="site-broadcast__ticker-head">
+    <span class="site-broadcast__eyebrow">Network {{ variant }}</span>
+    {% if broadcast.cta_label and broadcast.cta_href %}
+    <a class="site-broadcast__cta" href="{{ broadcast.cta_href }}" {% if broadcast.cta_href.startswith('http') %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ broadcast.cta_label }}</a>
+    {% endif %}
+    {% if broadcast.closable %}
+    <button type="button" class="site-broadcast__close" data-broadcast-close aria-label="Close notice">Close</button>
+    {% endif %}
+  </div>
+  <div class="site-broadcast__marquee">
+    <div class="site-broadcast__marquee-track">
+      {% for _ in range(4) %}
+      <span class="site-broadcast__ticker-pill">{{ broadcast.title }}</span>
+      {% if broadcast.body %}
+      <span class="site-broadcast__ticker-copy">{{ broadcast.body }}</span>
+      {% endif %}
+      {% if broadcast.cta_label %}
+      <span class="site-broadcast__ticker-link">{{ broadcast.cta_label }}</span>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="site-broadcast__head">
+    <span class="site-broadcast__eyebrow">{{ mode }} / {{ variant }}</span>
+    {% if broadcast.closable %}
+    <button type="button" class="site-broadcast__close" data-broadcast-close aria-label="Close notice">Close</button>
+    {% endif %}
+  </div>
+  <h3 class="site-broadcast__title">{{ broadcast.title }}</h3>
+  {% if broadcast.body %}
+  <p class="site-broadcast__copy">{{ broadcast.body }}</p>
+  {% endif %}
+  {% if broadcast.cta_label and broadcast.cta_href %}
+  <a class="site-broadcast__cta" href="{{ broadcast.cta_href }}" {% if broadcast.cta_href.startswith('http') %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ broadcast.cta_label }}</a>
+  {% endif %}
+  {% endif %}
+</section>
+{%- endmacro %}
+
+<div class="site-broadcast-layer" data-site-broadcast-layer>
+  {% if banner_broadcasts %}
+  <div class="site-broadcast-stack site-broadcast-stack--banner">
+    {% for broadcast in banner_broadcasts %}
+      {{ render_broadcast(broadcast) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if blip_broadcasts %}
+  <div class="site-broadcast-stack site-broadcast-stack--blip">
+    {% for broadcast in blip_broadcasts %}
+      {{ render_broadcast(broadcast) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if modal_broadcasts %}
+  <div class="site-broadcast-stack site-broadcast-stack--modal" data-site-broadcast-modal-stack>
+    {% for broadcast in modal_broadcasts %}
+      {{ render_broadcast(broadcast) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if ticker_broadcasts %}
+  <div class="site-broadcast-stack site-broadcast-stack--ticker">
+    {% for broadcast in ticker_broadcasts %}
+      {{ render_broadcast(broadcast) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script src="/static/js/site-broadcasts.js" defer></script>
+{% endif %}

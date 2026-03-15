@@ -12,8 +12,10 @@ from flask import (
 )
 import os
 from oracle_db import (
+    create_site_broadcast,
     create_channel,
     delete_channel,
+    delete_site_broadcast,
     get_all_members,
     get_announcements,
     get_audio_tracks,
@@ -24,10 +26,14 @@ from oracle_db import (
     get_member_tickets,
     get_posts,
     get_recent_islands,
+    get_site_broadcast,
+    get_site_broadcasts,
     get_wp_tracks,
     post_announcement,
+    set_site_broadcast_active,
     status,
     update_channel,
+    update_site_broadcast,
     approve_channel,
 )
 
@@ -54,6 +60,23 @@ CHANNEL_ROTATION_MODES = [
     "single",
     "queue",
     "random_pool",
+]
+BROADCAST_VARIANTS = [
+    "info",
+    "success",
+    "warning",
+    "critical",
+]
+BROADCAST_DISPLAY_MODES = [
+    "banner",
+    "ticker",
+    "blip",
+    "modal",
+]
+BROADCAST_DISMISS_MODES = [
+    "auto",
+    "manual",
+    "persistent",
 ]
 
 ESPORTS_SECTIONS = [
@@ -327,8 +350,33 @@ def _channel_payload(form):
     }
 
 
-def _admin_redirect(anchor="overview", edit_channel=None):
-    target = url_for("platform.admin", edit_channel=edit_channel) if edit_channel else url_for("platform.admin")
+def _broadcast_payload(form):
+    variant = ((form.get("variant") or "").strip()[:24] or "info").lower()
+    display_mode = ((form.get("display_mode") or "").strip()[:24] or "banner").lower()
+    dismiss_mode = ((form.get("dismiss_mode") or "").strip()[:24] or "manual").lower()
+    return {
+        "broadcast_id": _to_int(form.get("broadcast_id")),
+        "title": (form.get("title") or "").strip()[:128],
+        "body": (form.get("body") or "").strip()[:1024],
+        "variant": variant if variant in BROADCAST_VARIANTS else "info",
+        "display_mode": display_mode if display_mode in BROADCAST_DISPLAY_MODES else "banner",
+        "dismiss_mode": dismiss_mode if dismiss_mode in BROADCAST_DISMISS_MODES else "manual",
+        "duration_seconds": _to_float((form.get("duration_seconds") or "").strip(), 8.0),
+        "cta_label": (form.get("cta_label") or "").strip()[:64],
+        "cta_href": (form.get("cta_href") or "").strip()[:512],
+        "closable": 1 if _is_checked(form.get("closable")) else 0,
+        "active": 1 if _is_checked(form.get("active")) else 0,
+        "priority": _to_int((form.get("priority") or "").strip(), 0) or 0,
+    }
+
+
+def _admin_redirect(anchor="overview", edit_channel=None, edit_broadcast=None):
+    params = {}
+    if edit_channel is not None:
+        params["edit_channel"] = edit_channel
+    if edit_broadcast is not None:
+        params["edit_broadcast"] = edit_broadcast
+    target = url_for("platform.admin", **params) if params else url_for("platform.admin")
     return redirect(f"{target}#{anchor}")
 
 @platform_bp.route("/")
@@ -519,6 +567,59 @@ def admin():
                 flash("Announcement posted.", "success")
             return _admin_redirect("announcements")
 
+        if action == "broadcast_create":
+            payload = _broadcast_payload(request.form)
+            if not payload["title"]:
+                flash("Broadcast title is required.", "error")
+                return _admin_redirect("broadcasts")
+            created = create_site_broadcast(
+                title=payload["title"],
+                body=payload["body"],
+                variant=payload["variant"],
+                display_mode=payload["display_mode"],
+                dismiss_mode=payload["dismiss_mode"],
+                duration_seconds=payload["duration_seconds"],
+                cta_label=payload["cta_label"],
+                cta_href=payload["cta_href"],
+                closable=payload["closable"],
+                active=payload["active"],
+                created_by=session.get("display_name") or session.get("epic_id") or "admin",
+                priority=payload["priority"],
+            )
+            if not created:
+                flash("Broadcast creation failed.", "error")
+                return _admin_redirect("broadcasts")
+            flash("Broadcast published to the site controls.", "success")
+            return _admin_redirect("broadcasts")
+
+        if action == "broadcast_update":
+            payload = _broadcast_payload(request.form)
+            if not payload["broadcast_id"]:
+                flash("Broadcast id missing for update.", "error")
+                return _admin_redirect("broadcasts")
+            if not payload["title"]:
+                flash("Broadcast title is required.", "error")
+                return _admin_redirect("broadcasts", edit_broadcast=payload["broadcast_id"])
+            ok = update_site_broadcast(
+                broadcast_id=payload["broadcast_id"],
+                title=payload["title"],
+                body=payload["body"],
+                variant=payload["variant"],
+                display_mode=payload["display_mode"],
+                dismiss_mode=payload["dismiss_mode"],
+                duration_seconds=payload["duration_seconds"],
+                cta_label=payload["cta_label"],
+                cta_href=payload["cta_href"],
+                closable=payload["closable"],
+                active=payload["active"],
+                priority=payload["priority"],
+            )
+            if not ok:
+                flash("Broadcast update failed.", "error")
+                return _admin_redirect("broadcasts", edit_broadcast=payload["broadcast_id"])
+            flash("Broadcast updated.", "success")
+            return _admin_redirect("broadcasts")
+
         if action == "channel_create":
             payload = _channel_payload(request.form)
             if not payload["name"] or not payload["embed_url"]:
@@ -600,6 +701,28 @@ def admin():
                 flash("Delete failed.", "error")
             return _admin_redirect("queue" if action == "channel_reject" else "catalog")
 
+        broadcast_id = _to_int(request.form.get("broadcast_id"))
+        if action == "broadcast_activate":
+            if broadcast_id and set_site_broadcast_active(broadcast_id, True):
+                flash("Broadcast activated sitewide.", "success")
+            else:
+                flash("Unable to activate broadcast.", "error")
+            return _admin_redirect("broadcasts")
+
+        if action == "broadcast_deactivate":
+            if broadcast_id and set_site_broadcast_active(broadcast_id, False):
+                flash("Broadcast deactivated.", "success")
+            else:
+                flash("Unable to deactivate broadcast.", "error")
+            return _admin_redirect("broadcasts")
+
+        if action == "broadcast_delete":
+            if broadcast_id and delete_site_broadcast(broadcast_id):
+                flash("Broadcast deleted.", "success")
+            else:
+                flash("Unable to delete broadcast.", "error")
+            return _admin_redirect("broadcasts")
+
         flash("Unknown admin action.", "error")
         return _admin_redirect("overview")
 
@@ -611,6 +734,7 @@ def admin():
         islands = (get_recent_islands(limit=999) or []) if authed else []
         wp_tracks = (get_wp_tracks() or []) if authed else []
         channels = (get_channels(approved_only=False) or []) if authed else []
+        broadcasts = (get_site_broadcasts(limit=100) or []) if authed else []
         approved_channels = []
         pending_channels = []
         for channel in channels:
@@ -623,6 +747,8 @@ def admin():
 
         edit_channel_id = _to_int(request.args.get("edit_channel"))
         edit_channel = get_channel(edit_channel_id) if authed and edit_channel_id else None
+        edit_broadcast_id = _to_int(request.args.get("edit_broadcast"))
+        edit_broadcast = get_site_broadcast(edit_broadcast_id) if authed and edit_broadcast_id else None
         category_values = set(COMMON_CHANNEL_CATEGORIES)
         category_values.update(
             channel.get("category") or "Other"
@@ -638,18 +764,25 @@ def admin():
             "whitepages_tracks": len(wp_tracks or []),
             "islands": len(islands or []),
             "audio": len(audio_tracks or []),
+            "broadcasts": len(broadcasts or []),
+            "active_broadcasts": len([item for item in broadcasts if item.get("active")]),
         }
         return render_template(
             "admin.html",
             authed=authed,
             members=members,
             announcements=announcements,
+            broadcasts=broadcasts,
             approved_channels=approved_channels,
             pending_channels=pending_channels,
             edit_channel=edit_channel,
+            edit_broadcast=edit_broadcast,
             channel_categories=sorted(category_values),
             channel_provider_hints=CHANNEL_PROVIDER_HINTS,
             channel_rotation_modes=CHANNEL_ROTATION_MODES,
+            broadcast_variants=BROADCAST_VARIANTS,
+            broadcast_display_modes=BROADCAST_DISPLAY_MODES,
+            broadcast_dismiss_modes=BROADCAST_DISMISS_MODES,
             admin_stats=admin_stats,
             system_status=status() if authed else {},
         )

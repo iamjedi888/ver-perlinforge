@@ -37,7 +37,7 @@ html, body {
   font-family: "Rajdhani", sans-serif;
 }
 a { color: inherit; }
-button, input, textarea { font: inherit; }
+button, input, textarea, select { font: inherit; }
 .nav {
   position: sticky;
   top: 0;
@@ -213,7 +213,7 @@ th,
 }
 .field-grid.three { grid-template-columns: 1.2fr .9fr .7fr; }
 .field { display: grid; gap: 6px; }
-input, textarea {
+input, textarea, select {
   width: 100%;
   padding: 12px 14px;
   border-radius: 16px;
@@ -223,7 +223,7 @@ input, textarea {
   outline: none;
 }
 textarea { min-height: 116px; resize: vertical; }
-input:focus, textarea:focus {
+input:focus, textarea:focus, select:focus {
   border-color: rgba(0,229,160,.3);
   box-shadow: 0 0 0 3px rgba(0,229,160,.08);
 }
@@ -320,9 +320,10 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
       <div class="panel">
         <div class="hero-copy">
           <span class="kicker">Operations</span>
-          <h1>Channel control, moderation, and live admin tooling.</h1>
-          <p>This board is the source of truth for channel submissions, live catalog edits, announcements, and WhitePages track control.</p>
+          <h1>Channel control, emergency UI, moderation, and live admin tooling.</h1>
+          <p>This board is the source of truth for channel submissions, sitewide emergency overlays, announcements, and WhitePages track control.</p>
           <div class="anchor-links">
+            <a href="#broadcasts" class="btn warn">Broadcast Control</a>
             <a href="#channel-editor" class="btn primary">Channel Editor</a>
             <a href="#queue" class="btn secondary">Submission Queue</a>
             <a href="#catalog" class="btn">Live Catalog</a>
@@ -332,6 +333,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
       </div>
       <div class="panel">
         <div class="hero-side">
+          <div class="metric"><span class="metric-label">Active broadcasts</span><div class="metric-value">{{ admin_stats.active_broadcasts }}</div></div>
           <div class="metric"><span class="metric-label">Approved channels</span><div class="metric-value">{{ admin_stats.approved_channels }}</div></div>
           <div class="metric"><span class="metric-label">Pending submissions</span><div class="metric-value">{{ admin_stats.pending_channels }}</div></div>
           <div class="metric"><span class="metric-label">Members / tracks</span><div class="metric-value">{{ admin_stats.members }} / {{ admin_stats.whitepages_tracks }}</div></div>
@@ -345,6 +347,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
       </div>
       <div class="body">
         <div class="metrics">
+          <div class="metric"><span class="metric-label">Site broadcasts</span><div class="metric-value">{{ admin_stats.broadcasts }}</div></div>
           <div class="metric"><span class="metric-label">Categories</span><div class="metric-value">{{ admin_stats.channel_categories }}</div></div>
           <div class="metric"><span class="metric-label">Announcements</span><div class="metric-value">{{ admin_stats.announcements }}</div></div>
           <div class="metric"><span class="metric-label">Saved islands</span><div class="metric-value">{{ admin_stats.islands }}</div></div>
@@ -528,6 +531,134 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
       </div>
 
       <div class="stack">
+        <section class="panel" id="broadcasts">
+          <div class="panel-head">
+            <h2>Emergency <span>UI Control</span></h2>
+            <span class="pill {% if edit_broadcast %}blue{% else %}amber{% endif %}">{{ "editing" if edit_broadcast else "server panel" }}</span>
+          </div>
+          <div class="body">
+            <p class="copy">Publish sitewide banners, bottom tickers, toast blips, or full-screen modal interrupts. Each broadcast can auto-fade, stay until manually closed, or remain persistent until you deactivate it.</p>
+            <form method="POST" class="stack">
+              <input type="hidden" name="action" value="{{ 'broadcast_update' if edit_broadcast else 'broadcast_create' }}"/>
+              {% if edit_broadcast %}<input type="hidden" name="broadcast_id" value="{{ edit_broadcast.id }}"/>{% endif %}
+              <div class="field-grid">
+                <div class="field">
+                  <label for="broadcast-title">Broadcast title</label>
+                  <input id="broadcast-title" type="text" name="title" maxlength="128" value="{{ edit_broadcast.title if edit_broadcast else '' }}" required/>
+                </div>
+                <div class="field">
+                  <label for="broadcast-priority">Priority</label>
+                  <input id="broadcast-priority" type="number" name="priority" value="{{ edit_broadcast.priority if edit_broadcast else 0 }}" min="0" max="999" step="1"/>
+                </div>
+              </div>
+              <div class="field">
+                <label for="broadcast-body">Broadcast copy</label>
+                <textarea id="broadcast-body" name="body" maxlength="1024" placeholder="Sitewide service note, launch ticker copy, emergency warning, or feature spotlight.">{{ edit_broadcast.body if edit_broadcast else '' }}</textarea>
+              </div>
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="broadcast-variant">Variant</label>
+                  <select id="broadcast-variant" name="variant">
+                    {% for variant in broadcast_variants %}
+                      <option value="{{ variant }}" {% if (edit_broadcast.variant if edit_broadcast else 'info') == variant %}selected{% endif %}>{{ variant }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="broadcast-display-mode">Display mode</label>
+                  <select id="broadcast-display-mode" name="display_mode">
+                    {% for mode in broadcast_display_modes %}
+                      <option value="{{ mode }}" {% if (edit_broadcast.display_mode if edit_broadcast else 'banner') == mode %}selected{% endif %}>{{ mode }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="broadcast-dismiss-mode">Dismiss mode</label>
+                  <select id="broadcast-dismiss-mode" name="dismiss_mode">
+                    {% for mode in broadcast_dismiss_modes %}
+                      <option value="{{ mode }}" {% if (edit_broadcast.dismiss_mode if edit_broadcast else 'manual') == mode %}selected{% endif %}>{{ mode }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="broadcast-duration">Duration seconds</label>
+                  <input id="broadcast-duration" type="number" name="duration_seconds" value="{{ edit_broadcast.duration_seconds if edit_broadcast else 8 }}" min="0.5" max="120" step="0.5"/>
+                </div>
+                <div class="field">
+                  <label for="broadcast-cta-label">CTA label</label>
+                  <input id="broadcast-cta-label" type="text" name="cta_label" maxlength="64" value="{{ edit_broadcast.cta_label if edit_broadcast else '' }}" placeholder="Open dashboard"/>
+                </div>
+                <div class="field">
+                  <label for="broadcast-cta-href">CTA link</label>
+                  <input id="broadcast-cta-href" type="text" name="cta_href" maxlength="512" value="{{ edit_broadcast.cta_href if edit_broadcast else '' }}" placeholder="/dashboard or https://..."/>
+                </div>
+              </div>
+              <div class="actions">
+                <label class="toggle">
+                  <input type="checkbox" name="closable" {% if not edit_broadcast or edit_broadcast.closable %}checked{% endif %}/>
+                  User can close it
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" name="active" {% if not edit_broadcast or edit_broadcast.active %}checked{% endif %}/>
+                  Active on site
+                </label>
+              </div>
+              <div class="actions">
+                <button type="submit" class="btn primary">{{ "Update Broadcast" if edit_broadcast else "Create Broadcast" }}</button>
+                {% if edit_broadcast %}
+                  <a href="/admin#broadcasts" class="btn">Clear Edit</a>
+                {% endif %}
+              </div>
+            </form>
+            <div class="stack" style="margin-top:18px">
+              {% for broadcast in broadcasts %}
+                {% set variant_class = 'blue' %}
+                {% if broadcast.variant == 'success' %}
+                  {% set variant_class = 'teal' %}
+                {% elif broadcast.variant == 'warning' %}
+                  {% set variant_class = 'amber' %}
+                {% elif broadcast.variant == 'critical' %}
+                  {% set variant_class = 'red' %}
+                {% endif %}
+                <article class="queue-card">
+                  <div class="queue-top">
+                    <div>
+                      <h3 class="queue-name">{{ broadcast.title }}</h3>
+                      <div class="mono">{{ broadcast.display_mode or 'banner' }} · {{ broadcast.dismiss_mode or 'manual' }} · priority {{ broadcast.priority or 0 }}</div>
+                    </div>
+                    <div class="anchor-links">
+                      <span class="pill {{ variant_class }}">{{ broadcast.variant or 'info' }}</span>
+                      <span class="pill {% if broadcast.active %}teal{% else %}blue{% endif %}">{{ 'live' if broadcast.active else 'inactive' }}</span>
+                    </div>
+                  </div>
+                  <p>{{ broadcast.body or 'No supporting copy. The title alone will still render.' }}</p>
+                  <p class="mono" style="margin:8px 0 0">
+                    {{ 'closable' if broadcast.closable else 'locked' }} · duration {{ broadcast.duration_seconds or 8 }}s · created by {{ broadcast.created_by or 'admin' }}
+                  </p>
+                  {% if broadcast.cta_label or broadcast.cta_href %}
+                    <p class="mono" style="margin:8px 0 0">
+                      CTA {{ broadcast.cta_label or 'link' }}{% if broadcast.cta_href %} · <a class="link" href="{{ broadcast.cta_href }}" target="_blank" rel="noopener noreferrer">{{ broadcast.cta_href }}</a>{% endif %}
+                    </p>
+                  {% endif %}
+                  <div class="queue-actions" style="margin-top:14px">
+                    <a href="/admin?edit_broadcast={{ broadcast.id }}#broadcasts" class="btn secondary">Edit</a>
+                    {% if broadcast.active %}
+                      <form method="POST"><input type="hidden" name="action" value="broadcast_deactivate"/><input type="hidden" name="broadcast_id" value="{{ broadcast.id }}"/><button type="submit" class="btn warn">Deactivate</button></form>
+                    {% else %}
+                      <form method="POST"><input type="hidden" name="action" value="broadcast_activate"/><input type="hidden" name="broadcast_id" value="{{ broadcast.id }}"/><button type="submit" class="btn primary">Activate</button></form>
+                    {% endif %}
+                    <form method="POST"><input type="hidden" name="action" value="broadcast_delete"/><input type="hidden" name="broadcast_id" value="{{ broadcast.id }}"/><button type="submit" class="btn danger">Delete</button></form>
+                  </div>
+                </article>
+              {% else %}
+                <div class="empty"><div class="copy">No emergency UI broadcasts configured yet.</div></div>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+
         <section class="panel" id="announcements">
           <div class="panel-head">
             <h2>Site <span>Announcements</span></h2>

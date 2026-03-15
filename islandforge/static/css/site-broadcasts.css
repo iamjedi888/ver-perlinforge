@@ -1,0 +1,293 @@
+.site-broadcast-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1900;
+  pointer-events: none;
+}
+
+.site-broadcast-stack {
+  position: fixed;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.site-broadcast-stack--banner {
+  top: var(--site-broadcast-banner-top, 70px);
+  left: 50%;
+  width: min(760px, calc(100vw - 28px));
+  transform: translateX(-50%);
+}
+
+.site-broadcast-stack--blip {
+  top: var(--site-broadcast-blip-top, 76px);
+  right: 18px;
+  width: min(360px, calc(100vw - 24px));
+}
+
+.site-broadcast-stack--ticker {
+  left: 0;
+  right: 0;
+  bottom: var(--site-broadcast-ticker-bottom, 0);
+  width: 100%;
+  padding: 0 0 14px;
+}
+
+.site-broadcast-stack--modal {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.site-broadcast-stack--modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 10, 0.74);
+  backdrop-filter: blur(16px);
+}
+
+.site-broadcast-stack--modal.is-empty {
+  display: none;
+}
+
+.site-broadcast {
+  position: relative;
+  pointer-events: auto;
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 145, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(14, 18, 28, 0.94), rgba(6, 8, 13, 0.96)),
+    radial-gradient(circle at top right, rgba(0, 145, 255, 0.14), transparent 32%);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+  color: #d9e7f4;
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  transition: opacity 0.26s ease, transform 0.26s ease, filter 0.26s ease;
+  overflow: hidden;
+}
+
+.site-broadcast.is-live {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.site-broadcast.is-dismissed {
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+  filter: blur(4px);
+}
+
+.site-broadcast--info {
+  border-color: rgba(0, 145, 255, 0.32);
+  box-shadow: 0 18px 44px rgba(0, 145, 255, 0.12);
+}
+
+.site-broadcast--success {
+  border-color: rgba(0, 229, 160, 0.28);
+  box-shadow: 0 18px 44px rgba(0, 229, 160, 0.12);
+}
+
+.site-broadcast--warning {
+  border-color: rgba(255, 170, 0, 0.3);
+  box-shadow: 0 18px 44px rgba(255, 170, 0, 0.12);
+}
+
+.site-broadcast--critical {
+  border-color: rgba(255, 77, 109, 0.32);
+  box-shadow: 0 18px 44px rgba(255, 77, 109, 0.18);
+}
+
+.site-broadcast--modal {
+  z-index: 1;
+  width: min(540px, calc(100vw - 32px));
+  padding: 18px 20px 20px;
+  border-radius: 22px;
+}
+
+.site-broadcast--ticker {
+  gap: 10px;
+  width: min(100%, calc(100vw - 28px));
+  margin: 0 auto;
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.site-broadcast__head,
+.site-broadcast__ticker-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.site-broadcast__ticker-head {
+  padding-inline: 6px;
+}
+
+.site-broadcast__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.site-broadcast__title {
+  margin: 0;
+  font-family: "Orbitron", monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.site-broadcast__copy {
+  margin: 0;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #a9bdd0;
+}
+
+.site-broadcast__cta,
+.site-broadcast__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 231, 244, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f6fbff;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.site-broadcast__cta:hover,
+.site-broadcast__close:hover {
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.site-broadcast__close {
+  margin-left: auto;
+}
+
+.site-broadcast__marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.site-broadcast__marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: max-content;
+  animation: site-broadcast-marquee 26s linear infinite;
+}
+
+.site-broadcast__ticker-pill,
+.site-broadcast__ticker-link,
+.site-broadcast__ticker-copy {
+  flex: 0 0 auto;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.site-broadcast__ticker-pill {
+  color: #f7fbff;
+}
+
+.site-broadcast__ticker-link {
+  color: #00e5a0;
+}
+
+.site-broadcast__ticker-copy {
+  color: #9eb1c3;
+}
+
+.site-broadcast--critical .site-broadcast__eyebrow,
+.site-broadcast--critical .site-broadcast__ticker-link {
+  color: #ff6d86;
+}
+
+.site-broadcast--warning .site-broadcast__eyebrow,
+.site-broadcast--warning .site-broadcast__ticker-link {
+  color: #ffb223;
+}
+
+.site-broadcast--success .site-broadcast__eyebrow,
+.site-broadcast--success .site-broadcast__ticker-link {
+  color: #00e5a0;
+}
+
+.site-broadcast--info .site-broadcast__eyebrow,
+.site-broadcast--info .site-broadcast__ticker-link {
+  color: #4ab0ff;
+}
+
+@keyframes site-broadcast-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+
+@media (max-width: 900px) {
+  .site-broadcast-stack--banner {
+    top: var(--site-broadcast-banner-top-mobile, 62px);
+  }
+
+  .site-broadcast-stack--blip {
+    top: auto;
+    right: 12px;
+    bottom: var(--site-broadcast-blip-bottom-mobile, 76px);
+  }
+}
+
+@media (max-width: 640px) {
+  .site-broadcast-stack {
+    padding: 12px;
+  }
+
+  .site-broadcast-stack--banner,
+  .site-broadcast-stack--blip,
+  .site-broadcast-stack--modal {
+    width: calc(100vw - 20px);
+  }
+
+  .site-broadcast--ticker {
+    width: calc(100vw - 20px);
+  }
+
+  .site-broadcast__title {
+    font-size: 0.74rem;
+  }
+
+  .site-broadcast__copy {
+    font-size: 0.92rem;
+  }
+}

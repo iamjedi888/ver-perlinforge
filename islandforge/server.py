@@ -20,10 +20,11 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
 
 try:
-    from oracle_db import init_schema, ensure_channel_schema
+    from oracle_db import init_schema, ensure_channel_schema, get_site_broadcasts
 except ImportError:
     init_schema = None
     ensure_channel_schema = None
+    get_site_broadcasts = None
 
 if init_schema is not None:
     try:
@@ -37,10 +38,17 @@ if init_schema is not None:
 @app.context_processor
 def inject_portal_nav():
     logged_in = bool(session.get("user") or session.get("epic_id"))
+    broadcasts = []
+    if get_site_broadcasts is not None:
+        try:
+            broadcasts = get_site_broadcasts(active_only=True, limit=12) or []
+        except Exception:
+            broadcasts = []
     return {
         "portal_logged_in": logged_in,
         "portal_exit_href": "/dashboard" if logged_in else "/home",
         "portal_exit_label": "Dashboard" if logged_in else "Home",
+        "site_broadcasts": broadcasts,
     }
 
 # Import all blueprints

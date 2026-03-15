@@ -35,6 +35,11 @@
   --viewport-h: 100vh;
   --guide-collapsed: 58px;
   --guide-expanded: clamp(296px, 28vw, 360px);
+  --site-broadcast-banner-top: calc(var(--nav-h) + 12px);
+  --site-broadcast-banner-top-mobile: calc(var(--nav-h) + 8px);
+  --site-broadcast-blip-top: calc(var(--nav-h) + 18px);
+  --site-broadcast-blip-bottom-mobile: calc(var(--dock-h) + 18px);
+  --site-broadcast-ticker-bottom: calc(var(--dock-h) + 10px);
 }
 
 @supports (height: 100dvh) {
@@ -1608,5 +1613,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+{% include "_broadcasts.html" %}
 </body>
 </html>
