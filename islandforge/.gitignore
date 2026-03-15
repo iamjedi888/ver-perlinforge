@@ -64,8 +64,10 @@ gunicorn.pid
 gunicorn.ctl
 
 # Old / duplicate folders (cleaned up)
-"Island Forge 2"/
+Island Forge 2/
 files/
+patch_*.py
+*.backup
 
 # Node (if ever added)
 node_modules/

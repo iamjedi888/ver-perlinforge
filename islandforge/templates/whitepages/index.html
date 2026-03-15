@@ -28,6 +28,7 @@
     <a href="#overview" class="nav-a">Platform</a>
     <a href="#deploy" class="nav-a">Deploy</a>
     <a href="#forge-runbook" class="nav-a">Forge</a>
+    <a href="#workspace-audit" class="nav-a">Audit</a>
     <a href="#routes" class="nav-a">API</a>
     <a href="#ops" class="nav-a">Ops</a>
     <a href="#roadmap" class="nav-a">Roadmap</a>
@@ -54,6 +55,7 @@
     <div class="sb-glabel">Deploy</div>
     <a href="#deploy" class="sb-a"><span class="ic">&#8593;</span>Guide</a>
     <a href="#ops" class="sb-a"><span class="ic">&#9673;</span>Runbook</a>
+    <a href="#workspace-audit" class="sb-a"><span class="ic">&#9881;</span>Workspace Audit</a>
     <a href="#epic-oauth" class="sb-a"><span class="ic">&#9889;</span>Epic OAuth <span class="sb-tag tag-wip">PENDING</span></a>
   </div>
   <div class="sb-group">
@@ -167,6 +169,37 @@
         <li><code>EPIC_DEPLOYMENT_ID</code></li>
         <li><code>EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback</code></li>
       </ul>
+    </div>
+  </section>
+
+  <section class="doc" id="workspace-audit">
+    <div class="dh"><div class="dh-num">04A</div><div><h2>Workspace <span>Audit</span></h2><p>Canonical repo boundaries, absorbed notes, and cleanup decisions for the broader Project folder.</p></div></div>
+    <div class="tw"><table>
+      <thead><tr><th>Class</th><th>Decision</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Canonical app</td><td><code>Island Forge Repo/islandforge</code></td><td>This is the only operational website/app in the Project workspace and the only codebase WhitePages should treat as live.</td></tr>
+        <tr><td>Absorbed notes</td><td>Fold into WhitePages</td><td>Legacy deploy snippets from old TV/news text files are now represented by the live Channels, Forge, Deploy, and UEFN runbook sections.</td></tr>
+        <tr><td>Low-risk repo junk</td><td>Remove</td><td>One-off patch scripts, stale deploy txt notes, nested duplicate copies, and backup files are not part of runtime and should not live in the production repo.</td></tr>
+        <tr><td>Sibling workspaces</td><td>Archive candidates</td><td><code>PerlinPY/*</code>, root-level <code>Island Forge 2</code>, <code>files</code>, <code>PerlinPY2</code>, <code>ProjectPHaser</code>, <code>templates</code>, and <code>verse dump</code> look like historical snapshots, not production inputs.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="prose">
+      <h3>What stays canonical</h3>
+      <ul>
+        <li><code>README.md</code> for GitHub entry context.</li>
+        <li><code>templates/whitepages/*.md</code> for deploy, Oracle, channels, arena, and UEFN reference notes.</li>
+        <li>The live runtime code, templates, static assets, and route modules under <code>islandforge/</code>.</li>
+      </ul>
+      <h3>What was identified as drift</h3>
+      <ul>
+        <li>Tracked patch scripts duplicated across the repo and across branch snapshots.</li>
+        <li>Old txt deploy notes that describe obsolete file-replacement workflows instead of the current GitHub → Oracle deploy path.</li>
+        <li>A tracked scratch file with inline secrets, which should never remain in version control.</li>
+        <li>Nested duplicate app copies such as <code>islandforge/Island Forge 2/</code> and backup files like <code>routes/forge.py.backup</code>.</li>
+      </ul>
+      <h3>Security note</h3>
+      <p>If any secrets from historical scratch notes were ever real, rotate them. WhitePages should document secret handling patterns, not contain live secret values.</p>
+      <p>Reference note: <code>templates/whitepages/WORKSPACE_AUDIT.md</code></p>
     </div>
   </section>
 
