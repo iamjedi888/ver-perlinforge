@@ -40,6 +40,7 @@
     <a href="#github-vault" class="nav-a">GitHub Vault</a>
     <a href="#epic-approval" class="nav-a">Epic Approval</a>
     <a href="#staff-bots" class="nav-a">Staff + Bots</a>
+    <a href="#bugs-bounties" class="nav-a">Bugs + Bounties</a>
     <a href="#workspace-audit" class="nav-a">Audit</a>
     <a href="#routes" class="nav-a">API</a>
     <a href="#ops" class="nav-a">Ops</a>
@@ -75,6 +76,7 @@
     <a href="#repo-privacy" class="sb-a"><span class="ic">&#128274;</span>Repo Privacy</a>
     <a href="#github-vault" class="sb-a"><span class="ic">&#128193;</span>GitHub Vault</a>
     <a href="#ops" class="sb-a"><span class="ic">&#9673;</span>Ops Runbook</a>
+    <a href="#bugs-bounties" class="sb-a"><span class="ic">&#9888;</span>Bugs + Bounties <span class="sb-tag tag-staff">STAFF</span></a>
     <a href="#workspace-audit" class="sb-a"><span class="ic">&#9881;</span>Workspace Audit</a>
     <a href="#epic-approval" class="sb-a"><span class="ic">&#10003;</span>Approval Day</a>
     <a href="#routes" class="sb-a"><span class="ic">&#8644;</span>Routes <span class="sb-tag tag-live">LIVE</span></a>
@@ -535,6 +537,58 @@
     <div class="callout green"><div class="callout-icon">&#9873;</div><div><div class="c-title">Implementation note</div><p>The site now has a dedicated ops-console direction: admins keep full privileges, moderators stay constrained to post cleanup, bot operators can maintain linked bot profiles, and house-bot drafts route through approval before they can publish to announcements or sitewide broadcasts.</p></div></div>
     <div class="prose">
       <p>Reference note: <code>templates/whitepages/STAFF_BOT_OPERATIONS.md</code></p>
+    </div>
+  </section>
+
+  <section class="doc" id="bugs-bounties">
+    <div class="dh"><div class="dh-num">09E</div><div><h2>Bugs + Bounties <span>Staff Vault</span></h2><p>Internal bug intake, triage, severity, reward, and disclosure policy for TriptokForge operations.</p></div></div>
+    <div class="callout amber"><div class="callout-icon">&#128274;</div><div><div class="c-title">Staff-only for now</div><p>This section should stay staff-only until there is a deliberate public responsible-disclosure lane, a monitored intake address, and clear safe-harbor language. Right now the correct move is internal triage first, public bounty program later.</p></div></div>
+    <div class="prose">
+      <h3>Why have this at all</h3>
+      <ul>
+        <li>It creates one shared process for bugs, abuse reports, exploit findings, and payout decisions instead of handling them ad hoc in Discord or DMs.</li>
+        <li>It gives moderators and admins a common severity model, which matters once staff accounts, bots, Forge exports, and member data are all live at the same time.</li>
+        <li>It keeps sensitive reports out of public feeds and out of the wrong WhitePages sections.</li>
+      </ul>
+      <h3>Recommended split</h3>
+      <ul>
+        <li><strong>Internal now:</strong> staff-only appendix, intake playbook, severity ladder, remediation owner, and optional discretionary rewards.</li>
+        <li><strong>Public later:</strong> one small responsible-disclosure page with allowed testing scope, contact method, what not to test, and whether rewards are offered.</li>
+      </ul>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Severity</th><th>Examples</th><th>Immediate action</th></tr></thead>
+      <tbody>
+        <tr><td>S1 - Critical</td><td>auth bypass, admin takeover, secret exposure, writable storage abuse, destructive Oracle or OCI access</td><td>Freeze the affected surface, rotate secrets, log incident owner, and patch before discussing rewards.</td></tr>
+        <tr><td>S2 - High</td><td>staff privilege escalation, private member data exposure, unapproved bot posting or moderation action</td><td>Hotfix quickly, preserve logs, validate blast radius, and decide on discretionary reward after remediation.</td></tr>
+        <tr><td>S3 - Medium</td><td>channel abuse, broken gating, workflow bypass, Forge artifact mix-ups, limited post-edit abuse</td><td>Queue for prompt fix, write repro steps, and track regression coverage.</td></tr>
+        <tr><td>S4 - Low</td><td>visual issues, non-sensitive UX faults, copy drift, minor layout bugs</td><td>Backlog unless the issue blocks an important journey.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="prose">
+      <h3>What should qualify for bounty consideration</h3>
+      <ul>
+        <li>Clear reproduction steps that show a real security, abuse, data-leak, or privilege bug.</li>
+        <li>Good-faith reporting with no extortion, spam, destructive persistence, or unnecessary data access.</li>
+        <li>Testing that stays inside TriptokForge-owned surfaces and does not violate Epic, Oracle, GitHub, or third-party provider terms.</li>
+      </ul>
+      <h3>What should be explicitly out of scope</h3>
+      <ul>
+        <li>Testing that targets Epic account systems, EOS, Fortnite services, Oracle control-plane services, GitHub itself, or any provider surface not owned by TriptokForge.</li>
+        <li>Social engineering, phishing, staff harassment, credential stuffing, denial-of-service, or mass scraping.</li>
+        <li>Issues that only exist on outdated browsers, modified clients, or deliberately broken local environments unless they expose a real platform weakness.</li>
+      </ul>
+      <h3>Suggested internal workflow</h3>
+      <ol>
+        <li>Log the report in staff channels or a dedicated internal tracker with reporter, scope, severity, repro, and affected surface.</li>
+        <li>Assign an owner from admin or moderation depending on whether the issue is infrastructure, content abuse, or workflow abuse.</li>
+        <li>Patch first, then decide whether the report deserves a reward, public thanks, private thanks, or no reward.</li>
+        <li>If the issue touches brand, Epic auth, or third-party data boundaries, document the fix and policy note inside WhitePages before closing it out.</li>
+      </ol>
+    </div>
+    <div class="callout green"><div class="callout-icon">&#9873;</div><div><div class="c-title">Recommended stance</div><p>Yes, TriptokForge should have a Bugs + Bounties area. The right first version is this staff-only appendix. Only open a public bounty or disclosure program after the intake path, ops ownership, and legal/terms boundaries are explicit.</p></div></div>
+    <div class="prose">
+      <p>Reference note: <code>templates/whitepages/BUGS_BOUNTIES_RUNBOOK.md</code></p>
     </div>
   </section>
   {% endif %}

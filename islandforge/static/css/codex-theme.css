@@ -301,6 +301,7 @@ body.codex-page::after {
 .tag-live { background: rgba(0,255,65,.09); color: var(--term-green); border: 1px solid rgba(0,255,65,.22); }
 .tag-wip  { background: rgba(255,170,0,.09); color: var(--amber); border: 1px solid rgba(255,170,0,.22); }
 .tag-todo { background: rgba(30,58,42,.28); color: var(--mid); }
+.tag-staff { background: rgba(0,234,255,.08); color: var(--jarvis); border: 1px solid rgba(0,234,255,.22); }
 
 /* ── CONTENT ─────────────────────────────────────────────── */
 .content { margin-left: var(--sw); flex: 1; min-width: 0; padding: 0 0 120px; }
