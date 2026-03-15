@@ -26,6 +26,7 @@
   <span class="nav-crumb">WHITEPAGES</span>
   <div class="nav-links">
     <a href="#overview" class="nav-a">Platform</a>
+    <a href="#member-hub" class="nav-a">Members</a>
     <a href="#deploy" class="nav-a">Deploy</a>
     <a href="#forge-runbook" class="nav-a">Forge</a>
     <a href="#workspace-audit" class="nav-a">Audit</a>
@@ -47,6 +48,7 @@
   <div class="sb-group">
     <div class="sb-glabel">Platform</div>
     <a href="#overview" class="sb-a active"><span class="ic">&#9672;</span>Overview</a>
+    <a href="#member-hub" class="sb-a"><span class="ic">&#9786;</span>Member Hub</a>
     <a href="#architecture" class="sb-a"><span class="ic">&#9633;</span>Architecture</a>
     <a href="#channels" class="sb-a"><span class="ic">&#9658;</span>Channels</a>
     <a href="#arena" class="sb-a"><span class="ic">&#9654;</span>Arena</a>
@@ -106,12 +108,57 @@
         <li>Island Forge generates UEFN terrain from uploaded audio analysis and writes each run into a named output folder with PNG, JSON, manifest, and Verse package artifacts.</li>
         <li>Channels provides a multi-category embedded guide with suggestions.</li>
         <li>Arena now has a dedicated A-Frame spectator deck at <code>/arena</code> with leaderboard, theater, and ops-rail concepts.</li>
+        <li>The member hub already exposes a telemetry deck, stat cards, ticker rails, and ecosystem radar as the base for the future immersive room.</li>
         <li>Community and feed routes support social posts, updates, and member identity.</li>
         <li>Oracle Autonomous Database stores members, posts, islands, and channels.</li>
         <li>OCI Object Storage serves public media and generated assets.</li>
       </ul>
     </div>
     <div class="callout green"><div class="callout-icon">&#9672;</div><div><div class="c-title">Status</div><p>Live at <code>triptokforge.org</code>. The platform is operating on Oracle now; Epic brand approval is the remaining gate for final production login credentials.</p></div></div>
+  </section>
+
+  <section class="doc" id="member-hub">
+    <div class="dh"><div class="dh-num">01A</div><div><h2>Member <span>Hub</span></h2><p>Logged-in player room, telemetry wall, and data surface map for the Bloomberg / JARVIS style dashboard vision.</p></div></div>
+    <div class="prose">
+      <h3>Experience target</h3>
+      <p>The long-term member experience is not a flat profile page. It is a room: one wall for generated island previews, another wall for player cards and earned status, and one main screen for a live telemetry deck with charts, heatmaps, ticker rails, and ecosystem cards.</p>
+      <ul>
+        <li><strong>Island wall:</strong> grid of generated island PNGs, recent runs, and named build folders.</li>
+        <li><strong>Player wall:</strong> Epic identity, locker skin, room theme, tickets, platform role, and earned badges.</li>
+        <li><strong>Main screen:</strong> large TV-style telemetry with stat cards, chart stacks, live rail updates, and cross-platform readiness indicators.</li>
+        <li><strong>Room styling:</strong> premium workshop / hero-lab language rather than a generic account dashboard.</li>
+      </ul>
+      <h3>Data surfaces we can actually use</h3>
+      <ul>
+        <li><strong>Epic login identity:</strong> account identity and session state from Epic authentication.</li>
+        <li><strong>Platform data:</strong> islands, uploads, tickets, channels, announcements, room theme, admin state, and other data we store in Oracle.</li>
+        <li><strong>Public Fortnite surfaces:</strong> public shop, cosmetics, and published-island analytics once a real island code is live.</li>
+        <li><strong>Keyed Fortnite stat lookups:</strong> player stat snapshots when the external Fortnite stats key is configured.</li>
+        <li><strong>Product-side EOS data:</strong> stats, achievements, and progression for products we own and wire ourselves, not arbitrary third-party Epic games.</li>
+      </ul>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Surface</th><th>Can show in member hub</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Epic account identity</td><td>Yes</td><td>Use for authenticated member identity and session-aware UI.</td></tr>
+        <tr><td>Oracle platform records</td><td>Yes</td><td>Best source for islands, uploads, room state, tickets, activity, and custom achievements.</td></tr>
+        <tr><td>Public Fortnite feeds</td><td>Yes</td><td>Shop, cosmetics, and later island analytics can enrich the main screen.</td></tr>
+        <tr><td>External keyed Fortnite stats</td><td>Yes</td><td>Good for snapshot stat cards and trend visuals when the key is present.</td></tr>
+        <tr><td>All saved data across other Epic games</td><td>No</td><td>Do not design around this. That data is not generally exposed just because the user logged into Epic on our site.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Data boundary</div><p>Epic login does not equal universal access to every player save profile across Epic games. The correct model is: Epic identity + TriptokForge platform data + approved public Fortnite data + product-specific services we explicitly integrate.</p></div></div>
+    <div class="prose">
+      <h3>Dashboard build order</h3>
+      <ol>
+        <li>Stabilize the current member telemetry deck and keep all current cards sourced from real Oracle or Fortnite endpoints.</li>
+        <li>Add an island gallery wall inside the member room using the player&apos;s generated previews and saved metadata.</li>
+        <li>Add a player-card rack for badges, earned events, hub role, linked systems, and future TriptokForge-native achievements.</li>
+        <li>Upgrade the center screen into an immersive chart deck: deltas, heatmaps, activity timeline, ranked ladders, and event cards.</li>
+        <li>Add richer 3D or faux-3D panels only after the data rails are real and readable.</li>
+      </ol>
+      <p>Reference note: <code>templates/whitepages/MEMBER_HUB_ROADMAP.md</code></p>
+    </div>
   </section>
 
   <section class="doc" id="architecture">
