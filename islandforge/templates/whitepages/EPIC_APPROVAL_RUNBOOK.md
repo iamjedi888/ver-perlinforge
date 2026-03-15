@@ -57,7 +57,9 @@ sudo install -m 600 /dev/null /etc/islandforge.env
 sudo nano /etc/islandforge.env
 ```
 
-Add:
+Add only the real approved values on Oracle. Do not place them in WhitePages, tracked files, screenshots, or chat logs.
+
+Variable names only:
 
 ```ini
 APP_BASE_URL=https://triptokforge.org

@@ -56,8 +56,10 @@ Oracle usage:
 
 ```bash
 cd ~/ver-perlinforge/islandforge
-export ORACLE_PASSWORD='your-password'
+read -s ORACLE_PASSWORD
+export ORACLE_PASSWORD
 python3 seed_channels.py
+unset ORACLE_PASSWORD
 sudo systemctl restart islandforge
 ```
 

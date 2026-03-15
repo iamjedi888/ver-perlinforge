@@ -63,7 +63,7 @@ from oracle_db import (
 )
 
 platform_bp = Blueprint("platform", __name__)
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "triptokadmin2026")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COMMON_CHANNEL_CATEGORIES = [
     "Fortnite Competitive",
@@ -883,6 +883,10 @@ def _root_admin_alias(username: str) -> bool:
     return normalized in {"", "admin", "root", "root-admin", "rootadmin"}
 
 
+def _root_admin_enabled() -> bool:
+    return bool(str(ADMIN_PASSWORD or "").strip())
+
+
 def _log_auth_attempt(surface: str, username: str, success: bool, note: str = "") -> None:
     safe_username = str(username or "root-admin").strip() or "root-admin"
     remote_addr = request.headers.get("X-Forwarded-For") or request.remote_addr or "-"
@@ -1175,7 +1179,7 @@ def ops():
             username = (request.form.get("username") or "").strip()
             password = request.form.get("password") or ""
             account = None
-            if _root_admin_alias(username) and password == ADMIN_PASSWORD:
+            if _root_admin_enabled() and _root_admin_alias(username) and password == ADMIN_PASSWORD:
                 account = {
                     "id": 0,
                     "username": "root-admin",
@@ -1895,7 +1899,7 @@ def admin():
     if request.method == "POST":
         action = request.form.get("action")
         if action == "login":
-            if request.form.get("password") == ADMIN_PASSWORD:
+            if _root_admin_enabled() and (request.form.get("password") or "") == ADMIN_PASSWORD:
                 _set_staff_session(
                     {
                         "id": 0,
@@ -1911,7 +1915,10 @@ def admin():
                 return _admin_redirect("overview")
             else:
                 _log_auth_attempt("admin", "root-admin", False, "legacy admin password rejected")
-                flash("Wrong admin password.", "error")
+                if not _root_admin_enabled():
+                    flash("Legacy root-admin login is disabled until ADMIN_PASSWORD is configured on the server.", "error")
+                else:
+                    flash("Wrong admin password.", "error")
                 return _admin_redirect("login")
         if action == "logout":
             _clear_staff_session()

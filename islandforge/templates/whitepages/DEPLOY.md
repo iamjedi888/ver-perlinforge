@@ -75,9 +75,9 @@ EnvironmentFile=/etc/islandforge.env
 WantedBy=multi-user.target
 ```
 
-> Keep secrets in `/etc/islandforge.env` with mode `600`, not inline in tracked files or shell history.
+> Keep secrets in a protected Oracle-only secret source such as OCI Vault or a root-only env file like `/etc/islandforge.env` with mode `600`, not inline in tracked files, screenshots, chat logs, or shell history.
 
-Example `/etc/islandforge.env`:
+Example variable names only:
 
 ```ini
 APP_BASE_URL=https://triptokforge.org

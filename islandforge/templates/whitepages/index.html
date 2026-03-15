@@ -300,17 +300,16 @@
         <tr><td>Service</td><td><code>islandforge</code></td><td>systemd unit serving the Flask app.</td></tr>
         <tr><td>Health check</td><td><code>http://127.0.0.1:5000/health</code></td><td>Use after every restart.</td></tr>
         <tr><td>Git branch</td><td><code>main</code></td><td>Only deploy from the pushed main branch.</td></tr>
-        <tr><td>Brand handoff</td><td><code>APP_BASE_URL</code></td><td>Must match the public Epic-approved domain.</td></tr>
+        <tr><td>Brand handoff</td><td><code>Production base URL</code></td><td>Must match the public Epic-approved domain.</td></tr>
       </tbody>
     </table></div>
     <div class="prose">
-      <h3>Required env vars</h3>
+      <h3>Required server-side secret categories</h3>
       <ul>
-        <li><code>APP_BASE_URL=https://triptokforge.org</code></li>
-        <li><code>EPIC_CLIENT_ID</code></li>
-        <li><code>EPIC_CLIENT_SECRET</code></li>
-        <li><code>EPIC_DEPLOYMENT_ID</code></li>
-        <li><code>EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback</code> or the exact Epic-approved callback value already tied to the app.</li>
+        <li>Production base URL and callback configuration that exactly match the Epic-approved domain and redirect path.</li>
+        <li>Epic OAuth client credentials and deployment targeting for the approved environment.</li>
+        <li>Application session secret, legacy root-admin secret if still enabled, Oracle connection secrets, and OCI access configuration.</li>
+        <li>Keep these values only on Oracle, not in WhitePages, tracked files, screenshots, or shell history.</li>
       </ul>
     </div>
   </section>
@@ -424,8 +423,8 @@
       <h3>Current handoff</h3>
       <ul>
         <li>The login flow fails safely when secrets are missing instead of using hardcoded values.</li>
-        <li><code>APP_BASE_URL</code> drives the redirect base for production.</li>
-        <li><code>EPIC_REDIRECT_URI</code> can be set explicitly when Epic requires an exact callback URL.</li>
+        <li>The production base URL drives the redirect base for login and logout.</li>
+        <li>The callback path must exactly match the value approved by Epic for the production app.</li>
         <li>The login app belongs to the Epic Account Services / Developer Portal lane, not Fortnite Creator Portal publishing.</li>
       </ul>
       <p>Reference notes: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code> and <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code></p>
@@ -436,9 +435,9 @@
   <section class="doc" id="epic-approval">
     <div class="dh"><div class="dh-num">09A</div><div><h2>Epic <span>Approval Day</span></h2><p>Exact handoff steps for switching from pending OAuth to a real production login flow on <code>triptokforge.org</code>.</p></div></div>
     <div class="steps">
-      <div class="step"><div class="step-n">01</div><div class="step-b"><strong>Confirm Epic setup</strong><p>Verify the approved app is tied to <code>triptokforge.org</code> and that the redirect URI approved in Epic exactly matches the value you will set in <code>EPIC_REDIRECT_URI</code>.</p></div></div>
+      <div class="step"><div class="step-n">01</div><div class="step-b"><strong>Confirm Epic setup</strong><p>Verify the approved app is tied to <code>triptokforge.org</code> and that the approved callback path exactly matches the server-side callback configuration on Oracle.</p></div></div>
       <div class="step"><div class="step-n">02</div><div class="step-b"><strong>Prefer the canonical callback</strong><p>Use <code>https://triptokforge.org/auth/callback</code> for new approval requests. If Epic has already approved <code>/auth/epic/callback</code>, keep using that exact value until Epic changes it.</p></div></div>
-      <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Update Oracle env</strong><p>Set <code>APP_BASE_URL</code>, <code>EPIC_CLIENT_ID</code>, <code>EPIC_CLIENT_SECRET</code>, <code>EPIC_DEPLOYMENT_ID</code>, and <code>EPIC_REDIRECT_URI</code> on the server.</p></div></div>
+      <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Update Oracle secrets</strong><p>Load the approved production Epic credentials and callback settings on Oracle only. Do not place sensitive values in WhitePages, screenshots, or tracked files.</p></div></div>
       <div class="step"><div class="step-n">04</div><div class="step-b"><strong>Restart and verify</strong><p>Restart <code>islandforge</code>, test <code>/auth/epic</code>, confirm callback hits <code>/dashboard</code>, then test <code>/auth/logout</code>.</p></div></div>
     </div>
     <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Important boundary</div><p>Epic login gives us identity and approved product surfaces. It does not grant arbitrary private save data from unrelated Epic games.</p></div></div>

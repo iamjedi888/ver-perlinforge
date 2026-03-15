@@ -13,7 +13,7 @@
    - Database name: `TRIPTOKDB1`
    - Workload type: **Transaction Processing**
    - ✅ Always Free
-   - Password: create a strong one (e.g., `TriptokDB2026!`)
+   - Password: create a strong one and store it only in your protected Oracle server secret store
 5. Click **Create Autonomous Database**
 6. Wait ~2 minutes for it to provision (STATUS = AVAILABLE)
 
@@ -67,6 +67,8 @@ Use `triptokdb1_high` for your DSN.
 
 ## STEP 5 — Add Environment Variables via Protected Env File
 
+Use a protected Oracle-only secret source. OCI Vault is the strongest long-term option; a root-only env file is the minimum acceptable local pattern.
+
 ```bash
 sudo install -m 600 /dev/null /etc/islandforge.env
 sudo nano /etc/islandforge.env
@@ -76,7 +78,7 @@ Add:
 ```ini
 ORACLE_DSN=triptokdb1_high
 ORACLE_USER=ADMIN
-ORACLE_PASSWORD=TriptokDB2026!
+ORACLE_PASSWORD=YOUR_REAL_DB_PASSWORD_SET_ONLY_ON_SERVER
 ORACLE_WALLET=/home/ubuntu/wallet
 ```
 

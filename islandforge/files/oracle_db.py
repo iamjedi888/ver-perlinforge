@@ -8,7 +8,7 @@ CONNECTION:
   Set environment variables:
     ORACLE_DSN      = your_db_name_high   (from wallet tnsnames.ora)
     ORACLE_USER     = ADMIN  (or a dedicated user)
-    ORACLE_PASSWORD = YourSecurePassword123!
+    ORACLE_PASSWORD = set_on_server_only
     ORACLE_WALLET   = /home/ubuntu/wallet  (path to unzipped wallet folder)
 
 TABLES:
