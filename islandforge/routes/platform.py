@@ -48,6 +48,7 @@ COMMON_CHANNEL_CATEGORIES = [
     "Gaming News",
     "Community Picks",
     "Chill Gaming",
+    "Chill / Music",
 ]
 CHANNEL_PROVIDER_HINTS = [
     "youtube",
@@ -78,6 +79,14 @@ BROADCAST_DISMISS_MODES = [
     "manual",
     "persistent",
 ]
+CHANNEL_AUTO_TOKENS = {
+    "",
+    "auto",
+    "auto detect",
+    "auto-detect",
+    "detect",
+    "suggested",
+}
 
 ESPORTS_SECTIONS = [
     {
@@ -293,6 +302,201 @@ def _short_id(value):
     return f"{value[:8]}...{value[-6:]}"
 
 
+def _normalize_channel_lines(value):
+    if isinstance(value, (list, tuple, set)):
+        items = [str(item or "").strip() for item in value]
+    else:
+        items = [line.strip() for line in str(value or "").splitlines()]
+    return [item for item in items if item]
+
+
+def _channel_signal_blob(*parts):
+    chunks = []
+    for part in parts:
+        if isinstance(part, (list, tuple, set)):
+            chunks.extend(str(item or "") for item in part)
+        else:
+            chunks.append(str(part or ""))
+    return " ".join(chunks).casefold()
+
+
+def _score_signal(signal, needles):
+    return sum(1 for needle in needles if needle in signal)
+
+
+def _infer_channel_category(name="", description="", source_urls_text="", search_terms_text="", provider_hint=""):
+    signal = _channel_signal_blob(name, description, source_urls_text, search_terms_text, provider_hint)
+    if not signal.strip():
+        return "Community Picks"
+
+    scores = {
+        "Fortnite Competitive": 0,
+        "Game Developers": 0,
+        "Esports": 0,
+        "Creative / UEFN": 0,
+        "Gaming News": 0,
+        "Community Picks": 0,
+        "Chill / Music": 0,
+    }
+
+    scores["Fortnite Competitive"] += _score_signal(
+        signal,
+        [
+            "fortnite",
+            "fncs",
+            "cash cup",
+            "battle royale",
+            "epic games fortnite",
+            "@fn_competitive",
+            "ranked",
+            "fortnite competitive",
+            "fortnite world cup",
+        ],
+    ) * 2
+    scores["Creative / UEFN"] += _score_signal(
+        signal,
+        [
+            "uefn",
+            "verse",
+            "creative 2.0",
+            "creative / uefn",
+            "fortnite creative",
+            "island builder",
+            "build your first island",
+            "unreal editor for fortnite",
+        ],
+    ) * 2
+    scores["Game Developers"] += _score_signal(
+        signal,
+        [
+            "unreal engine",
+            "unity",
+            "gdc",
+            "game developers conference",
+            "naughty dog",
+            "bungie",
+            "playstation",
+            "xbox",
+            "nintendo",
+            "developer",
+            "devlog",
+            "postmortem",
+        ],
+    ) * 2
+    scores["Esports"] += _score_signal(
+        signal,
+        [
+            "esports",
+            "valorant",
+            "counter-strike",
+            "cs2",
+            "rocket league",
+            "overwatch league",
+            "lck",
+            "vct",
+            "pgl",
+            "tournament",
+            "scrim",
+            "finals",
+        ],
+    ) * 2
+    scores["Gaming News"] += _score_signal(
+        signal,
+        [
+            "news",
+            "ign",
+            "gamespot",
+            "kotaku",
+            "digital foundry",
+            "pokemon",
+            "direct",
+            "showcase",
+            "state of play",
+            "update",
+            "headline",
+            "signal",
+        ],
+    ) * 2
+    scores["Community Picks"] += _score_signal(
+        signal,
+        [
+            "creator",
+            "community",
+            "highlights",
+            "clips",
+            "sypherpk",
+            "lachlan",
+            "ali-a",
+            "mythpat",
+            "fan",
+            "streamer",
+        ],
+    ) * 2
+    scores["Chill / Music"] += _score_signal(
+        signal,
+        [
+            "music",
+            "lofi",
+            "ost",
+            "soundtrack",
+            "square enix",
+            "final fantasy",
+            "nier",
+            "radio",
+            "beats",
+            "chill",
+            "piano",
+            "ambient",
+        ],
+    ) * 2
+
+    if "youtube.com/@" in signal or "twitch.tv/" in signal:
+        scores["Community Picks"] += 1
+    if "youtube.com/channel/ucmx60hycw1ieiplzzagfqxq" in signal:
+        scores["Chill / Music"] += 3
+    if "fortnite-api" in signal or "dev.epicgames.com" in signal:
+        scores["Game Developers"] += 1
+        scores["Fortnite Competitive"] += 1
+
+    best_category = max(scores, key=scores.get)
+    return best_category if scores[best_category] > 0 else "Community Picks"
+
+
+def _infer_channel_provider_hint(source_urls_text=""):
+    urls = _normalize_channel_lines(source_urls_text)
+    providers = set()
+    for url in urls:
+        signal = str(url or "").casefold()
+        if "youtube.com" in signal or "youtu.be" in signal:
+            providers.add("youtube")
+        elif "twitch.tv" in signal:
+            providers.add("twitch")
+        elif "kick.com" in signal:
+            providers.add("kick")
+        elif "streamable.com" in signal:
+            providers.add("streamable")
+
+    if not providers:
+        return ""
+    if len(providers) == 1:
+        return next(iter(providers))
+    return "mixed"
+
+
+def _infer_channel_rotation_mode(source_urls_text="", search_terms_text=""):
+    urls = _normalize_channel_lines(source_urls_text)
+    search_terms = _normalize_channel_lines(search_terms_text)
+    if len(urls) > 1:
+        return "random_pool"
+    if search_terms:
+        return "queue"
+    for url in urls:
+        signal = str(url or "").casefold()
+        if any(marker in signal for marker in ("/videos", "/streams", "/featured", "youtube.com/@", "youtube.com/channel/")):
+            return "queue"
+    return "single"
+
+
 def _safe_float(value, default=0.0):
     try:
         return float(value)
@@ -331,22 +535,37 @@ def _channel_payload(form):
     source_urls = [line.strip() for line in source_urls_text.splitlines() if line.strip()]
     primary_url = source_urls[0] if source_urls else ""
     search_terms_text = (form.get("search_terms_text") or "").strip()[:2000]
+    category_value = (form.get("category") or "").strip()[:64]
+    provider_hint = (form.get("provider_hint") or "").strip()[:32]
+    rotation_mode = (form.get("rotation_mode") or "").strip()[:32]
+    detected_category = _infer_channel_category(
+        name=form.get("name"),
+        description=form.get("description"),
+        source_urls_text=source_urls_text,
+        search_terms_text=search_terms_text,
+        provider_hint=provider_hint,
+    )
+    detected_provider_hint = _infer_channel_provider_hint(source_urls_text)
+    detected_rotation_mode = _infer_channel_rotation_mode(source_urls_text, search_terms_text)
     return {
         "channel_id": _to_int(form.get("channel_id")),
         "name": (form.get("name") or "").strip()[:128],
-        "category": ((form.get("category") or "").strip()[:64] or "Other"),
+        "category": detected_category if category_value.casefold() in CHANNEL_AUTO_TOKENS else (category_value or detected_category),
         "embed_url": primary_url[:1024],
         "source_urls_text": source_urls_text,
         "search_terms_text": search_terms_text,
         "description": (form.get("description") or "").strip()[:512],
-        "provider_hint": (form.get("provider_hint") or "").strip()[:32],
-        "rotation_mode": ((form.get("rotation_mode") or "").strip()[:32] or "single"),
+        "provider_hint": detected_provider_hint if provider_hint.casefold() in CHANNEL_AUTO_TOKENS else (provider_hint or detected_provider_hint),
+        "rotation_mode": detected_rotation_mode if rotation_mode.casefold() in CHANNEL_AUTO_TOKENS else (rotation_mode or detected_rotation_mode),
         "autoplay": 1 if _is_checked(form.get("autoplay")) else 0,
         "transition_title": (form.get("transition_title") or "").strip()[:128],
         "transition_copy": (form.get("transition_copy") or "").strip()[:512],
         "transition_seconds": _to_float((form.get("transition_seconds") or "").strip(), 0.9),
         "sort_order": _to_int((form.get("sort_order") or "").strip(), None),
         "approved": 1 if _is_checked(form.get("approved")) else 0,
+        "detected_category": detected_category,
+        "detected_provider_hint": detected_provider_hint,
+        "detected_rotation_mode": detected_rotation_mode,
     }
 
 

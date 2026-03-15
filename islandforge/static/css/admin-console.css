@@ -1,0 +1,321 @@
+:root {
+  --jarvis-cyan: #6de8ff;
+  --jarvis-cyan-dim: rgba(109, 232, 255, 0.12);
+  --jarvis-orange: #ff9e3d;
+  --jarvis-orange-dim: rgba(255, 158, 61, 0.12);
+  --jarvis-grid: rgba(82, 134, 194, 0.12);
+  --jarvis-glass: rgba(7, 13, 24, 0.68);
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::before {
+  background:
+    linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), rgba(0, 145, 255, 0.035) calc(100% - 1px)),
+    linear-gradient(180deg, transparent 0, transparent calc(100% - 1px), rgba(0, 145, 255, 0.04) calc(100% - 1px));
+  background-size: 120px 120px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent 92%);
+}
+
+body::after {
+  background:
+    radial-gradient(circle at 14% 12%, rgba(0, 145, 255, 0.16), transparent 18%),
+    radial-gradient(circle at 84% 18%, rgba(255, 158, 61, 0.13), transparent 16%),
+    radial-gradient(circle at 50% 0%, rgba(109, 232, 255, 0.1), transparent 28%);
+}
+
+.nav,
+.panel,
+.login-card {
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.nav {
+  background:
+    linear-gradient(180deg, rgba(7, 12, 20, 0.96), rgba(7, 9, 13, 0.92)),
+    linear-gradient(90deg, transparent, rgba(109, 232, 255, 0.06), transparent);
+}
+
+.panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(16, 22, 34, 0.94), rgba(8, 12, 20, 0.92)),
+    radial-gradient(circle at top, rgba(0, 145, 255, 0.08), transparent 38%);
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(140deg, rgba(109, 232, 255, 0.05), transparent 22%),
+    linear-gradient(320deg, rgba(255, 158, 61, 0.05), transparent 20%);
+  pointer-events: none;
+}
+
+.hero-copy h1 {
+  max-width: 20ch;
+}
+
+.hero-copy p,
+.hero-side .metric-label,
+.hero-side .metric-value {
+  position: relative;
+  z-index: 1;
+}
+
+.jarvis-deck {
+  display: grid;
+  grid-template-columns: 1.1fr 0.95fr 0.95fr;
+  gap: 18px;
+  margin: 0 0 18px;
+}
+
+.jarvis-body {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 18px;
+  align-items: center;
+}
+
+.jarvis-reactor {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(9, 18, 35, 0.92) 0%, rgba(7, 12, 22, 0.9) 58%, transparent 60%),
+    radial-gradient(circle at center, rgba(109, 232, 255, 0.18), transparent 64%);
+}
+
+.jarvis-reactor__core {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background:
+    radial-gradient(circle, rgba(109, 232, 255, 0.9) 0%, rgba(0, 145, 255, 0.42) 42%, rgba(3, 7, 12, 0.98) 78%);
+  box-shadow:
+    0 0 28px rgba(109, 232, 255, 0.35),
+    0 0 58px rgba(0, 145, 255, 0.18);
+}
+
+.jarvis-reactor__value {
+  font-family: "Orbitron", monospace;
+  font-size: 1.85rem;
+  letter-spacing: 2px;
+  color: #f2fbff;
+}
+
+.jarvis-reactor__label {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.52rem;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: rgba(109, 232, 255, 0.82);
+}
+
+.jarvis-ring,
+.jarvis-ring::before {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.jarvis-ring {
+  border: 1px solid rgba(109, 232, 255, 0.16);
+  animation: admin-spin 16s linear infinite;
+}
+
+.jarvis-ring::before {
+  content: "";
+  inset: 18px;
+  border: 1px dashed rgba(255, 158, 61, 0.16);
+}
+
+.jarvis-ring--b {
+  inset: 26px;
+  animation-direction: reverse;
+  animation-duration: 11s;
+}
+
+.jarvis-ring--c {
+  inset: 52px;
+  animation-duration: 8s;
+}
+
+.jarvis-copy h3,
+.jarvis-lab h3,
+.jarvis-rail h3 {
+  margin: 10px 0 10px;
+  font-size: 1.08rem;
+  letter-spacing: 1.3px;
+}
+
+.jarvis-copy p,
+.jarvis-lab p,
+.jarvis-rail p {
+  margin: 0;
+}
+
+.lab-stack,
+.rail-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.lab-row,
+.rail-row,
+.intel-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(36, 50, 70, 0.9);
+  background:
+    linear-gradient(180deg, rgba(8, 12, 20, 0.78), rgba(6, 9, 16, 0.78)),
+    radial-gradient(circle at top right, rgba(109, 232, 255, 0.08), transparent 40%);
+}
+
+.lab-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.lab-row strong,
+.rail-row strong,
+.intel-value {
+  font-family: "Orbitron", monospace;
+  color: #f3fbff;
+}
+
+.lab-meter {
+  margin-top: 14px;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lab-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--jarvis-cyan), var(--jarvis-orange));
+  box-shadow: 0 0 18px rgba(109, 232, 255, 0.28);
+}
+
+.intel-shell {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0 18px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(109, 232, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(4, 11, 22, 0.84), rgba(6, 10, 18, 0.9)),
+    radial-gradient(circle at top left, rgba(109, 232, 255, 0.08), transparent 34%);
+}
+
+.intel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.intel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.intel-reason {
+  margin-top: 6px;
+  color: var(--mid);
+  font-size: 0.92rem;
+}
+
+.detector-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detector-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(109, 232, 255, 0.16);
+  background: rgba(109, 232, 255, 0.08);
+  color: var(--jarvis-cyan);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.52rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.field-note {
+  color: var(--mid);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.field-note strong {
+  color: var(--jarvis-cyan);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.6rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.actions .btn[data-mode="ghost"] {
+  background: rgba(109, 232, 255, 0.06);
+  border-color: rgba(109, 232, 255, 0.18);
+  color: var(--jarvis-cyan);
+}
+
+@keyframes admin-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1220px) {
+  .jarvis-deck,
+  .jarvis-body,
+  .intel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .jarvis-reactor {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+@media (max-width: 760px) {
+  .intel-shell {
+    padding: 16px;
+  }
+}

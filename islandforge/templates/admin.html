@@ -263,8 +263,9 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
   .metrics, .field-grid, .field-grid.three, .status-list { grid-template-columns: 1fr; }
 }
 </style>
+<link rel="stylesheet" href="/static/css/admin-console.css"/>
 </head>
-<body>
+<body class="admin-console">
 
 <nav class="nav">
   {% set brand_href = '/home' %}
@@ -344,6 +345,64 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
       </div>
     </section>
 
+    {% set total_channel_count = admin_stats.approved_channels + admin_stats.pending_channels %}
+    {% set approval_rate = (((admin_stats.approved_channels / total_channel_count) * 100) if total_channel_count else 0)|round(0, 'common') %}
+    <section class="jarvis-deck">
+      <section class="panel jarvis-core">
+        <div class="panel-head">
+          <h2>Command <span>Nexus</span></h2>
+          <span class="pill teal">online</span>
+        </div>
+        <div class="body jarvis-body">
+          <div class="jarvis-reactor" aria-hidden="true">
+            <div class="jarvis-ring jarvis-ring--a"></div>
+            <div class="jarvis-ring jarvis-ring--b"></div>
+            <div class="jarvis-ring jarvis-ring--c"></div>
+            <div class="jarvis-reactor__core">
+              <div class="jarvis-reactor__value">{{ approval_rate }}%</div>
+              <div class="jarvis-reactor__label">approval rate</div>
+            </div>
+          </div>
+          <div class="jarvis-copy">
+            <span class="kicker">Ops AI</span>
+            <h3>Luxury pit-wall control room for channels, moderation, site state, and live command overrides.</h3>
+            <p>The admin surface now behaves more like a JARVIS console: content lanes on one side, emergency overlays on another, and a workshop-grade operating deck through the middle.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel jarvis-lab">
+        <div class="panel-head">
+          <h2>Workshop <span>Bay</span></h2>
+          <span class="pill blue">lab</span>
+        </div>
+        <div class="body">
+          <div class="lab-stack">
+            <div class="lab-row"><span class="metric-label">Broadcast modes</span><strong>{{ broadcast_display_modes|length }}</strong></div>
+            <div class="lab-row"><span class="metric-label">Rotation profiles</span><strong>{{ channel_rotation_modes|length }}</strong></div>
+            <div class="lab-row"><span class="metric-label">Known categories</span><strong>{{ channel_categories|length }}</strong></div>
+            <div class="lab-row"><span class="metric-label">Signal surfaces</span><strong>{{ admin_stats.audio + admin_stats.islands + admin_stats.announcements }}</strong></div>
+          </div>
+          <div class="lab-meter"><span style="width: {{ approval_rate }}%"></span></div>
+          <p style="margin-top:12px">Queue pressure and approval velocity surface here first so moderators can move fast without losing the premium command-center feel.</p>
+        </div>
+      </section>
+
+      <section class="panel jarvis-rail">
+        <div class="panel-head">
+          <h2>Hot <span>Lanes</span></h2>
+          <span class="pill amber">quick ops</span>
+        </div>
+        <div class="body">
+          <div class="rail-stack">
+            <div class="rail-row"><strong>Channels</strong><p>Auto-detect category, provider, and rotation from the source pool before publish.</p></div>
+            <div class="rail-row"><strong>Emergency UI</strong><p>Launch ticker, banner, modal, or blip overlays without leaving the deck.</p></div>
+            <div class="rail-row"><strong>WhitePages</strong><p>Manage tracks and site signals from the same laboratory surface.</p></div>
+          </div>
+        </div>
+      </section>
+    </section>
+
     <section class="panel">
       <div class="panel-head">
         <h2>Admin <span>Metrics</span></h2>
@@ -367,7 +426,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
             <span class="pill {% if edit_channel %}blue{% else %}teal{% endif %}">{{ "editing" if edit_channel else "new entry" }}</span>
           </div>
           <div class="body">
-            <p class="copy">Create a new channel, or load an existing one from the live catalog or queue to edit the name, category, source links, hover description, approval state, and ordering. Multi-link channels should use one URL per line.</p>
+            <p class="copy">Create a new channel, or load an existing one from the live catalog or queue to edit the name, category, source links, hover description, approval state, and ordering. Multi-link channels should use one URL per line, and the console can now auto-detect category, provider, and rotation.</p>
             <form method="POST" class="stack">
               <input type="hidden" name="action" value="{{ 'channel_update' if edit_channel else 'channel_create' }}"/>
               {% if edit_channel %}<input type="hidden" name="channel_id" value="{{ edit_channel.id }}"/>{% endif %}
@@ -378,13 +437,46 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
                 </div>
                 <div class="field">
                   <label for="channel-category">Category</label>
-                  <input id="channel-category" type="text" name="category" list="channel-category-list" maxlength="64" value="{{ edit_channel.category if edit_channel else 'Fortnite Competitive' }}"/>
+                  <input id="channel-category" type="text" name="category" list="channel-category-list" maxlength="64" value="{{ edit_channel.category if edit_channel else '' }}" placeholder="Leave blank or type auto to detect"/>
                   <datalist id="channel-category-list">
+                    <option value="Auto detect"></option>
                     {% for category in channel_categories %}
                       <option value="{{ category }}"></option>
                     {% endfor %}
                   </datalist>
+                  <div class="field-note"><strong>Auto detect</strong> uses the title, source URLs, search terms, and description to classify the lane.</div>
                 </div>
+              </div>
+              <div class="intel-shell" id="channel-intel">
+                <div class="intel-head">
+                  <div>
+                    <span class="kicker">Channel Intel</span>
+                    <h3>Signal classification engine</h3>
+                    <p class="copy" style="margin-top:10px">The deck watches the editor fields and suggests the right channel lane before you save.</p>
+                  </div>
+                  <div class="actions">
+                    <button type="button" class="btn secondary" id="channel-detect-btn">Scan Signals</button>
+                    <button type="button" class="btn" data-mode="ghost" id="channel-apply-btn">Apply Suggested</button>
+                  </div>
+                </div>
+                <div class="intel-grid">
+                  <article class="intel-card">
+                    <span class="metric-label">Suggested category</span>
+                    <div class="intel-value" id="channel-detect-category">{{ edit_channel.category if edit_channel else 'Community Picks' }}</div>
+                    <div class="intel-reason" id="channel-detect-reason">Waiting for stronger title, source, or description signals.</div>
+                  </article>
+                  <article class="intel-card">
+                    <span class="metric-label">Provider hint</span>
+                    <div class="intel-value" id="channel-detect-provider">{{ edit_channel.provider_hint if edit_channel else 'manual / mixed' }}</div>
+                    <div class="intel-reason">Guesses the playback source family from the current source pool.</div>
+                  </article>
+                  <article class="intel-card">
+                    <span class="metric-label">Rotation profile</span>
+                    <div class="intel-value" id="channel-detect-rotation">{{ edit_channel.rotation_mode if edit_channel else 'single' }}</div>
+                    <div class="intel-reason">Decides between single video, queue-based feeds, and random source pools.</div>
+                  </article>
+                </div>
+                <div class="detector-strip" id="channel-detect-tags"></div>
               </div>
               <div class="field-grid three">
                 <div class="field">
@@ -406,8 +498,9 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
               <div class="field-grid three">
                 <div class="field">
                   <label for="channel-provider">Provider hint</label>
-                  <input id="channel-provider" type="text" name="provider_hint" list="channel-provider-list" maxlength="32" value="{{ edit_channel.provider_hint if edit_channel else 'youtube' }}"/>
+                  <input id="channel-provider" type="text" name="provider_hint" list="channel-provider-list" maxlength="32" value="{{ edit_channel.provider_hint if edit_channel else 'auto' }}"/>
                   <datalist id="channel-provider-list">
+                    <option value="auto"></option>
                     {% for provider in channel_provider_hints %}
                       <option value="{{ provider }}"></option>
                     {% endfor %}
@@ -415,8 +508,9 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
                 </div>
                 <div class="field">
                   <label for="channel-rotation">Rotation mode</label>
-                  <input id="channel-rotation" type="text" name="rotation_mode" list="channel-rotation-list" maxlength="32" value="{{ edit_channel.rotation_mode if edit_channel else 'single' }}"/>
+                  <input id="channel-rotation" type="text" name="rotation_mode" list="channel-rotation-list" maxlength="32" value="{{ edit_channel.rotation_mode if edit_channel else 'auto' }}"/>
                   <datalist id="channel-rotation-list">
+                    <option value="auto"></option>
                     {% for mode in channel_rotation_modes %}
                       <option value="{{ mode }}"></option>
                     {% endfor %}
@@ -843,5 +937,6 @@ document.getElementById("wp-type")?.addEventListener("input", setTrackHint);
 setTrackHint();
 loadTracks();
 </script>
+<script src="/static/js/admin.js"></script>
 </body>
 </html>
