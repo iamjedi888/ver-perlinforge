@@ -19,22 +19,34 @@ Relevant code:
 - `routes/epic_auth_config.py`
 - `routes/auth.py`
 
+The app accepts both callback routes:
+
+- `https://triptokforge.org/auth/callback`
+- `https://triptokforge.org/auth/epic/callback`
+
+The important rule is that the value configured in Epic must exactly match `EPIC_REDIRECT_URI` on Oracle.
+
 ## Exact production target
 
 - Public base URL: `https://triptokforge.org`
-- Callback URL: `https://triptokforge.org/auth/callback`
+- Canonical callback URL: `https://triptokforge.org/auth/callback`
+- Alternate accepted callback URL: `https://triptokforge.org/auth/epic/callback`
 - Login entry: `https://triptokforge.org/auth/epic`
 - Logout entry: `https://triptokforge.org/auth/logout`
 
 ## Approval-day checklist
 
 1. Confirm the approved Epic application uses the production domain.
-2. Confirm the redirect URI registered with Epic matches:
+2. Confirm the redirect URI registered with Epic exactly matches the Oracle env value for `EPIC_REDIRECT_URI`.
+3. Prefer the canonical callback:
    `https://triptokforge.org/auth/callback`
-3. Put the approved values on Oracle.
-4. Restart `islandforge`.
-5. Test the full login and logout flow.
-6. Verify the member session lands on `/dashboard`.
+4. If Epic approval was already processed against:
+   `https://triptokforge.org/auth/epic/callback`
+   keep that value on Oracle until Epic changes it.
+5. Put the approved values on Oracle.
+6. Restart `islandforge`.
+7. Test the full login and logout flow.
+8. Verify the member session lands on `/dashboard`.
 
 ## Oracle env pattern
 
@@ -76,12 +88,13 @@ curl http://127.0.0.1:5000/health
 
 1. Open `/auth/epic`
 2. Complete Epic login
-3. Confirm callback lands at `/dashboard`
-4. Confirm session values are present:
+3. Confirm the callback path used by Epic matches `EPIC_REDIRECT_URI`
+4. Confirm the flow lands at `/dashboard`
+5. Confirm session values are present:
    - display name
    - Epic account id
    - dashboard nav
-5. Run logout and confirm it returns to `/home`
+6. Run logout and confirm it returns to `/home`
 
 ## Epic mark handling
 
@@ -135,6 +148,12 @@ Fix:
 - Only use the scopes and identity surfaces approved by Epic.
 - Keep site-side features within Epic and Fortnite rules.
 - Do not imply access to private cross-game player save data just because Epic login succeeded.
+
+## Portal note
+
+Treat the website login app as an Epic Account Services / Developer Portal item, not a Fortnite Creator Portal publishing item.
+
+Reference: `templates/whitepages/EPIC_CONTACT_MATRIX.md`
 
 ## Approval-day command set
 

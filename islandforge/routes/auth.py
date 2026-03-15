@@ -52,6 +52,7 @@ def auth_epic():
 
 
 @auth_bp.route("/auth/callback")
+@auth_bp.route("/auth/epic/callback")
 def auth_callback():
     config = get_epic_auth_config()
     if not epic_auth_ready(config):

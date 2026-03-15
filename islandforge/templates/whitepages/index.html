@@ -287,7 +287,7 @@
         <li><code>EPIC_CLIENT_ID</code></li>
         <li><code>EPIC_CLIENT_SECRET</code></li>
         <li><code>EPIC_DEPLOYMENT_ID</code></li>
-        <li><code>EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback</code></li>
+        <li><code>EPIC_REDIRECT_URI=https://triptokforge.org/auth/callback</code> or the exact Epic-approved callback value already tied to the app.</li>
       </ul>
     </div>
   </section>
@@ -343,7 +343,8 @@
         <tr><td><span class="method post">POST</span></td><td><code>/api/like/&lt;id&gt;</code></td><td>Like a feed post.</td></tr>
         <tr><td><span class="method post">POST</span></td><td><code>/api/suggest_channel</code></td><td>Queue a channel suggestion.</td></tr>
         <tr><td><span class="method get">GET</span></td><td><code>/auth/epic</code></td><td>Epic OAuth redirect entry point.</td></tr>
-        <tr><td><span class="method get">GET</span></td><td><code>/auth/callback</code></td><td>Epic OAuth callback and session setup.</td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/auth/callback</code></td><td>Canonical Epic OAuth callback and session setup.</td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/auth/epic/callback</code></td><td>Accepted compatibility callback alias for Epic OAuth.</td></tr>
         <tr><td><span class="method get">GET</span></td><td><code>/auth/logout</code></td><td>Clear session and return to site.</td></tr>
       </tbody>
     </table></div>
@@ -401,21 +402,23 @@
         <li>The login flow fails safely when secrets are missing instead of using hardcoded values.</li>
         <li><code>APP_BASE_URL</code> drives the redirect base for production.</li>
         <li><code>EPIC_REDIRECT_URI</code> can be set explicitly when Epic requires an exact callback URL.</li>
+        <li>The login app belongs to the Epic Account Services / Developer Portal lane, not Fortnite Creator Portal publishing.</li>
       </ul>
-      <p>Reference note: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code></p>
+      <p>Reference notes: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code> and <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code></p>
     </div>
   </section>
 
   <section class="doc" id="epic-approval">
     <div class="dh"><div class="dh-num">09A</div><div><h2>Epic <span>Approval Day</span></h2><p>Exact handoff steps for switching from pending OAuth to a real production login flow on <code>triptokforge.org</code>.</p></div></div>
     <div class="steps">
-      <div class="step"><div class="step-n">01</div><div class="step-b"><strong>Confirm Epic setup</strong><p>Verify the approved app is tied to <code>triptokforge.org</code> and the registered callback is <code>https://triptokforge.org/auth/callback</code>.</p></div></div>
-      <div class="step"><div class="step-n">02</div><div class="step-b"><strong>Update Oracle env</strong><p>Set <code>APP_BASE_URL</code>, <code>EPIC_CLIENT_ID</code>, <code>EPIC_CLIENT_SECRET</code>, <code>EPIC_DEPLOYMENT_ID</code>, and <code>EPIC_REDIRECT_URI</code> on the server.</p></div></div>
-      <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Restart and verify</strong><p>Restart <code>islandforge</code>, test <code>/auth/epic</code>, confirm callback hits <code>/dashboard</code>, then test <code>/auth/logout</code>.</p></div></div>
+      <div class="step"><div class="step-n">01</div><div class="step-b"><strong>Confirm Epic setup</strong><p>Verify the approved app is tied to <code>triptokforge.org</code> and that the redirect URI approved in Epic exactly matches the value you will set in <code>EPIC_REDIRECT_URI</code>.</p></div></div>
+      <div class="step"><div class="step-n">02</div><div class="step-b"><strong>Prefer the canonical callback</strong><p>Use <code>https://triptokforge.org/auth/callback</code> for new approval requests. If Epic has already approved <code>/auth/epic/callback</code>, keep using that exact value until Epic changes it.</p></div></div>
+      <div class="step"><div class="step-n">03</div><div class="step-b"><strong>Update Oracle env</strong><p>Set <code>APP_BASE_URL</code>, <code>EPIC_CLIENT_ID</code>, <code>EPIC_CLIENT_SECRET</code>, <code>EPIC_DEPLOYMENT_ID</code>, and <code>EPIC_REDIRECT_URI</code> on the server.</p></div></div>
+      <div class="step"><div class="step-n">04</div><div class="step-b"><strong>Restart and verify</strong><p>Restart <code>islandforge</code>, test <code>/auth/epic</code>, confirm callback hits <code>/dashboard</code>, then test <code>/auth/logout</code>.</p></div></div>
     </div>
     <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Important boundary</div><p>Epic login gives us identity and approved product surfaces. It does not grant arbitrary private save data from unrelated Epic games.</p></div></div>
     <div class="prose">
-      <p>Reference note: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code></p>
+      <p>Reference notes: <code>templates/whitepages/EPIC_APPROVAL_RUNBOOK.md</code>, <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code>, and <code>templates/whitepages/EPIC_OUTREACH_BRIEF.md</code></p>
     </div>
   </section>
 
@@ -439,6 +442,13 @@
         <li>Custom treatments or side-by-side mockups should still be submitted to Epic for review before publication.</li>
         <li>Assume any real <code>TriptokForge x Fortnite</code> or <code>TriptokForge x Epic</code> crossover lockup needs separate written permission.</li>
       </ul>
+      <h3>Contact and routing split</h3>
+      <ul>
+        <li>Use Epic Account Services / Developer Portal for the website login application and callback approval.</li>
+        <li>Use Creator Portal for island publishing, analytics, teams, and creator growth features.</li>
+        <li>Use Unreal branding/legal contacts for Unreal marks and example submissions.</li>
+        <li>Use support channels to request routing when a branding or collaboration ask crosses those lanes.</li>
+      </ul>
       <h3>Implementation rule</h3>
       <ul>
         <li>Do not put Epic marks into the main site lockup, favicon, or footer identity stack.</li>
@@ -448,7 +458,7 @@
     </div>
     <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Brand boundary</div><p>TriptokForge should look like TriptokForge. Epic branding can confirm platform relationship and approval context, but it should not visually read as co-ownership or a site re-skin.</p></div></div>
     <div class="prose">
-      <p>Reference notes: <code>templates/whitepages/EPIC_BRANDING.md</code> and <code>templates/whitepages/UE_TRADEMARK_SUBMISSION.md</code></p>
+      <p>Reference notes: <code>templates/whitepages/EPIC_BRANDING.md</code>, <code>templates/whitepages/UE_TRADEMARK_SUBMISSION.md</code>, <code>templates/whitepages/EPIC_CONTACT_MATRIX.md</code>, and <code>templates/whitepages/EPIC_OUTREACH_BRIEF.md</code></p>
     </div>
   </section>
 
