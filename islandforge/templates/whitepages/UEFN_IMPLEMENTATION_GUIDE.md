@@ -11,6 +11,19 @@ The goal is not "random terrain plus random props." The goal is a Fortnite-reada
 - chapter-aware material and gallery guidance
 - generated placement data that can be bound to built-in Fortnite assets in UEFN
 
+## Official UEFN lane
+
+Forge should target the current official workflow, not a fake zero-editor shortcut:
+
+1. Analyze the sound file on TriptokForge.
+2. Generate a heightmap, preview, placement plan, manifest, and Verse handoff package.
+3. In UEFN, create or open the destination island.
+4. If the island exceeds roughly 1 km on its widest axis, enable Streaming / World Partition before import.
+5. Import `heightmap.png` through Landscape Mode -> Import from File.
+6. Keep the direct square landscape lane at or below `2017 x 2017`, which fits current 2048-equivalent guidance for UEFN landscape import.
+7. Copy the generated Verse files into the project, build Verse, place the Verse-authored device or consumer, and bind generated slots to built-in Fortnite assets from the Fortnite content browser.
+8. Launch a session, validate terrain readability, streaming cells, and asset bindings, then iterate with the next numbered Forge run.
+
 ## Current world direction
 
 - Keep all 32 player plots in one shared cluster near the safe town.
@@ -66,9 +79,9 @@ That means the correct workflow is:
 
 This is still the right workflow. It is realistic, controllable, and publish-safe.
 
-## World Partition rule
+## Streaming and World Partition rule
 
-If the selected world scale exceeds roughly 2 km:
+If the selected world scale exceeds roughly 1 km on the widest axis:
 
 1. Open `Edit -> Project Settings -> World`
 2. Enable `World Partition`
@@ -81,7 +94,15 @@ For larger worlds, also keep these defaults in mind:
 - Section Size: `63x63`
 - Sections Per Component: `2x2`
 
-The same warning should appear in Forge, `layout.json`, and the generated README.
+The same warning should appear in Forge, `layout.json`, and the generated README. The generated direct square landscape should stay at or below `2017 x 2017` for the cleanest current UEFN import lane.
+
+## Verse and asset binding workflow
+
+- Put the generated Verse files into the project instead of treating them like detached notes.
+- Build Verse from inside UEFN after the files are added.
+- Place the Verse-authored device or whichever project-specific consumer reads the generated data.
+- Bind generated slot names to built-in Fortnite galleries, props, foliage, or materials in the editor.
+- Treat the package as a deterministic terrain and placement contract, not an attempt to silently bypass editor ownership of Fortnite content.
 
 ## Fortnite realism rules
 
@@ -118,3 +139,11 @@ The package should keep following these rules:
 - Expand runtime Verse consumers from data-only modules into project-ready spawn managers
 - Add per-theme town landmark profiles and road spline suggestions
 - Add a visual import checklist inside WhitePages with screenshots
+
+## Official references
+
+- Creating Landscapes in Unreal Editor for Fortnite
+- Streaming and HLODs in Unreal Editor for Fortnite
+- Using Prefabs and Galleries in Fortnite Creative
+- Programming with Verse in Unreal Editor for Fortnite
+- Create Your Own Device Using Verse in Unreal Editor for Fortnite

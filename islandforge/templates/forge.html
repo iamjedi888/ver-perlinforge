@@ -657,7 +657,7 @@
         </div>
         <div class="forge-brief__card">
           <span>Import mode</span>
-          <strong id="brief-import">World Partition ready</strong>
+          <strong id="brief-import">Direct UEFN lane</strong>
         </div>
         <div class="forge-brief__card">
           <span>Signal state</span>
@@ -722,15 +722,15 @@
       <div class="sec-label">Settlement Plan</div>
       <div class="psec-head">
         <div class="psec-title">Resolution + Plot Grid</div>
-        <div class="psec-copy">Define the map resolution and the plot layout pressure before the biome and town pass lands.</div>
+        <div class="psec-copy">Define the map resolution and the plot layout pressure before the biome and town pass lands. Keep the direct UEFN square import lane at 2017 x 2017 or below.</div>
       </div>
       <div class="ctrl">
         <label>Resolution <span class="val" id="size-val">2017²</span></label>
         <select id="size" onchange="document.getElementById('size-val').textContent=this.value+'²';wsUpdateInfo(_wsCm,_wsPreset,parseInt(document.querySelector('.ws-card-active')?.dataset.px||2017))">
           <option value="505">505 × 505 — Quick test</option>
           <option value="1009">1009 × 1009 — Standard / BR</option>
-          <option value="2017" selected>2017 × 2017 — Double BR ✓</option>
-          <option value="4033">4033 × 4033 — Skyrim scale</option>
+          <option value="2017" selected>2017 × 2017 — UEFN direct max ✓</option>
+          <option value="4033">4033 × 4033 — Research master (not direct UEFN)</option>
         </select>
       </div>
       <div class="ctrl">
@@ -750,7 +750,7 @@
         </div>
         <div class="intel-card">
           <span>Current locker</span>
-          <strong id="brief-resolution">2017 × 2017 capture rail</strong>
+          <strong id="brief-resolution">2017 × 2017 direct import rail</strong>
         </div>
       </div>
     </div>
@@ -760,7 +760,7 @@
       <div class="sec-label">Scale + Partition</div>
       <div class="psec-head">
         <div class="psec-title">Landscape Envelope</div>
-        <div class="psec-copy">Scale the island against known Fortnite and open-world references, then follow the World Partition rule when you cross the large-map threshold.</div>
+        <div class="psec-copy">Scale the island against known Fortnite and open-world references, then follow the streaming and World Partition path once you cross the 1 km axis threshold. Keep the direct square landscape export at or below 2017 x 2017.</div>
       </div>
 
       <!-- Preset cards -->
@@ -785,15 +785,15 @@
           <div class="ws-km">11 km</div>
           <div class="ws-desc">2× Battle Royale</div>
         </div>
-        <div class="ws-card" data-preset="skyrim"       data-cm="3700000"  data-px="4033" onclick="selectWorldSize(this)">
+        <div class="ws-card" data-preset="skyrim"       data-cm="3700000"  data-px="2017" onclick="selectWorldSize(this)">
           <div class="ws-name">Skyrim</div>
           <div class="ws-km">37 km</div>
-          <div class="ws-desc">Open world RPG</div>
+          <div class="ws-desc">Open world RPG / 2017 export cap</div>
         </div>
-        <div class="ws-card" data-preset="gta5"         data-cm="8100000"  data-px="8129" onclick="selectWorldSize(this)">
+        <div class="ws-card" data-preset="gta5"         data-cm="8100000"  data-px="2017" onclick="selectWorldSize(this)">
           <div class="ws-name">GTA V</div>
           <div class="ws-km">81 km</div>
-          <div class="ws-desc">Massive sandbox</div>
+          <div class="ws-desc">Massive sandbox / 2017 export cap</div>
         </div>
       </div>
 
@@ -822,15 +822,15 @@
         <span style="color:var(--med)">RESOLUTION:</span> <span id="ws-cpp" style="color:var(--text)">~546 cm/px (~5.5 m/px)</span>
       </div>
 
-      <!-- World Partition warning — only shown for large maps -->
+      <!-- Streaming / partition warning — shown when width exceeds current 1km lane -->
       <div id="wp-warning" style="margin-top:10px;padding:10px;background:rgba(255,107,53,.06);border:1px solid rgba(255,107,53,.3);border-radius:4px;display:none">
-        <div style="font-family:var(--mono);font-size:9px;color:var(--warn);letter-spacing:2px;margin-bottom:6px">⚠ WORLD PARTITION REQUIRED</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--warn);letter-spacing:2px;margin-bottom:6px">⚠ STREAMING / PARTITION LANE</div>
         <div style="font-family:var(--mono);font-size:9px;color:var(--dim);line-height:1.8">
-          Maps &gt; 2km need World Partition enabled in UEFN:<br>
+          Islands above 1km on the widest axis should enable Streaming and World Partition before heightmap import:<br>
           <span style="color:var(--text)">Edit → Project Settings → World<br>
           → Enable World Partition<br>
           → World Settings → Enable Streaming</span><br><br>
-          <span style="color:var(--warn)">Without this the landscape can fail to import or crash the editor.</span><br><br>
+          <span style="color:var(--warn)">Keep direct square landscape import at or below 2017 × 2017. Higher square resolutions are research-only unless you redesign the import path.</span><br><br>
           <span style="color:var(--accent)">Forge addendum:</span> if you change world scale, regenerate and then follow the WhitePages Forge Runbook before import. The generated <span style="color:var(--text)">layout.json</span> and package <span style="color:var(--text)">README.md</span> mirror the same steps.
         </div>
       </div>
@@ -841,7 +841,7 @@
         </div>
         <div class="intel-card">
           <span>UEFN note</span>
-          <strong>Large worlds need streaming enabled before heightmap import, not after.</strong>
+          <strong>UEFN currently wants streaming prep above 1km and a 2017-class square landscape for the clean direct lane.</strong>
         </div>
       </div>
     </div>
@@ -1177,7 +1177,7 @@
     </div>
     <div id="forge-output-note" style="margin-top:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-family:var(--mono);line-height:1.7">
       <div id="forge-output-title" style="font-size:9px;letter-spacing:2px;color:var(--med);margin-bottom:4px">UEFN IMPORT LOCKER</div>
-      <div id="forge-output-copy" style="font-size:10px;color:var(--dim)">Generate a run to save heightmap, preview, layout, placement plan, manifest, and Verse files into outputs/Island#N. Use the WhitePages Forge Runbook when world scale crosses into World Partition territory, then bind the generated slot names to builtin Fortnite assets in UEFN.</div>
+      <div id="forge-output-copy" style="font-size:10px;color:var(--dim)">Generate a run to save heightmap, preview, layout, placement plan, manifest, and Verse files into outputs/Island#N. Use the WhitePages Forge Runbook when world scale crosses the 1km streaming threshold, keep the direct square landscape import at or below 2017 x 2017, then bind the generated slot names to builtin Fortnite assets in UEFN.</div>
     </div>
   </div>
 </main>
@@ -1562,10 +1562,15 @@ function filterAudioLibrary() {
 function syncForgeConsole() {
   const themeLabel = $('theme')?.selectedOptions?.[0]?.textContent || $('theme')?.value || 'Chapter 1 - Athena';
   const locker = currentOutputTarget();
-  const importMode = _wsCm > 200_000 ? 'World Partition required' : 'Direct import ready';
+  const resolution = parseInt($('size')?.value || '2017', 10);
+  const streamingLane = _wsCm > 100_000;
+  const importMode = resolution > 2017
+    ? 'Research-only master field'
+    : (streamingLane ? 'Streaming + partition lane' : 'Direct UEFN lane');
   const sourceLabel = _playerFile ? _playerFile : 'Awaiting source rail';
-  const resolution = $('size')?.value || '2017';
-  const resolutionLabel = `${resolution} x ${resolution} capture rail`;
+  const resolutionLabel = resolution > 2017
+    ? `${resolution} x ${resolution} master / 2017 export cap`
+    : `${resolution} x ${resolution} direct import rail`;
   const topologyLabel = `${compassLabel(parseInt($('cluster_angle')?.value || 135))} cluster / ${$('spread-val')?.textContent || 'Normal'}`;
   const scaleLabel = formatWorldKm(_wsCm);
   const mapping = {
@@ -1806,8 +1811,8 @@ const WS_PRESETS = [
   { preset:'uefn_max',    cm:100_000,   px:1009, label:'1km'   },
   { preset:'br_chapter2', cm:550_000,   px:1009, label:'5.5km' },
   { preset:'double_br',   cm:1_100_000, px:2017, label:'11km'  },
-  { preset:'skyrim',      cm:3_700_000, px:4033, label:'37km'  },
-  { preset:'gta5',        cm:8_100_000, px:8129, label:'81km'  },
+  { preset:'skyrim',      cm:3_700_000, px:2017, label:'37km'  },
+  { preset:'gta5',        cm:8_100_000, px:2017, label:'81km'  },
 ];
 // Slider breakpoints: map 0-100 → cm logarithmically across presets
 // positions: 0=uefn_small, 20=uefn_max, 35=br_ch2, 50=double_br, 75=skyrim, 100=gta5
@@ -1885,7 +1890,7 @@ function wsUpdateInfo(cm, preset, recPx) {
   $('ws-bar-label').textContent = brLabel;
 
   // World Partition warning
-  const needsWP = cm > 200_000;
+  const needsWP = cm > 100_000;
   $('wp-warning').style.display = needsWP ? 'block' : 'none';
 
   // Auto-suggest resolution in the size dropdown if rec matches an option
@@ -1978,7 +1983,7 @@ async function generate() {
       $('dl-vz').classList.add('btn-disabled');
     }
     $('forge-output-title').textContent = `UEFN IMPORT LOCKER — ${d.output_folder_name || 'CURRENT RUN'}`;
-    $('forge-output-copy').textContent = `Saved to outputs/${d.output_folder_name || 'Island#N'} with heightmap.png, preview.png, layout.json, manifest.json, placement_plan.json, and ${d.verse_file_count || 0} generated package file(s)${(d.verse_file_count || 0) > 0 ? ', including verse_package.zip when packaging succeeds' : ''}. ${d.meta?.world_partition_warning ? 'World Partition is required for this size: follow WhitePages -> Forge Runbook before importing.' : 'This size can import without World Partition, but the same runbook still applies.'} Bind the generated slot names to builtin Fortnite assets in UEFN before expecting runtime placement.`;
+    $('forge-output-copy').textContent = `Saved to outputs/${d.output_folder_name || 'Island#N'} with heightmap.png, preview.png, layout.json, manifest.json, placement_plan.json, and ${d.verse_file_count || 0} generated package file(s)${(d.verse_file_count || 0) > 0 ? ', including verse_package.zip when packaging succeeds' : ''}. ${d.meta?.world_partition_warning ? 'Streaming / World Partition is recommended for this size: follow WhitePages -> Forge Runbook before importing.' : 'This size stays inside the lighter direct lane, but the same runbook still applies.'} ${d.meta?.uefn_import_note ? d.meta.uefn_import_note + ' ' : ''}Bind the generated slot names to builtin Fortnite assets in UEFN before expecting runtime placement.`;
     safeStorageSet(FORGE_RUN_STORAGE_KEY, JSON.stringify({
       output_folder_name: d.output_folder_name || '',
       island_name: $('island-name').value.trim() || d.output_folder_name || 'Island',

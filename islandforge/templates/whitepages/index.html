@@ -642,19 +642,19 @@
       <p>The important contract is now explicit: changing world scale changes the downstream UEFN steps. If Forge flags World Partition, the player needs to enable it before import instead of trying to brute-force the landscape into a default island.</p>
       <p>Reference note: <code>templates/whitepages/FORGE_AUDIO_WORLD_MODEL.md</code></p>
     </div>
-    <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Import rule</div><p>If the selected world scale exceeds roughly 2km, enable World Partition and Streaming in UEFN before importing the generated heightmap. The same warning is repeated in Forge, <code>layout.json</code>, and the generated package README.</p></div></div>
+    <div class="callout amber"><div class="callout-icon">&#9888;</div><div><div class="c-title">Import rule</div><p>If the selected world scale exceeds roughly 1km on the widest axis, enable Streaming and World Partition in UEFN before importing the generated heightmap. Keep the direct square landscape lane at or below <code>2017 x 2017</code>. The same warning is repeated in Forge, <code>layout.json</code>, and the generated package README.</p></div></div>
     <div class="prose" id="forge-runbook">
       <h3>Forge Runbook</h3>
       <ol>
         <li>Open <code>/forge</code>, upload an audio track, and let the analysis complete so the terrain weights reflect the real file instead of defaults.</li>
         <li>Name the world and choose the Fortnite chapter theme you want the asset manifest to target.</li>
-        <li>Set world scale, resolution, water level, wrap, farm direction, and cluster density. If the Forge World Partition flag appears, plan to enable World Partition in UEFN before import.</li>
+        <li>Set world scale, resolution, water level, wrap, farm direction, and cluster density. Keep the direct square landscape lane at or below <code>2017 x 2017</code>. If the Forge streaming flag appears, plan to enable World Partition in UEFN before import.</li>
         <li>Press Generate. Confirm the run saved into <code>outputs/WorldName#N/</code> and download or open the generated files from the Forge locker.</li>
-        <li>In UEFN, create or open the target island. For large worlds: <code>Edit -> Project Settings -> World -> Enable World Partition</code>, then <code>World Settings -> Enable Streaming</code>.</li>
-        <li>Import <code>heightmap.png</code> as the landscape using the recommended resolution from Forge. Use <code>preview.png</code> as a visual reference and <code>layout.json</code> for metadata, town center, and plot positions.</li>
-        <li>Copy the generated Verse files into your project or extract <code>verse_package.zip</code>. Keep the generated files together with <code>asset_manifest.json</code>, <code>landscape_config.json</code>, and <code>placement_plan.json</code>.</li>
-        <li>Bind the generated Verse slots to builtin Fortnite gallery and prop assets inside UEFN. The generated package documents supported builtin content-browser hints; it does not require custom shipped assets.</li>
-        <li>Treat the generated Verse files as data modules and binding scaffolds. The package tells UEFN what to place and what slots to wire; the editor still owns the final builtin asset binding and any project-specific runtime spawn logic.</li>
+        <li>In UEFN, create or open the target island. For worlds above roughly 1km on the widest axis: <code>Edit -> Project Settings -> World -> Enable World Partition</code>, then <code>World Settings -> Enable Streaming</code>.</li>
+        <li>Import <code>heightmap.png</code> through Landscape Mode -> Import from File using the recommended Forge resolution. Use <code>preview.png</code> as a visual reference and <code>layout.json</code> for metadata, town center, and plot positions.</li>
+        <li>Copy the generated Verse files into your project or extract <code>verse_package.zip</code>. Keep the generated files together with <code>asset_manifest.json</code>, <code>landscape_config.json</code>, and <code>placement_plan.json</code>, then build Verse in UEFN.</li>
+        <li>Bind the generated Verse slots to builtin Fortnite gallery and prop assets inside UEFN from the Fortnite content browser. The generated package documents supported builtin content-browser hints; it does not require custom shipped assets.</li>
+        <li>Treat the generated Verse files as data modules and binding scaffolds. The package tells UEFN what to place and what slots to wire; the editor still owns the final builtin asset binding, placed Verse device, and any project-specific runtime spawn logic.</li>
         <li>Launch a session, validate streaming cells, town placement, plot spacing, and coastline readability, then iterate by regenerating the next numbered run folder instead of overwriting the old one.</li>
       </ol>
     </div>

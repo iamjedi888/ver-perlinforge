@@ -3,6 +3,7 @@ routes/forge.py — Island Forge + Audio + Fortnite API endpoints
 Restored from server_old.py.
 """
 import io, base64, json, os, re, sys, traceback, secrets
+import gc
 from datetime import datetime
 import urllib.parse, urllib.request
 import numpy as np
@@ -78,6 +79,7 @@ THEME_ALIASES = {
     "chapter5": "Chapter 5",
     "chapter6": "Chapter 6",
 }
+UEFN_DIRECT_IMPORT_MAX_PX = 2017
 
 
 def _sanitize_world_name(value: str) -> str:
@@ -189,6 +191,7 @@ def generate():
         island_name    = (data.get("island_name") or data.get("world_name") or "").strip()
         seed           = int(data.get("seed", 42))
         size           = int(data.get("size", 2017))
+        requested_size_px = size
         n_plots        = int(data.get("plots", 32))
         spacing        = int(data.get("spacing", 40))
         incoming_weights = data.get("weights") or {}
@@ -210,7 +213,15 @@ def generate():
             world_size_cm = int(data.get("world_size_cm", DEFAULT_WORLD_SIZE_CM))
         water_level    = max(0.0, min(0.48, water_level))
         cluster_spread = max(0.5, min(2.0, cluster_spread))
-        if size not in (505, 1009, 2017, 4033): size = 1009
+        if size not in (505, 1009, 2017, 4033):
+            size = 1009
+        uefn_import_note = None
+        if size > UEFN_DIRECT_IMPORT_MAX_PX:
+            size = UEFN_DIRECT_IMPORT_MAX_PX
+            uefn_import_note = (
+                f"Requested {requested_size_px}px exceeds the current direct UEFN square landscape lane. "
+                f"Forge generated a {size}px UEFN-ready landscape export instead."
+            )
         for k, v in DEFAULT_WEIGHTS.items():
             weights.setdefault(k, v)
         weights = blend_theme_audio_weights(weights, theme_key)
@@ -246,6 +257,11 @@ def generate():
         layout["meta"]["theme_description"] = theme_profile.get("description", "")
         layout["meta"]["theme_land_biome_targets"] = theme_profile.get("land_biome_targets", {})
         layout["meta"]["uefn_asset_binding"] = "Bind generated Verse slot names to builtin Fortnite assets in UEFN editor"
+        layout["meta"]["requested_size_px"] = requested_size_px
+        layout["meta"]["generated_size_px"] = size
+        layout["meta"]["uefn_direct_import_limit_px"] = UEFN_DIRECT_IMPORT_MAX_PX
+        if uefn_import_note:
+            layout["meta"]["uefn_import_note"] = uefn_import_note
         run_name, output_folder_name, output_run_dir = _allocate_output_run(island_name)
         layout["meta"]["island_name"] = run_name
         layout["meta"]["output_folder_name"] = output_folder_name
@@ -276,8 +292,7 @@ def generate():
         hm_img = Image.fromarray(hm_16)
         heightmap_path = os.path.join(output_run_dir, "heightmap.png")
         hm_img.save(heightmap_path)
-        hm_buf = io.BytesIO(); hm_img.save(hm_buf, format="PNG")
-        _state["heightmap_bytes"] = hm_buf.getvalue()
+        _state["heightmap_bytes"] = None
         _write_json(os.path.join(output_run_dir, "layout.json"), layout)
         _state["layout"] = layout
         prev_size = min(size, 1009)
@@ -307,11 +322,13 @@ def generate():
         preview_path = os.path.join(output_run_dir, "preview.png")
         prev_img.save(preview_path)
         prev_buf = io.BytesIO(); prev_img.save(prev_buf, format="PNG")
-        _state["preview_bytes"] = prev_buf.getvalue()
-        prev_b64 = base64.b64encode(_state["preview_bytes"]).decode("utf-8")
+        prev_bytes = prev_buf.getvalue()
+        _state["preview_bytes"] = None
+        prev_b64 = base64.b64encode(prev_bytes).decode("utf-8")
         total = size * size
         biome_stats = [{"name": BIOME_NAMES.get(b, "?"), "pct": round(float(np.sum(biome == b)) / total * 100, 1), "colour": "rgb({},{},{})".format(*BIOME_COLOURS.get(b, (100,100,100)))} for b in sorted(BIOME_NAMES.keys()) if np.any(biome == b)]
 
+        verse_zip_ready = False
         if verse_package:
             for filename, content in verse_package.items():
                 _write_text(os.path.join(output_run_dir, filename), content)
@@ -319,7 +336,8 @@ def generate():
             if verse_zip_bytes:
                 with open(os.path.join(output_run_dir, "verse_package.zip"), "wb") as handle:
                     handle.write(verse_zip_bytes)
-                _state["verse_zip_bytes"] = verse_zip_bytes
+                verse_zip_ready = True
+                _state["verse_zip_bytes"] = None
             else:
                 _state["verse_zip_bytes"] = None
         else:
@@ -343,7 +361,7 @@ def generate():
                 "layout": "layout.json",
                 "preview": "preview.png",
                 "placement_plan": "placement_plan.json" if "placement_plan.json" in verse_package else "",
-                "verse_zip": "verse_package.zip" if _state.get("verse_zip_bytes") else "",
+                "verse_zip": "verse_package.zip" if verse_zip_ready else "",
                 "verse_files": sorted(list(verse_package.keys())),
             },
             "meta": layout["meta"],
@@ -353,9 +371,16 @@ def generate():
         _state["output_dir"] = output_run_dir
         _state["output_folder_name"] = output_folder_name
         _state["download_prefix"] = output_folder_name
-        _state["verse_package"] = verse_package or None
+        _state["verse_package"] = None
         session["forge_output_folder"] = output_folder_name
         session["forge_download_prefix"] = output_folder_name
+
+        del moisture, hm_16, hm_img, prev_img, prev_rgb
+        if "export_heightmap" in locals():
+            del export_heightmap
+        if "export_biome_map" in locals():
+            del export_biome_map
+        gc.collect()
 
         return jsonify({
             "ok": True,

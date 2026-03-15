@@ -48,6 +48,13 @@ Take a real sound file, analyze it into musical and spectral features, transform
    - generated Verse modules
    - `verse_package.zip` when packaging succeeds
 
+8. `UEFN editor import`
+   - create or open the target island in UEFN
+   - if the island exceeds roughly 1 km on the widest axis, enable Streaming / World Partition before import
+   - import `heightmap.png` through Landscape Mode -> Import from File
+   - keep the direct square landscape lane at or below `2017 x 2017`, which fits current 2048-equivalent guidance
+   - copy the generated Verse files into the project, build Verse, place the Verse-authored device or data consumer, and bind generated slots to built-in Fortnite assets in the editor
+
 ## Design rules
 
 - The same audio file and seed should generate the same world family.
@@ -55,6 +62,7 @@ Take a real sound file, analyze it into musical and spectral features, transform
 - Large-world generation must clearly flag World Partition requirements.
 - Generated Verse should describe placement intent and slot bindings, not pretend to bypass UEFN editor ownership.
 - Builtin Fortnite assets should remain the target asset lane unless a custom project explicitly expands beyond that.
+- Forge should follow the real UEFN sequence: website analysis and generation first, then landscape import, content-browser binding, and Verse/device placement inside UEFN.
 
 ## What good looks like
 

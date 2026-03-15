@@ -27,12 +27,14 @@ WORLD SIZE PRESETS  (pass --world_size to CLI, or world_size_cm to build_layout)
   "gta5"         → 8,100,000 cm  (   81km ×    81km)  approx. GTA V map
   Or pass any integer in cm directly.
 
-⚠️  WORLD PARTITION WARNING  ────────────────────────────────────────────────────
-  Maps larger than ~200,000 cm (2km) REQUIRE World Partition enabled in UEFN:
+⚠️  UEFN IMPORT WARNING  ────────────────────────────────────────────────────────
+  Current UEFN landscape import guidance is a maximum 2048×2048 vertices
+  (or equivalent), which maps cleanly to a 2017×2017 square heightmap export.
+  If the island exceeds ~100,000 cm (1km) on its widest axis, plan for
+  streaming / World Partition workflow before import:
     UEFN → Edit → Project Settings → World → Enable World Partition
     Then: World Settings → Enable Streaming
-  Without this, large landscapes will fail to load or crash the editor.
-  For "double_br" and above, also set:
+  For Battle Royale scale and above, also set:
     Landscape → Section Size: 63×63 quads
     Landscape → Sections Per Component: 2×2
     Recommended heightmap resolution for double_br: 2017×2017 px
@@ -52,18 +54,21 @@ WORLD_SIZE_PRESETS = {
     "gta5":       8_100_000,    #    81km ×    81km — approx. GTA V
 }
 
-# Default world size — 2× the Fortnite BR map, requires World Partition
+# Default world size — 2× the Fortnite BR map, requires streaming / partition prep
 DEFAULT_WORLD_SIZE_CM = WORLD_SIZE_PRESETS["double_br"]  # 1,100,000 cm
 
-# Recommended heightmap resolutions per size (UE5 valid landscape sizes)
-# UE5 valid sizes: 127, 253, 505, 1009, 2017, 4033, 8129
+# Current direct UEFN square landscape lane tops out at 2017 (2048-equivalent guidance).
+UEFN_DIRECT_IMPORT_MAX_PX = 2017
+UEFN_STREAMING_THRESHOLD_CM = WORLD_SIZE_PRESETS["uefn_max"]
+
+# Recommended UEFN-facing heightmap resolutions per size preset.
 RECOMMENDED_HEIGHTMAP_SIZE = {
     "uefn_small":   505,
     "uefn_max":    1009,
     "br_chapter2": 1009,
     "double_br":   2017,   # ~54cm/px at 11km — good detail
-    "skyrim":      4033,
-    "gta5":        8129,
+    "skyrim":      2017,   # keep export inside current direct UEFN square limit
+    "gta5":        2017,   # keep export inside current direct UEFN square limit
 }
 
 import argparse, json, math, os, sys
@@ -102,20 +107,20 @@ def perlin2d(x,y,perm):
 
 def octave_noise(size, octaves, persistence, lacunarity, scale, seed):
     perm = make_permutation(seed)
-    result = np.zeros((size,size), dtype=np.float64)
+    result = np.zeros((size, size), dtype=np.float32)
     amp=1.0; freq=1.0; maxv=0.0
-    lin = np.linspace(0, scale, size, endpoint=False)
+    lin = np.linspace(0, scale, size, endpoint=False, dtype=np.float32)
     xs, ys = np.meshgrid(lin, lin)
     for _ in range(octaves):
         result += amp * perlin2d(xs*freq, ys*freq, perm)
         maxv += amp; amp *= persistence; freq *= lacunarity
-    return result / maxv
+    return (result / maxv).astype(np.float32, copy=False)
 
 def nn(size, oct, per, lac, scale, seed):
     """Normalised noise 0..1"""
     n = octave_noise(size, oct, per, lac, scale, seed)
     lo,hi = n.min(), n.max()
-    return (n-lo)/(hi-lo+1e-9)
+    return ((n-lo)/(hi-lo+1e-9)).astype(np.float32, copy=False)
 
 # ─────────────────────────────────────────────────────────────
 # AUDIO ANALYSIS
@@ -202,7 +207,7 @@ def build_island_mask(size, seed, presence, bpm=120.0):
     mask = gaussian_filter(mask, sigma=size*0.015)
     lo, hi = mask.min(), mask.max()
     mask = (mask - lo) / (hi - lo + 1e-9)
-    return np.clip(mask, 0, 1)
+    return np.clip(mask, 0, 1).astype(np.float32, copy=False)
 
 # ─────────────────────────────────────────────────────────────
 # FORTNITE-STYLE BASE TERRAIN
@@ -257,7 +262,7 @@ def build_fortnite_terrain(size, seed, w, island_mask, terrain_profile=None):
     # ── Layer 4: Mountain ridges (sub_bass driven)
     # Fortnite has 1-3 distinct ridges, not scattered peaks
     n_ridges = max(1, min(4, int(round((1 + sub_bass * 2.5) * ridge_scale))))
-    ridge_terrain = np.zeros((size,size))
+    ridge_terrain = np.zeros((size, size), dtype=np.float32)
 
     for i in range(n_ridges):
         # Each ridge is a directional noise band
@@ -309,7 +314,7 @@ def build_fortnite_terrain(size, seed, w, island_mask, terrain_profile=None):
     land_fade = land_fade ** 1.5  # sharpen the coastal cliff
     terrain = terrain * land_fade
 
-    return terrain
+    return terrain.astype(np.float32, copy=False)
 
 # ─────────────────────────────────────────────────────────────
 # POI LANDING PADS
@@ -562,14 +567,14 @@ def generate_terrain(size, seed, weights, water_level=0.20, theme_name="chapter1
             water_level + 0.01 + 0.55 + (t - 0.7) * 1.5)
         terrain[land_px] = np.clip(compressed, water_level + 0.01, 1.0)
 
-    return np.clip(terrain, 0, 1), road_mask
+    return np.clip(terrain, 0, 1).astype(np.float32, copy=False), road_mask
 
 # ─────────────────────────────────────────────────────────────
 # MOISTURE + BIOMES
 # ─────────────────────────────────────────────────────────────
 
 def generate_moisture(size, seed):
-    return nn(size, 4, 0.5, 2.0, 2.0, seed + 999)
+    return nn(size, 4, 0.5, 2.0, 2.0, seed + 999).astype(np.float32, copy=False)
 
 # Biome IDs
 BIOME_WATER    = 0
@@ -1346,8 +1351,9 @@ def build_layout(height, biome, plot_positions, size, seed, weights,
 
     # Identify preset name for the warning message
     preset_name = next((k for k,v in WORLD_SIZE_PRESETS.items() if v == world_size_cm), "custom")
-    world_partition_required = world_size_cm > 200_000
+    world_partition_required = world_size_cm > UEFN_STREAMING_THRESHOLD_CM
     recommended_px = RECOMMENDED_HEIGHTMAP_SIZE.get(preset_name, size)
+    direct_import_ok = size <= UEFN_DIRECT_IMPORT_MAX_PX
 
     verse_plots = []
     for i, (row, col) in enumerate(plot_positions):
@@ -1384,7 +1390,7 @@ def build_layout(height, biome, plot_positions, size, seed, weights,
 
     cm_per_px = world_size_cm / size
 
-    # World Partition warning block — surfaced in the JSON for the UI to display
+    # Streaming / import warning block — surfaced in the JSON for the UI to display
     wp_warning = None
     if world_partition_required:
         wp_warning = {
@@ -1393,15 +1399,21 @@ def build_layout(height, biome, plot_positions, size, seed, weights,
             "world_size_km": round(world_size_cm / 100_000, 2),
             "recommended_heightmap_px": recommended_px,
             "current_heightmap_px": size,
+            "uefn_direct_import_limit_px": UEFN_DIRECT_IMPORT_MAX_PX,
             "steps": [
                 "UEFN → Edit → Project Settings → World → Enable World Partition",
                 "World Settings → Enable Streaming",
                 "Landscape → Section Size: 63×63 quads",
                 "Landscape → Sections Per Component: 2×2",
-                f"Recommended heightmap resolution for this size: {recommended_px}×{recommended_px} px",
+                f"Keep direct square landscape import at or below {UEFN_DIRECT_IMPORT_MAX_PX}×{UEFN_DIRECT_IMPORT_MAX_PX} px",
+                f"Recommended Forge export resolution for this size: {recommended_px}×{recommended_px} px",
                 "Import this heightmap via Landscape Mode → Import → select PNG",
             ]
         }
+        if not direct_import_ok:
+            wp_warning["steps"].append(
+                f"Current requested square heightmap ({size}×{size}) exceeds the direct UEFN square import lane; use a {recommended_px}×{recommended_px} export for import."
+            )
 
     return {
         "meta": {
@@ -1418,6 +1430,9 @@ def build_layout(height, biome, plot_positions, size, seed, weights,
             "weights": weights,
             "biome_coverage_pct": biome_pcts,
             "world_partition_warning": wp_warning,
+            "streaming_recommended": world_partition_required,
+            "uefn_direct_import_limit_px": UEFN_DIRECT_IMPORT_MAX_PX,
+            "direct_import_resolution_ok": direct_import_ok,
         },
         "town_center": {
             "pixel": [tc_row, tc_col],
@@ -1549,12 +1564,12 @@ WORLD SIZE PRESETS:
   skyrim       → 3,700,000 cm  (37km)       approx. Skyrim
   gta5         → 8,100,000 cm  (81km)       approx. GTA V
 
-  ⚠ Maps > 2km require World Partition enabled in UEFN Project Settings.
+  ⚠ Islands above 1km on the widest axis should be prepared for Streaming / World Partition in UEFN.
   The generated layout.json includes step-by-step setup instructions.
         """
     )
     ap.add_argument("--size",       type=int,   default=2017,
-                    help="Heightmap resolution in pixels. UE5 valid sizes: 505,1009,2017,4033. Default: 2017 (matches double_br)")
+                    help="Heightmap resolution in pixels. Forge keeps 2017 as the current direct UEFN square import ceiling; larger values are research-only.")
     ap.add_argument("--seed",       type=int,   default=42)
     ap.add_argument("--audio",      type=str,   default=None)
     ap.add_argument("--out",        type=str,   default=".")
@@ -1587,14 +1602,15 @@ WORLD SIZE PRESETS:
             return
 
     # World Partition warning to console
-    if world_size_cm > 200_000:
+    if world_size_cm > UEFN_STREAMING_THRESHOLD_CM:
         rec_px = RECOMMENDED_HEIGHTMAP_SIZE.get(preset_name, args.size)
         print(f"""
-⚠  WORLD PARTITION REQUIRED  ({'%.1f' % (world_size_cm/100_000)}km × {'%.1f' % (world_size_cm/100_000)}km)
+⚠  STREAMING / PARTITION RECOMMENDED  ({'%.1f' % (world_size_cm/100_000)}km × {'%.1f' % (world_size_cm/100_000)}km)
    1. UEFN → Edit → Project Settings → World → Enable World Partition
    2. World Settings → Enable Streaming
    3. Landscape → Section Size: 63×63 quads, Sections Per Component: 2×2
-   4. Recommended heightmap size for {preset_name}: {rec_px}×{rec_px} px
+   4. Keep direct square import at or below {UEFN_DIRECT_IMPORT_MAX_PX}×{UEFN_DIRECT_IMPORT_MAX_PX} px
+   5. Recommended Forge export size for {preset_name}: {rec_px}×{rec_px} px
       (Current: {args.size}×{args.size}{"  ✓" if args.size == rec_px else f"  — consider --size {rec_px}"})
 """)
 

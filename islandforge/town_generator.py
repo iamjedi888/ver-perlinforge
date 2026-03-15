@@ -527,7 +527,7 @@ def apply_town_to_terrain(terrain, town_mask, street_mask,
       - Lots / plaza: perfectly flat at pad elevation
       - Farm area: very flat, slightly lower than town pad
     """
-    terrain = terrain.copy()
+    terrain = np.asarray(terrain, dtype=np.float32)
     size    = terrain.shape[0]
 
     # Sample target elevation at town center
@@ -545,7 +545,7 @@ def apply_town_to_terrain(terrain, town_mask, street_mask,
     town_r_px  = int(np.sum(town_mask) ** 0.5)  # approx radius
 
     # Gaussian blend of pad elevation over town footprint
-    town_float = town_mask.astype(float)
+    town_float = town_mask.astype(np.float32, copy=False)
     town_blur  = gaussian_filter(town_float, sigma=max(2, town_r_px * 0.2))
     town_blend = np.clip(town_blur * 3.0, 0, 1)
 
@@ -553,7 +553,7 @@ def apply_town_to_terrain(terrain, town_mask, street_mask,
     terrain = terrain * (1 - town_blend) + pad_elev * town_blend
 
     # Streets: slightly recessed
-    street_blend = gaussian_filter(street_mask.astype(float), sigma=0.8)
+    street_blend = gaussian_filter(street_mask.astype(np.float32, copy=False), sigma=0.8)
     terrain = np.where(street_mask,
                        terrain * 0.1 + street_elev * 0.9,
                        terrain)
@@ -569,7 +569,7 @@ def apply_town_to_terrain(terrain, town_mask, street_mask,
                        terrain)
 
     # Farm: gently flat
-    farm_blend = gaussian_filter(farm_mask.astype(float), sigma=1.5)
+    farm_blend = gaussian_filter(farm_mask.astype(np.float32, copy=False), sigma=1.5)
     terrain = terrain * (1 - farm_blend * 0.7) + farm_elev * (farm_blend * 0.7)
 
     # Final smooth of the whole town region to remove seams
@@ -602,7 +602,7 @@ def paint_town_biomes(biome, town_mask, street_mask, plaza_mask, farm_mask):
     Farm pixels → BIOME_FARM
     Water pixels are never overwritten.
     """
-    biome = biome.copy()
+    biome = np.asarray(biome)
     not_water = biome != BIOME_WATER
 
     biome[farm_mask & not_water] = BIOME_FARM
