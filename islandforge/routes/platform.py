@@ -1560,6 +1560,9 @@ def ops():
 @platform_bp.route("/admin", methods=["GET","POST"])
 def admin():
     authed = bool(session.get("admin_authed"))
+    if request.method == "GET" and not authed:
+        flash("Use /ops for staff and admin login.", "success")
+        return redirect("/ops")
     if request.method == "POST":
         action = request.form.get("action")
         if action == "login":

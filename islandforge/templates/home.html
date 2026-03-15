@@ -101,7 +101,7 @@ h2{font-family:'Orbitron',monospace;font-size:clamp(20px,3vw,38px);font-weight:9
     {% if portal_logged_in %}
       <a href="{{ portal_exit_href }}" class="btn btn-p" style="padding:7px 18px">{{ portal_exit_label }} →</a>
     {% else %}
-      <a href="/admin" class="btn btn-o" style="padding:7px 18px">Admin</a>
+      <a href="/ops" class="btn btn-o" style="padding:7px 18px">Ops Login</a>
       <a href="/auth/epic" class="btn btn-p" style="padding:7px 18px">⚡ Connect Epic</a>
     {% endif %}
   </div>
@@ -164,10 +164,10 @@ h2{font-family:'Orbitron',monospace;font-size:clamp(20px,3vw,38px);font-weight:9
     <a href="/community" class="plink"><span class="plink-icon">◉</span>Community</a>
     <a href="{{ portal_exit_href }}" class="plink"><span class="plink-icon">◐</span>{{ portal_exit_label }}</a>
     <a href="/news" class="plink"><span class="plink-icon">◇</span>Newsroom</a>
-    <a href="/admin" class="plink"><span class="plink-icon">⚙</span>Admin</a>
+    <a href="/ops" class="plink"><span class="plink-icon">⚙</span>Ops Login</a>
     {% else %}
     <a href="/auth/epic" class="plink"><span class="plink-icon">⚡</span>Connect Epic</a>
-    <a href="/admin" class="plink"><span class="plink-icon">⚙</span>Admin</a>
+    <a href="/ops" class="plink"><span class="plink-icon">⚙</span>Ops Login</a>
     <a href="/privacy" class="plink"><span class="plink-icon">◇</span>Privacy</a>
     {% endif %}
   </div>

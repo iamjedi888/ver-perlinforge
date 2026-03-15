@@ -78,6 +78,9 @@
       <div class="eyebrow">TRIPTOKFORGE OPERATIONS</div>
       <h1>Luxury lab controls for staff, mods, and house bots.</h1>
       <p class="hero-copy-text">This is the role-aware operations deck. Admin keeps the full site-control surface. Moderators get a clean content lane. Bot operators tune persona, scope, and model choices without touching broader platform controls.</p>
+      <div class="hero-console-note">
+        <strong>Login path:</strong> use <code>/ops</code> for all named staff and bot-operator accounts. <code>/admin</code> is now a legacy admin bridge behind an active admin session.
+      </div>
       <div class="hero-tags">
         <span class="{{ role_pill(current_role) }}">{{ current_role_label }}</span>
         <span class="pill">{{ current_staff_name }}</span>
@@ -87,30 +90,35 @@
       </div>
     </div>
     <div class="hero-side">
-      <div class="metric-card">
+      <div class="metric-card metric-card--wide {% if ops_metrics.posts %}metric-card--hot{% endif %}">
         <span class="metric-label">Moderation Queue</span>
         <strong class="metric-value">{{ ops_metrics.posts }}</strong>
         <span class="metric-note">Recent editable posts</span>
+        <span class="metric-signal">{{ "Action ready" if ops_metrics.posts else "Clean deck" }}</span>
       </div>
       <div class="metric-card">
         <span class="metric-label">Staff Accounts</span>
         <strong class="metric-value">{{ ops_metrics.staff }}</strong>
         <span class="metric-note">Role-aware access</span>
+        <span class="metric-signal">Crew registry</span>
       </div>
       <div class="metric-card">
         <span class="metric-label">Bot Profiles</span>
         <strong class="metric-value">{{ ops_metrics.bots }}</strong>
         <span class="metric-note">Curated operator personas</span>
+        <span class="metric-signal">Persona bay</span>
       </div>
-      <div class="metric-card">
+      <div class="metric-card {% if ops_metrics.pending_drafts %}metric-card--alert{% endif %}">
         <span class="metric-label">Pending Drafts</span>
         <strong class="metric-value">{{ ops_metrics.pending_drafts }}</strong>
         <span class="metric-note">Waiting for admin review</span>
+        <span class="metric-signal">{{ "Review now" if ops_metrics.pending_drafts else "Queue clear" }}</span>
       </div>
       <div class="metric-card">
         <span class="metric-label">Audit Events</span>
         <strong class="metric-value">{{ ops_metrics.audit }}</strong>
         <span class="metric-note">Recent control-plane actions</span>
+        <span class="metric-signal">Flight recorder</span>
       </div>
     </div>
   </section>

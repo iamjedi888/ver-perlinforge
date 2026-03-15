@@ -95,6 +95,15 @@ def run_tests(base_url: str) -> int:
     )
     checks.append(
         {
+            "name": "legacy_admin_redirect",
+            "path": "/admin",
+            "method": "GET",
+            "validate": lambda s, h, b: s == 302 and h.get("Location", "").endswith("/ops"),
+            "detail": "legacy admin redirect",
+        }
+    )
+    checks.append(
+        {
             "name": "epic_entry",
             "path": "/auth/epic",
             "method": "GET",
