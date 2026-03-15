@@ -211,7 +211,11 @@
   <div class="global-footer__shell">
     <div class="global-footer__mast">
       <div class="global-footer__brand">
-        <a href="/home" class="global-footer__logo">Triptok<em>Forge</em></a>
+        <div class="global-footer__logo">
+          {% set brand_href = '/home' %}
+          {% set brand_tail = 'Live Platform' %}
+          {% include "_brand_lockup.html" %}
+        </div>
         <p class="global-footer__summary">
           Competitive Fortnite infrastructure for players, creators, and launch ops.
           Whitepages stays here in the footer so the top navigation stays focused on the product surface.

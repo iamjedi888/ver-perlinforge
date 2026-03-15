@@ -455,7 +455,10 @@ body.theme-marble .wall-strip-top{background:linear-gradient(90deg,transparent 5
 </head>
 <body>
 <nav>
-  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
+  {% set brand_href = '/home' %}
+  {% set brand_tail = 'Member Room' %}
+  {% set brand_compact = true %}
+  {% include "_brand_lockup.html" %}
   <div class="nav-tabs">
     <a href="{{ portal_exit_href }}" class="ntab">{{ portal_exit_label }}</a>
     <a href="/room" class="ntab active">My Room</a>

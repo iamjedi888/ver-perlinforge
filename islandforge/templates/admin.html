@@ -267,7 +267,10 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
 <body>
 
 <nav class="nav">
-  <a href="/home" class="brand">TriptokForge</a>
+  {% set brand_href = '/home' %}
+  {% set brand_tail = 'Ops Terminal' %}
+  {% set brand_compact = true %}
+  {% include "_brand_lockup.html" %}
   <span class="crumb">admin operations</span>
   <div class="nav-spacer"></div>
   <a href="{{ portal_exit_href }}" class="nav-link">{{ portal_exit_label }}</a>

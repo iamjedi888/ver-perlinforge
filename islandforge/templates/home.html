@@ -83,7 +83,10 @@ h2{font-family:'Orbitron',monospace;font-size:clamp(20px,3vw,38px);font-weight:9
 </head>
 <body>
 <nav>
-  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
+  {% set brand_href = '/home' %}
+  {% set brand_tail = 'Fortnite Esports Platform' %}
+  {% set brand_compact = true %}
+  {% include "_brand_lockup.html" %}
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="/forge">Island Forge</a>

@@ -385,12 +385,9 @@
 <div class="shell">
 
 <header>
-  <a href="/home" class="logo" aria-label="TriptokForge home">
-    <div class="logo-copy">
-      <span class="logo-mark">Triptok<em>Forge</em></span>
-      <span class="logo-sub">Island Forge // UEFN Procedural Generator</span>
-    </div>
-  </a>
+  {% set brand_href = '/home' %}
+  {% set brand_tail = 'Island Forge // UEFN Procedural Generator' %}
+  {% include "_brand_lockup.html" %}
   <div class="header-right">
     <a href="{{ portal_exit_href }}" class="portal-btn">{{ portal_exit_label }}</a>
     <div class="status-pill">

@@ -319,7 +319,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;ali
 </head>
 <body>
 <nav>
-  <a href="/home" class="nav-logo">Triptok<em>Forge</em></a>
+  {% set brand_href = '/home' %}
+  {% set brand_tail = 'Stat Grid' %}
+  {% set brand_compact = true %}
+  {% include "_brand_lockup.html" %}
   <div class="nav-links">
     <a href="/home">Home</a>
     <a href="/forge">Forge</a>

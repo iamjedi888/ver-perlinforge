@@ -1,0 +1,99 @@
+<style>
+.tf-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: #e6f1fb;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.tf-brand-lockup__mark {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 18px rgba(0, 229, 160, 0.12));
+}
+
+.tf-brand-lockup__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.tf-brand-lockup__title {
+  display: block;
+  font-family: "Orbitron", monospace;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #f4fbff;
+  white-space: nowrap;
+}
+
+.tf-brand-lockup__tail {
+  display: block;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.18em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: #79a3c8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 34ch;
+}
+
+.tf-brand-lockup:hover .tf-brand-lockup__title {
+  color: #00e5a0;
+}
+
+.tf-brand-lockup:hover .tf-brand-lockup__tail {
+  color: #a8d7ff;
+}
+
+.tf-brand-lockup--compact {
+  gap: 10px;
+}
+
+.tf-brand-lockup--compact .tf-brand-lockup__mark {
+  width: 30px;
+  height: 30px;
+}
+
+.tf-brand-lockup--compact .tf-brand-lockup__title {
+  font-size: 0.74rem;
+  letter-spacing: 0.2em;
+}
+
+.tf-brand-lockup--compact .tf-brand-lockup__tail {
+  font-size: 0.44rem;
+}
+
+@media (max-width: 720px) {
+  .tf-brand-lockup__tail {
+    display: none;
+  }
+}
+</style>
+
+{% set _brand_href = brand_href if brand_href is defined else '/home' %}
+{% set _brand_tail = brand_tail if brand_tail is defined else 'Fortnite Esports Platform' %}
+{% set _brand_label = brand_label if brand_label is defined else 'TriptokForge home' %}
+{% set _brand_class = brand_class if brand_class is defined else '' %}
+{% set _brand_compact = brand_compact if brand_compact is defined else false %}
+<a href="{{ _brand_href }}" class="tf-brand-lockup{% if _brand_compact %} tf-brand-lockup--compact{% endif %}{% if _brand_class %} {{ _brand_class }}{% endif %}" aria-label="{{ _brand_label }}">
+  <img src="/static/favicon.svg" alt="" class="tf-brand-lockup__mark"/>
+  <span class="tf-brand-lockup__copy">
+    <span class="tf-brand-lockup__title">TriptokForge</span>
+    {% if _brand_tail %}
+    <span class="tf-brand-lockup__tail">{{ _brand_tail }}</span>
+    {% endif %}
+  </span>
+</a>

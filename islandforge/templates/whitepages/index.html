@@ -18,10 +18,10 @@
 <canvas id="particle-canvas"></canvas>
 
 <nav class="nav">
-  <a href="/home" class="nav-logo">
-    <svg width="20" height="20" viewBox="0 0 256 256"><rect width="256" height="256" rx="44" fill="#07090d"/><polygon points="36,32 208,32 220,44 220,212 208,224 36,224 24,212 24,44" fill="#0d1018" stroke="#1a2535" stroke-width="2"/><rect x="44" y="62" width="168" height="34" fill="#00ff41"/><rect x="99" y="96" width="58" height="100" fill="#00ff41"/><polygon points="82,62 118,62 156,130 120,130" fill="#07090d"/><rect x="99" y="130" width="58" height="66" fill="#00ff41"/><rect x="44" y="196" width="168" height="10" fill="#00eaff"/></svg>
-    <span class="nav-mark">TriptokForge</span>
-  </a>
+  {% set brand_href = '/home' %}
+  {% set brand_tail = 'Builder Vault' %}
+  {% set brand_compact = true %}
+  {% include "_brand_lockup.html" %}
   <div class="nav-div"></div>
   <span class="nav-crumb">WHITEPAGES</span>
   <div class="nav-links">
@@ -351,7 +351,10 @@
 </div>
 
 <footer class="footer">
-  <span class="f-logo">TriptokForge</span>
+  {% set brand_href = '/whitepages' %}
+  {% set brand_tail = 'Builder Vault' %}
+  {% set brand_compact = true %}
+  {% include "_brand_lockup.html" %}
   <span class="f-sep">/</span>
   <span class="f-txt">Whitepages - Internal Builder Reference</span>
   <span class="f-copy">&copy; 2026 EuphoriAE Studios</span>

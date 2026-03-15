@@ -26,7 +26,7 @@ a{color:var(--teal)}
 </style>
 </head>
 <body>
-<nav><a href="/home" class="nav-logo">Triptok<em>Forge</em></a><div class="nav-r"><a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a></div></nav>
+<nav>{% set brand_href = '/home' %}{% set brand_tail = 'Privacy Policy' %}{% set brand_compact = true %}{% include "_brand_lockup.html" %}<div class="nav-r"><a href="{{ portal_exit_href }}">{{ portal_exit_label }}</a></div></nav>
 <div class="wrap">
   <div class="box">
     <h1>Privacy Policy</h1>
