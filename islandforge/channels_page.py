@@ -601,15 +601,26 @@ def build_channels_context(channels: list) -> dict:
         name = channel.get("name", "Unnamed")
         channel = apply_channel_override(name, channel)
         category = channel.get("category", "Other") or "Other"
-        source_urls = [normalize_source_url(url) for url in pool_source_urls(name, channel.get("embed_url", ""))]
-        search_terms = pool_search_terms(name)
+        structured_sources = channel.get("source_urls") or channel.get("source_urls_text") or channel.get("embed_url", "")
+        source_urls = [normalize_source_url(url) for url in pool_source_urls(name, structured_sources)]
+        search_terms = channel.get("search_terms") or channel.get("search_terms_text") or pool_search_terms(name)
+        if isinstance(search_terms, str):
+            search_terms = [line.strip() for line in search_terms.splitlines() if line.strip()]
+        else:
+            search_terms = [str(item or "").strip() for item in search_terms if str(item or "").strip()]
         source_url = source_urls[0] if source_urls else ""
         embed_url = detect_embed(source_url)
         mode = detect_feed_mode(source_url, embed_url)
         player_kind = detect_player_kind(source_url, embed_url)
         meta = CHANNEL_META.get(name, {})
         scope = meta.get("scope") or CATEGORY_SCOPES.get(category, "General")
-        has_rotation = len(source_urls) > 1 or bool(search_terms) or any(is_youtube_channel_feed_source(url) for url in source_urls)
+        stored_rotation_mode = channel.get("rotation_mode", "") or ""
+        has_rotation = (
+            stored_rotation_mode in {"queue", "random_pool"}
+            or len(source_urls) > 1
+            or bool(search_terms)
+            or any(is_youtube_channel_feed_source(url) for url in source_urls)
+        )
         seen_scopes.add(scope)
 
         group = groups.setdefault(
@@ -636,6 +647,12 @@ def build_channels_context(channels: list) -> dict:
                 "scope": scope,
                 "scope_slug": scope.lower().replace(" ", "-"),
                 "has_rotation": has_rotation,
+                "provider_hint": channel.get("provider_hint", "") or "",
+                "rotation_mode": stored_rotation_mode or ("queue" if has_rotation else "single"),
+                "autoplay": int(channel.get("autoplay") or 0),
+                "transition_title": channel.get("transition_title", "") or "",
+                "transition_copy": channel.get("transition_copy", "") or "",
+                "transition_seconds": float(channel.get("transition_seconds") or 0.9),
                 "official": bool(meta.get("official", False)),
                 "priority": int(meta.get("priority", 999)),
             }

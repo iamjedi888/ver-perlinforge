@@ -134,7 +134,7 @@ def db_available():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS members (
+CREATE TABLE members (
     epic_id      VARCHAR2(64)  PRIMARY KEY,
     display_name VARCHAR2(128) NOT NULL,
     avatar_url   VARCHAR2(512),
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS members (
     last_seen    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS audio_tracks (
+CREATE TABLE audio_tracks (
     id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     filename     VARCHAR2(256) NOT NULL,
     original_name VARCHAR2(256),
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS audio_tracks (
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS jukebox (
+CREATE TABLE jukebox (
     id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     track_id     NUMBER        REFERENCES audio_tracks(id) ON DELETE CASCADE,
     added_by     VARCHAR2(64),
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS jukebox (
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS announcements (
+CREATE TABLE announcements (
     id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title        VARCHAR2(256) NOT NULL,
     body         VARCHAR2(4000),
@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS announcements (
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS island_saves (
+CREATE TABLE island_saves (
     id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     seed         NUMBER        NOT NULL,
     creator_id   VARCHAR2(64),
@@ -197,7 +197,7 @@ CREATE TABLE IF NOT EXISTS island_saves (
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS posts (
+CREATE TABLE posts (
     id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     epic_id      VARCHAR2(64),
     display_name VARCHAR2(128),
@@ -209,19 +209,27 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS channels (
+CREATE TABLE channels (
     id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name         VARCHAR2(128) NOT NULL,
     category     VARCHAR2(64),
     embed_url    VARCHAR2(1024) NOT NULL,
     description  VARCHAR2(512),
+    source_urls_json CLOB,
+    search_terms_json CLOB,
+    provider_hint VARCHAR2(32),
+    rotation_mode VARCHAR2(32) DEFAULT 'single',
+    autoplay     NUMBER(1)     DEFAULT 1,
+    transition_title VARCHAR2(128),
+    transition_copy VARCHAR2(512),
+    transition_seconds NUMBER(6,2) DEFAULT 0.9,
     approved     NUMBER(1)     DEFAULT 0,
     suggested_by VARCHAR2(64),
     sort_order   NUMBER        DEFAULT 0,
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS wp_tracks (
+CREATE TABLE wp_tracks (
     id           NUMBER        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title        VARCHAR2(256) NOT NULL,
     artist       VARCHAR2(128),
@@ -261,6 +269,139 @@ def init_schema():
     except Exception as e:
         print(f"[oracle_db] Schema init failed: {e}")
         traceback.print_exc()
+        return False
+
+
+CHANNEL_SCHEMA_COLUMNS = {
+    "SOURCE_URLS_JSON": "CLOB",
+    "SEARCH_TERMS_JSON": "CLOB",
+    "PROVIDER_HINT": "VARCHAR2(32)",
+    "ROTATION_MODE": "VARCHAR2(32) DEFAULT 'single'",
+    "AUTOPLAY": "NUMBER(1) DEFAULT 1",
+    "TRANSITION_TITLE": "VARCHAR2(128)",
+    "TRANSITION_COPY": "VARCHAR2(512)",
+    "TRANSITION_SECONDS": "NUMBER(6,2) DEFAULT 0.9",
+}
+
+_channel_schema_checked = False
+
+
+def _column_exists(cur, table_name, column_name):
+    cur.execute(
+        """
+        SELECT COUNT(*)
+          FROM user_tab_columns
+         WHERE table_name = :table_name
+           AND column_name = :column_name
+        """,
+        {
+            "table_name": table_name.upper(),
+            "column_name": column_name.upper(),
+        },
+    )
+    row = cur.fetchone()
+    return bool(row and int(row[0] or 0) > 0)
+
+
+def _to_json_text_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        items = [str(item or "").strip() for item in value]
+    else:
+        raw = str(value or "").strip()
+        if not raw:
+            return []
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                items = [str(item or "").strip() for item in parsed]
+            else:
+                items = [part.strip() for part in raw.splitlines()]
+        except Exception:
+            items = [part.strip() for part in raw.splitlines()]
+    unique = []
+    seen = set()
+    for item in items:
+        if not item or item in seen:
+            continue
+        seen.add(item)
+        unique.append(item)
+    return unique
+
+
+def _json_dump_list(value):
+    return json.dumps(_to_json_text_list(value))
+
+
+def _channel_row_to_dict(columns, row):
+    record = dict(zip(columns, row))
+    source_urls = _to_json_text_list(record.get("source_urls_json"))
+    search_terms = _to_json_text_list(record.get("search_terms_json"))
+    if not source_urls and record.get("embed_url"):
+        source_urls = _to_json_text_list(record.get("embed_url"))
+    record["source_urls"] = source_urls
+    record["search_terms"] = search_terms
+    record["source_urls_text"] = "\n".join(source_urls)
+    record["search_terms_text"] = "\n".join(search_terms)
+    record["provider_hint"] = record.get("provider_hint") or ""
+    record["rotation_mode"] = record.get("rotation_mode") or ("queue" if len(source_urls) > 1 else "single")
+    record["autoplay"] = int(record.get("autoplay") or 0)
+    record["transition_title"] = record.get("transition_title") or ""
+    record["transition_copy"] = record.get("transition_copy") or ""
+    record["transition_seconds"] = float(record.get("transition_seconds") or 0.9)
+    return record
+
+
+def ensure_channel_schema():
+    global _channel_schema_checked
+    if _channel_schema_checked or not db_available():
+        return False
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        for column_name, definition in CHANNEL_SCHEMA_COLUMNS.items():
+            if _column_exists(cur, "CHANNELS", column_name):
+                continue
+            cur.execute(f"ALTER TABLE channels ADD ({column_name} {definition})")
+
+        cur.execute(
+            """
+            SELECT id, embed_url
+              FROM channels
+             WHERE source_urls_json IS NULL
+                OR autoplay IS NULL
+                OR rotation_mode IS NULL
+            """
+        )
+        rows = cur.fetchall()
+        for channel_id, embed_url in rows:
+            source_urls = _to_json_text_list(embed_url)
+            cur.execute(
+                """
+                UPDATE channels
+                   SET source_urls_json = COALESCE(source_urls_json, :source_urls_json),
+                       autoplay = COALESCE(autoplay, 1),
+                       rotation_mode = COALESCE(rotation_mode, :rotation_mode),
+                       transition_seconds = COALESCE(transition_seconds, 0.9)
+                 WHERE id = :id
+                """,
+                {
+                    "id": channel_id,
+                    "source_urls_json": json.dumps(source_urls),
+                    "rotation_mode": "queue" if len(source_urls) > 1 else "single",
+                },
+            )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        _channel_schema_checked = True
+        return True
+    except Exception as e:
+        print(f"[oracle_db] ensure_channel_schema error: {e}")
         return False
 
 
@@ -897,13 +1038,28 @@ def suggest_channel(name, category, embed_url, description, suggested_by):
     if not db_available():
         return False
     try:
+        ensure_channel_schema()
+        source_urls = _to_json_text_list(embed_url)
         conn = get_connection()
         cur  = conn.cursor()
         cur.execute("""
-            INSERT INTO channels (name, category, embed_url, description, suggested_by, approved)
-            VALUES (:name, :category, :embed_url, :description, :suggested_by, 0)
-        """, {"name": name, "category": category, "embed_url": embed_url,
-              "description": description, "suggested_by": suggested_by})
+            INSERT INTO channels (
+                name, category, embed_url, description, suggested_by, approved,
+                source_urls_json, rotation_mode, autoplay, transition_seconds
+            )
+            VALUES (
+                :name, :category, :embed_url, :description, :suggested_by, 0,
+                :source_urls_json, :rotation_mode, 1, 0.9
+            )
+        """, {
+            "name": name,
+            "category": category,
+            "embed_url": embed_url,
+            "description": description,
+            "suggested_by": suggested_by,
+            "source_urls_json": json.dumps(source_urls),
+            "rotation_mode": "queue" if len(source_urls) > 1 else "single",
+        })
         conn.commit()
         cur.close(); conn.close()
         return True
@@ -919,19 +1075,47 @@ def _next_channel_sort_order(cur, category):
     row = cur.fetchone()
     return int(row[0] or 0) if row else 0
 
-def create_channel(name, category, embed_url, description="", suggested_by="admin", approved=1, sort_order=None):
+def create_channel(
+    name,
+    category,
+    embed_url,
+    description="",
+    suggested_by="admin",
+    approved=1,
+    sort_order=None,
+    source_urls_json=None,
+    search_terms_json=None,
+    provider_hint="",
+    rotation_mode="single",
+    autoplay=1,
+    transition_title="",
+    transition_copy="",
+    transition_seconds=0.9,
+):
     """Create a channel entry."""
     if not db_available():
         return False
     try:
+        ensure_channel_schema()
         conn = get_connection()
         cur = conn.cursor()
         if sort_order is None:
             sort_order = _next_channel_sort_order(cur, category)
+        source_urls = _to_json_text_list(source_urls_json or embed_url)
+        search_terms = _to_json_text_list(search_terms_json)
+        rotation_mode = rotation_mode or ("queue" if len(source_urls) > 1 else "single")
         cur.execute(
             """
-            INSERT INTO channels (name, category, embed_url, description, suggested_by, approved, sort_order)
-            VALUES (:name, :category, :embed_url, :description, :suggested_by, :approved, :sort_order)
+            INSERT INTO channels (
+                name, category, embed_url, description, suggested_by, approved, sort_order,
+                source_urls_json, search_terms_json, provider_hint, rotation_mode, autoplay,
+                transition_title, transition_copy, transition_seconds
+            )
+            VALUES (
+                :name, :category, :embed_url, :description, :suggested_by, :approved, :sort_order,
+                :source_urls_json, :search_terms_json, :provider_hint, :rotation_mode, :autoplay,
+                :transition_title, :transition_copy, :transition_seconds
+            )
             """,
             {
                 "name": name,
@@ -941,6 +1125,14 @@ def create_channel(name, category, embed_url, description="", suggested_by="admi
                 "suggested_by": suggested_by,
                 "approved": approved,
                 "sort_order": sort_order,
+                "source_urls_json": json.dumps(source_urls),
+                "search_terms_json": json.dumps(search_terms),
+                "provider_hint": (provider_hint or "")[:32],
+                "rotation_mode": (rotation_mode or "single")[:32],
+                "autoplay": 1 if autoplay else 0,
+                "transition_title": (transition_title or "")[:128],
+                "transition_copy": (transition_copy or "")[:512],
+                "transition_seconds": float(transition_seconds or 0.9),
             },
         )
         conn.commit()
@@ -951,17 +1143,37 @@ def create_channel(name, category, embed_url, description="", suggested_by="admi
         print(f"[oracle_db] create_channel error: {e}")
         return False
 
-def update_channel(channel_id, name, category, embed_url, description="", sort_order=None, approved=None):
+def update_channel(
+    channel_id,
+    name,
+    category,
+    embed_url,
+    description="",
+    sort_order=None,
+    approved=None,
+    source_urls_json=None,
+    search_terms_json=None,
+    provider_hint="",
+    rotation_mode="single",
+    autoplay=1,
+    transition_title="",
+    transition_copy="",
+    transition_seconds=0.9,
+):
     """Update an existing channel entry."""
     if not db_available():
         return False
     try:
+        ensure_channel_schema()
         conn = get_connection()
         cur = conn.cursor()
         if sort_order is None:
             cur.execute("SELECT sort_order FROM channels WHERE id = :id", {"id": channel_id})
             row = cur.fetchone()
             sort_order = int(row[0] or 0) if row else 0
+        source_urls = _to_json_text_list(source_urls_json or embed_url)
+        search_terms = _to_json_text_list(search_terms_json)
+        rotation_mode = rotation_mode or ("queue" if len(source_urls) > 1 else "single")
         if approved is None:
             cur.execute(
                 """
@@ -970,7 +1182,15 @@ def update_channel(channel_id, name, category, embed_url, description="", sort_o
                        category = :category,
                        embed_url = :embed_url,
                        description = :description,
-                       sort_order = :sort_order
+                       sort_order = :sort_order,
+                       source_urls_json = :source_urls_json,
+                       search_terms_json = :search_terms_json,
+                       provider_hint = :provider_hint,
+                       rotation_mode = :rotation_mode,
+                       autoplay = :autoplay,
+                       transition_title = :transition_title,
+                       transition_copy = :transition_copy,
+                       transition_seconds = :transition_seconds
                  WHERE id = :id
                 """,
                 {
@@ -980,6 +1200,14 @@ def update_channel(channel_id, name, category, embed_url, description="", sort_o
                     "embed_url": embed_url,
                     "description": description,
                     "sort_order": sort_order,
+                    "source_urls_json": json.dumps(source_urls),
+                    "search_terms_json": json.dumps(search_terms),
+                    "provider_hint": (provider_hint or "")[:32],
+                    "rotation_mode": (rotation_mode or "single")[:32],
+                    "autoplay": 1 if autoplay else 0,
+                    "transition_title": (transition_title or "")[:128],
+                    "transition_copy": (transition_copy or "")[:512],
+                    "transition_seconds": float(transition_seconds or 0.9),
                 },
             )
         else:
@@ -991,7 +1219,15 @@ def update_channel(channel_id, name, category, embed_url, description="", sort_o
                        embed_url = :embed_url,
                        description = :description,
                        sort_order = :sort_order,
-                       approved = :approved
+                       approved = :approved,
+                       source_urls_json = :source_urls_json,
+                       search_terms_json = :search_terms_json,
+                       provider_hint = :provider_hint,
+                       rotation_mode = :rotation_mode,
+                       autoplay = :autoplay,
+                       transition_title = :transition_title,
+                       transition_copy = :transition_copy,
+                       transition_seconds = :transition_seconds
                  WHERE id = :id
                 """,
                 {
@@ -1002,6 +1238,14 @@ def update_channel(channel_id, name, category, embed_url, description="", sort_o
                     "description": description,
                     "sort_order": sort_order,
                     "approved": approved,
+                    "source_urls_json": json.dumps(source_urls),
+                    "search_terms_json": json.dumps(search_terms),
+                    "provider_hint": (provider_hint or "")[:32],
+                    "rotation_mode": (rotation_mode or "single")[:32],
+                    "autoplay": 1 if autoplay else 0,
+                    "transition_title": (transition_title or "")[:128],
+                    "transition_copy": (transition_copy or "")[:512],
+                    "transition_seconds": float(transition_seconds or 0.9),
                 },
             )
         conn.commit()
@@ -1017,11 +1261,14 @@ def get_channel(channel_id):
     if not db_available():
         return None
     try:
+        ensure_channel_schema()
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id, name, category, embed_url, description, suggested_by, sort_order, approved
+            SELECT id, name, category, embed_url, description, suggested_by, sort_order, approved,
+                   source_urls_json, search_terms_json, provider_hint, rotation_mode, autoplay,
+                   transition_title, transition_copy, transition_seconds
               FROM channels
              WHERE id = :id
             """,
@@ -1031,8 +1278,12 @@ def get_channel(channel_id):
         cur.close(); conn.close()
         if not row:
             return None
-        cols = ["id", "name", "category", "embed_url", "description", "suggested_by", "sort_order", "approved"]
-        return dict(zip(cols, row))
+        cols = [
+            "id", "name", "category", "embed_url", "description", "suggested_by", "sort_order", "approved",
+            "source_urls_json", "search_terms_json", "provider_hint", "rotation_mode", "autoplay",
+            "transition_title", "transition_copy", "transition_seconds",
+        ]
+        return _channel_row_to_dict(cols, row)
     except Exception as e:
         print(f"[oracle_db] get_channel error: {e}")
         return None
@@ -1042,14 +1293,40 @@ def get_channels(approved_only=True):
     if not db_available():
         return []
     try:
+        ensure_channel_schema()
         conn = get_connection()
         cur  = conn.cursor()
         if approved_only:
-            cur.execute("SELECT id, name, category, embed_url, description, suggested_by, sort_order FROM channels WHERE approved=1 ORDER BY category, sort_order, id")
+            cur.execute(
+                """
+                SELECT id, name, category, embed_url, description, suggested_by, sort_order,
+                       source_urls_json, search_terms_json, provider_hint, rotation_mode, autoplay,
+                       transition_title, transition_copy, transition_seconds
+                  FROM channels
+                 WHERE approved=1
+                 ORDER BY category, sort_order, id
+                """
+            )
         else:
-            cur.execute("SELECT id, name, category, embed_url, description, suggested_by, sort_order, approved FROM channels ORDER BY approved DESC, category, id")
-        cols = ["id","name","category","embed_url","description","suggested_by","sort_order"] if approved_only else ["id","name","category","embed_url","description","suggested_by","sort_order","approved"]
-        rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+            cur.execute(
+                """
+                SELECT id, name, category, embed_url, description, suggested_by, sort_order, approved,
+                       source_urls_json, search_terms_json, provider_hint, rotation_mode, autoplay,
+                       transition_title, transition_copy, transition_seconds
+                  FROM channels
+                 ORDER BY approved DESC, category, id
+                """
+            )
+        cols = (
+            ["id","name","category","embed_url","description","suggested_by","sort_order",
+             "source_urls_json","search_terms_json","provider_hint","rotation_mode","autoplay",
+             "transition_title","transition_copy","transition_seconds"]
+            if approved_only else
+            ["id","name","category","embed_url","description","suggested_by","sort_order","approved",
+             "source_urls_json","search_terms_json","provider_hint","rotation_mode","autoplay",
+             "transition_title","transition_copy","transition_seconds"]
+        )
+        rows = [_channel_row_to_dict(cols, row) for row in cur.fetchall()]
         cur.close(); conn.close()
         return rows
     except Exception as e:

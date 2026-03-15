@@ -43,6 +43,18 @@ COMMON_CHANNEL_CATEGORIES = [
     "Community Picks",
     "Chill Gaming",
 ]
+CHANNEL_PROVIDER_HINTS = [
+    "youtube",
+    "twitch",
+    "kick",
+    "streamable",
+    "mixed",
+]
+CHANNEL_ROTATION_MODES = [
+    "single",
+    "queue",
+    "random_pool",
+]
 
 ESPORTS_SECTIONS = [
     {
@@ -242,6 +254,13 @@ def _to_int(value, default=None):
         return default
 
 
+def _to_float(value, default=None):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _short_id(value):
     value = (value or "").strip()
     if not value:
@@ -285,12 +304,24 @@ def _top_member_rows(members=None, limit=8):
 
 
 def _channel_payload(form):
+    source_urls_text = (form.get("source_urls_text") or form.get("embed_url") or "").strip()[:4000]
+    source_urls = [line.strip() for line in source_urls_text.splitlines() if line.strip()]
+    primary_url = source_urls[0] if source_urls else ""
+    search_terms_text = (form.get("search_terms_text") or "").strip()[:2000]
     return {
         "channel_id": _to_int(form.get("channel_id")),
         "name": (form.get("name") or "").strip()[:128],
         "category": ((form.get("category") or "").strip()[:64] or "Other"),
-        "embed_url": (form.get("embed_url") or "").strip()[:1024],
+        "embed_url": primary_url[:1024],
+        "source_urls_text": source_urls_text,
+        "search_terms_text": search_terms_text,
         "description": (form.get("description") or "").strip()[:512],
+        "provider_hint": (form.get("provider_hint") or "").strip()[:32],
+        "rotation_mode": ((form.get("rotation_mode") or "").strip()[:32] or "single"),
+        "autoplay": 1 if _is_checked(form.get("autoplay")) else 0,
+        "transition_title": (form.get("transition_title") or "").strip()[:128],
+        "transition_copy": (form.get("transition_copy") or "").strip()[:512],
+        "transition_seconds": _to_float((form.get("transition_seconds") or "").strip(), 0.9),
         "sort_order": _to_int((form.get("sort_order") or "").strip(), None),
         "approved": 1 if _is_checked(form.get("approved")) else 0,
     }
@@ -501,6 +532,14 @@ def admin():
                 suggested_by=session.get("display_name") or "admin",
                 approved=payload["approved"],
                 sort_order=payload["sort_order"],
+                source_urls_json=payload["source_urls_text"],
+                search_terms_json=payload["search_terms_text"],
+                provider_hint=payload["provider_hint"],
+                rotation_mode=payload["rotation_mode"],
+                autoplay=payload["autoplay"],
+                transition_title=payload["transition_title"],
+                transition_copy=payload["transition_copy"],
+                transition_seconds=payload["transition_seconds"],
             )
             if not created:
                 flash("Channel creation failed.", "error")
@@ -524,6 +563,14 @@ def admin():
                 description=payload["description"],
                 sort_order=payload["sort_order"],
                 approved=payload["approved"],
+                source_urls_json=payload["source_urls_text"],
+                search_terms_json=payload["search_terms_text"],
+                provider_hint=payload["provider_hint"],
+                rotation_mode=payload["rotation_mode"],
+                autoplay=payload["autoplay"],
+                transition_title=payload["transition_title"],
+                transition_copy=payload["transition_copy"],
+                transition_seconds=payload["transition_seconds"],
             )
             if not ok:
                 flash("Channel update failed.", "error")
@@ -601,6 +648,8 @@ def admin():
             pending_channels=pending_channels,
             edit_channel=edit_channel,
             channel_categories=sorted(category_values),
+            channel_provider_hints=CHANNEL_PROVIDER_HINTS,
+            channel_rotation_modes=CHANNEL_ROTATION_MODES,
             admin_stats=admin_stats,
             system_status=status() if authed else {},
         )

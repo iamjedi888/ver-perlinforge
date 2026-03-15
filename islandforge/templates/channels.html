@@ -1138,12 +1138,12 @@ async function runTransition(title, copy, delay = 820) {
   setTransitionState(false);
 }
 
-function withAutoplay(url) {
+function withAutoplay(url, autoplayEnabled = true) {
   if (!url) return '';
   try {
     const resolved = new URL(url, window.location.origin);
     if (resolved.hostname.includes('youtube.com')) {
-      resolved.searchParams.set('autoplay', '1');
+      resolved.searchParams.set('autoplay', autoplayEnabled ? '1' : '0');
       resolved.searchParams.set('playsinline', '1');
       resolved.searchParams.set('rel', '0');
       resolved.searchParams.set('modestbranding', '1');
@@ -1161,12 +1161,12 @@ function withAutoplay(url) {
       return url;
     }
     if (resolved.hostname.includes('twitch.tv')) {
-      resolved.searchParams.set('autoplay', 'true');
+      resolved.searchParams.set('autoplay', autoplayEnabled ? 'true' : 'false');
       resolved.searchParams.set('muted', muted ? 'true' : 'false');
       return resolved.toString();
     }
     if (resolved.hostname.includes('kick.com')) {
-      resolved.searchParams.set('autoplay', 'true');
+      resolved.searchParams.set('autoplay', autoplayEnabled ? 'true' : 'false');
       if (muted) {
         resolved.searchParams.set('muted', 'true');
       } else {
@@ -1407,13 +1407,16 @@ async function loadChannel(channel) {
   setStageState(activeChannel, linkLabel);
 
   if (activeChannel.player_kind === 'iframe' && currentUrl) {
-    const transitionCopy = activeChannel.rotation_summary
+    const transitionTitle = activeChannel.transition_title || 'Routing next source';
+    const transitionCopy = activeChannel.transition_copy
+      || activeChannel.rotation_summary
       || (activeChannel.has_rotation ? 'Random autoplay queue armed.' : 'Autoplaying current source.');
-    await runTransition('Routing next source', transitionCopy, activeChannel.has_rotation ? 980 : 540);
+    const transitionMs = Math.max(120, Number(activeChannel.transition_seconds || 0.9) * 1000);
+    await runTransition(transitionTitle, transitionCopy, activeChannel.has_rotation ? transitionMs : Math.min(transitionMs, 540));
     if (requestId !== loadSequence) return;
     placeholder.style.display = 'none';
     iframe.style.display = 'block';
-    iframe.src = withAutoplay(currentUrl);
+    iframe.src = withAutoplay(currentUrl, Boolean(activeChannel.autoplay));
     setPlayerMessage(
       activeChannel.rotation_summary || activeChannel.description || (
         resolvedMode === 'replay'
@@ -1446,7 +1449,7 @@ function toggleMute() {
   btn.classList.toggle('muted', muted);
   if (currentUrl && currentChannel && currentChannel.player_kind === 'iframe') {
     const iframe = document.getElementById('ch-iframe');
-    iframe.src = withAutoplay(currentUrl);
+    iframe.src = withAutoplay(currentUrl, Boolean(currentChannel.autoplay));
   }
 }
 

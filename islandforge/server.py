@@ -19,6 +19,20 @@ if load_dotenv is not None:
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
 
+try:
+    from oracle_db import init_schema, ensure_channel_schema
+except ImportError:
+    init_schema = None
+    ensure_channel_schema = None
+
+if init_schema is not None:
+    try:
+        init_schema()
+        if ensure_channel_schema is not None:
+            ensure_channel_schema()
+    except Exception as exc:
+        print(f"[server] schema init skipped: {exc}")
+
 
 @app.context_processor
 def inject_portal_nav():

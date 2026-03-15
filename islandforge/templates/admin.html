@@ -383,7 +383,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
               <div class="field-grid three">
                 <div class="field">
                   <label for="channel-url">Source URL(s)</label>
-                  <textarea id="channel-url" name="embed_url" maxlength="1024" placeholder="One URL per line. Supports YouTube /videos feeds, playlists, and direct video links." required>{{ edit_channel.embed_url if edit_channel else '' }}</textarea>
+                  <textarea id="channel-url" name="source_urls_text" maxlength="4000" placeholder="One URL per line. Supports YouTube /videos feeds, playlists, and direct video links." required>{{ edit_channel.source_urls_text if edit_channel else '' }}</textarea>
                 </div>
                 <div class="field">
                   <label for="channel-sort">Sort order</label>
@@ -397,9 +397,54 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
                   </label>
                 </div>
               </div>
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="channel-provider">Provider hint</label>
+                  <input id="channel-provider" type="text" name="provider_hint" list="channel-provider-list" maxlength="32" value="{{ edit_channel.provider_hint if edit_channel else 'youtube' }}"/>
+                  <datalist id="channel-provider-list">
+                    {% for provider in channel_provider_hints %}
+                      <option value="{{ provider }}"></option>
+                    {% endfor %}
+                  </datalist>
+                </div>
+                <div class="field">
+                  <label for="channel-rotation">Rotation mode</label>
+                  <input id="channel-rotation" type="text" name="rotation_mode" list="channel-rotation-list" maxlength="32" value="{{ edit_channel.rotation_mode if edit_channel else 'single' }}"/>
+                  <datalist id="channel-rotation-list">
+                    {% for mode in channel_rotation_modes %}
+                      <option value="{{ mode }}"></option>
+                    {% endfor %}
+                  </datalist>
+                </div>
+                <div class="field">
+                  <label>Playback</label>
+                  <label class="toggle">
+                    <input type="checkbox" name="autoplay" {% if not edit_channel or edit_channel.autoplay %}checked{% endif %}/>
+                    Autoplay
+                  </label>
+                </div>
+              </div>
               <div class="field">
                 <label for="channel-description">Hover / card description</label>
                 <textarea id="channel-description" name="description" maxlength="512" placeholder="This text appears on the channel row and acts as your hover/card context.">{{ edit_channel.description if edit_channel else '' }}</textarea>
+              </div>
+              <div class="field">
+                <label for="channel-search-terms">Search terms</label>
+                <textarea id="channel-search-terms" name="search_terms_text" maxlength="2000" placeholder="One term per line. Used for provider feed matching like Square Enix music or Fortnite uploads.">{{ edit_channel.search_terms_text if edit_channel else '' }}</textarea>
+              </div>
+              <div class="field-grid three">
+                <div class="field">
+                  <label for="channel-transition-title">Transition title</label>
+                  <input id="channel-transition-title" type="text" name="transition_title" maxlength="128" value="{{ edit_channel.transition_title if edit_channel else '' }}" placeholder="Autoplay Relay"/>
+                </div>
+                <div class="field">
+                  <label for="channel-transition-copy">Transition copy</label>
+                  <input id="channel-transition-copy" type="text" name="transition_copy" maxlength="512" value="{{ edit_channel.transition_copy if edit_channel else '' }}" placeholder="Routing next source."/>
+                </div>
+                <div class="field">
+                  <label for="channel-transition-seconds">Transition seconds</label>
+                  <input id="channel-transition-seconds" type="text" name="transition_seconds" inputmode="decimal" value="{{ edit_channel.transition_seconds if edit_channel else '0.9' }}" placeholder="0.9"/>
+                </div>
               </div>
               <div class="actions">
                 <button type="submit" class="btn primary">{{ "Save Channel" if edit_channel else "Create Channel" }}</button>
@@ -428,7 +473,8 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
                       <span class="pill amber">pending</span>
                     </div>
                     <p>{{ channel.description or 'No description submitted.' }}</p>
-                    <p class="mono" style="margin:10px 0 0"><a class="link" href="{{ channel.embed_url.splitlines()[0] if channel.embed_url else '#' }}" target="_blank" rel="noopener noreferrer">{{ channel.embed_url }}</a></p>
+                    <p class="mono" style="margin:10px 0 0"><a class="link" href="{{ (channel.source_urls[0] if channel.source_urls else channel.embed_url) or '#' }}" target="_blank" rel="noopener noreferrer">{{ channel.source_urls_text or channel.embed_url }}</a></p>
+                    <p class="mono" style="margin:8px 0 0">mode={{ channel.rotation_mode or 'single' }} · autoplay={{ 'on' if channel.autoplay else 'off' }} · provider={{ channel.provider_hint or 'auto' }}</p>
                     <div class="queue-actions" style="margin-top:14px">
                       <form method="POST"><input type="hidden" name="action" value="channel_approve"/><input type="hidden" name="channel_id" value="{{ channel.id }}"/><button type="submit" class="btn primary">Approve</button></form>
                       <a href="/admin?edit_channel={{ channel.id }}#channel-editor" class="btn secondary">Edit</a>
@@ -453,14 +499,15 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Name</th><th>Category</th><th>Sort</th><th>Description</th><th>Actions</th></tr>
+                  <tr><th>Name</th><th>Category</th><th>Sort</th><th>Config</th><th>Description</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {% for channel in approved_channels %}
                     <tr>
-                      <td><div class="catalog-name">{{ channel.name }}</div><div class="mono"><a class="link" href="{{ channel.embed_url.splitlines()[0] if channel.embed_url else '#' }}" target="_blank" rel="noopener noreferrer">Open source</a></div></td>
+                      <td><div class="catalog-name">{{ channel.name }}</div><div class="mono"><a class="link" href="{{ (channel.source_urls[0] if channel.source_urls else channel.embed_url) or '#' }}" target="_blank" rel="noopener noreferrer">Open source</a></div></td>
                       <td>{{ channel.category or 'Other' }}</td>
                       <td class="mono">{{ channel.sort_order if channel.sort_order is not none else '-' }}</td>
+                      <td class="mono">{{ channel.provider_hint or 'auto' }} · {{ channel.rotation_mode or 'single' }} · {{ 'auto' if channel.autoplay else 'manual' }}</td>
                       <td>{{ channel.description or 'No description.' }}</td>
                       <td>
                         <div class="catalog-actions">
@@ -471,7 +518,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
                       </td>
                     </tr>
                   {% else %}
-                    <tr><td colspan="5"><div class="copy">No approved channels yet.</div></td></tr>
+                    <tr><td colspan="6"><div class="copy">No approved channels yet.</div></td></tr>
                   {% endfor %}
                 </tbody>
               </table>
