@@ -361,7 +361,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
             <span class="pill {% if edit_channel %}blue{% else %}teal{% endif %}">{{ "editing" if edit_channel else "new entry" }}</span>
           </div>
           <div class="body">
-            <p class="copy">Create a new channel, or load an existing one from the live catalog or queue to edit the name, category, source link, hover description, approval state, and ordering.</p>
+            <p class="copy">Create a new channel, or load an existing one from the live catalog or queue to edit the name, category, source links, hover description, approval state, and ordering. Multi-link channels should use one URL per line.</p>
             <form method="POST" class="stack">
               <input type="hidden" name="action" value="{{ 'channel_update' if edit_channel else 'channel_create' }}"/>
               {% if edit_channel %}<input type="hidden" name="channel_id" value="{{ edit_channel.id }}"/>{% endif %}
@@ -382,8 +382,8 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
               </div>
               <div class="field-grid three">
                 <div class="field">
-                  <label for="channel-url">Source URL</label>
-                  <input id="channel-url" type="url" name="embed_url" maxlength="1024" value="{{ edit_channel.embed_url if edit_channel else '' }}" required/>
+                  <label for="channel-url">Source URL(s)</label>
+                  <textarea id="channel-url" name="embed_url" maxlength="1024" placeholder="One URL per line. Supports YouTube /videos feeds, playlists, and direct video links." required>{{ edit_channel.embed_url if edit_channel else '' }}</textarea>
                 </div>
                 <div class="field">
                   <label for="channel-sort">Sort order</label>
@@ -428,7 +428,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
                       <span class="pill amber">pending</span>
                     </div>
                     <p>{{ channel.description or 'No description submitted.' }}</p>
-                    <p class="mono" style="margin:10px 0 0"><a class="link" href="{{ channel.embed_url }}" target="_blank" rel="noopener noreferrer">{{ channel.embed_url }}</a></p>
+                    <p class="mono" style="margin:10px 0 0"><a class="link" href="{{ channel.embed_url.splitlines()[0] if channel.embed_url else '#' }}" target="_blank" rel="noopener noreferrer">{{ channel.embed_url }}</a></p>
                     <div class="queue-actions" style="margin-top:14px">
                       <form method="POST"><input type="hidden" name="action" value="channel_approve"/><input type="hidden" name="channel_id" value="{{ channel.id }}"/><button type="submit" class="btn primary">Approve</button></form>
                       <a href="/admin?edit_channel={{ channel.id }}#channel-editor" class="btn secondary">Edit</a>
@@ -458,7 +458,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
                 <tbody>
                   {% for channel in approved_channels %}
                     <tr>
-                      <td><div class="catalog-name">{{ channel.name }}</div><div class="mono"><a class="link" href="{{ channel.embed_url }}" target="_blank" rel="noopener noreferrer">Open source</a></div></td>
+                      <td><div class="catalog-name">{{ channel.name }}</div><div class="mono"><a class="link" href="{{ channel.embed_url.splitlines()[0] if channel.embed_url else '#' }}" target="_blank" rel="noopener noreferrer">Open source</a></div></td>
                       <td>{{ channel.category or 'Other' }}</td>
                       <td class="mono">{{ channel.sort_order if channel.sort_order is not none else '-' }}</td>
                       <td>{{ channel.description or 'No description.' }}</td>

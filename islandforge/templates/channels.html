@@ -183,6 +183,53 @@ nav.ch-nav {
   opacity: 0; transition: opacity .3s;
 }
 .ch-player.active .player-scanlines { opacity: 1; }
+.player-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at center, rgba(0,229,160,.12), transparent 28%),
+    linear-gradient(180deg, rgba(4,6,10,.7), rgba(4,6,10,.88));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease;
+}
+.player-transition.on {
+  opacity: 1;
+}
+.player-transition__inner {
+  display: grid;
+  gap: 12px;
+  padding: 20px 24px;
+  border-radius: 18px;
+  border: 1px solid rgba(0,229,160,.14);
+  background: rgba(7,9,13,.72);
+  box-shadow: 0 0 28px rgba(0,145,255,.12);
+}
+.player-transition__eyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .52rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+.player-transition__title {
+  font-family: 'Orbitron', monospace;
+  font-size: .92rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
+}
+.player-transition__copy {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .56rem;
+  letter-spacing: 1px;
+  color: var(--mid);
+}
 
 .arc-placeholder {
   position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -646,6 +693,11 @@ nav.ch-nav {
   border-color: rgba(58,74,96,.45);
   background: rgba(13,16,24,.88);
 }
+.ch-badge.rotation {
+  color: var(--amber);
+  border-color: rgba(255,170,0,.26);
+  background: rgba(255,170,0,.09);
+}
 .ch-desc {
   display: block; font-size: .58rem; color: var(--dim);
   font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
@@ -898,6 +950,13 @@ body.channels-console .console-dock {
       <div class="corner bl"></div>
       <div class="corner br"></div>
       <div class="player-scanlines" id="playerScanlines"></div>
+      <div class="player-transition" id="playerTransition">
+        <div class="player-transition__inner">
+          <span class="player-transition__eyebrow">Autoplay Relay</span>
+          <strong class="player-transition__title" id="transitionTitle">Routing next source</strong>
+          <span class="player-transition__copy" id="transitionCopy">Queueing channel playback.</span>
+        </div>
+      </div>
 
       <div class="arc-placeholder" id="placeholder">
         <div class="arc-reactor">
@@ -995,6 +1054,9 @@ body.channels-console .console-dock {
                           <span class="ch-badge official">Official</span>
                         {% endif %}
                         <span class="ch-badge mode-{{ channel.mode }}">{{ channel.mode_label }}</span>
+                        {% if channel.has_rotation %}
+                          <span class="ch-badge rotation">Auto</span>
+                        {% endif %}
                       </div>
                     </div>
                     <span class="ch-desc">{{ channel.description }}</span>
@@ -1012,7 +1074,7 @@ body.channels-console .console-dock {
         <div id="suggest-form" style="display:none">
           <input id="sg-name" type="text" placeholder="Channel name"/>
           <input id="sg-cat"  type="text" placeholder="Category"/>
-          <input id="sg-url"  type="text" placeholder="Twitch / YouTube / Kick URL"/>
+          <input id="sg-url"  type="text" placeholder="Twitch, YouTube, playlist, or /videos URL"/>
           <input id="sg-desc" type="text" placeholder="Short description (optional)"/>
           <button onclick="submitSuggest()">Submit</button>
           <div id="sg-msg" style="display:none"></div>
@@ -1048,9 +1110,101 @@ let sidebarOpen = false;
 let resizeState = null;
 let previewTimer = null;
 let activeScope = 'all';
+let loadSequence = 0;
 
 function setPlayerMessage(message) {
   document.getElementById('playerMessage').textContent = message;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function setTransitionState(visible, title, copy) {
+  const overlay = document.getElementById('playerTransition');
+  if (!overlay) return;
+  if (title) {
+    document.getElementById('transitionTitle').textContent = title;
+  }
+  if (copy) {
+    document.getElementById('transitionCopy').textContent = copy;
+  }
+  overlay.classList.toggle('on', visible);
+}
+
+async function runTransition(title, copy, delay = 820) {
+  setTransitionState(true, title, copy);
+  await sleep(delay);
+  setTransitionState(false);
+}
+
+function withAutoplay(url) {
+  if (!url) return '';
+  try {
+    const resolved = new URL(url, window.location.origin);
+    if (resolved.hostname.includes('youtube.com')) {
+      resolved.searchParams.set('autoplay', '1');
+      resolved.searchParams.set('playsinline', '1');
+      resolved.searchParams.set('rel', '0');
+      resolved.searchParams.set('modestbranding', '1');
+      resolved.searchParams.set('enablejsapi', '1');
+      if (muted) {
+        resolved.searchParams.set('mute', '1');
+        resolved.searchParams.set('muted', '1');
+      } else {
+        resolved.searchParams.delete('mute');
+        resolved.searchParams.delete('muted');
+      }
+      return resolved.toString();
+    }
+    if (resolved.hostname.includes('youtu.be')) {
+      return url;
+    }
+    if (resolved.hostname.includes('twitch.tv')) {
+      resolved.searchParams.set('autoplay', 'true');
+      resolved.searchParams.set('muted', muted ? 'true' : 'false');
+      return resolved.toString();
+    }
+    if (resolved.hostname.includes('kick.com')) {
+      resolved.searchParams.set('autoplay', 'true');
+      if (muted) {
+        resolved.searchParams.set('muted', 'true');
+      } else {
+        resolved.searchParams.delete('muted');
+      }
+      return resolved.toString();
+    }
+    if (resolved.hostname.includes('streamable.com')) {
+      resolved.searchParams.set('autoplay', '1');
+      if (muted) {
+        resolved.searchParams.set('muted', '1');
+      }
+      return resolved.toString();
+    }
+    return url;
+  } catch (error) {
+    return url;
+  }
+}
+
+async function resolveChannelQueue(channel) {
+  if (!channel || !channel.has_rotation || !Array.isArray(channel.source_urls) || !channel.source_urls.length) {
+    return null;
+  }
+  try {
+    const response = await fetch('/api/channel_queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source_urls: channel.source_urls }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      return null;
+    }
+    return data;
+  } catch (error) {
+    return null;
+  }
 }
 
 function escapeHtml(value) {
@@ -1080,11 +1234,15 @@ function setStageState(channel, ctaLabel) {
 
   arcText.textContent = channel.mode === 'live' ? 'LIVE UPLINK' : (channel.mode === 'replay' ? 'REPLAY DECK' : 'CHANNEL FEED');
   arcHint.textContent = channel.name;
-  stagePills.innerHTML = [
+  const pills = [
     `<span class="stage-pill ${escapeHtml(channel.mode)}">${escapeHtml(channel.mode_label)}</span>`,
     `<span class="stage-pill">${escapeHtml(channel.scope)}</span>`,
     `<span class="stage-pill">${channel.official ? 'Official' : 'Curated'}</span>`,
-  ].join('');
+  ];
+  if (channel.has_rotation || (channel.resolved_count || 0) > 1) {
+    pills.push(`<span class="stage-pill replay">Auto Queue</span>`);
+  }
+  stagePills.innerHTML = pills.join('');
   stageLink.href = channel.source_url || channel.embed || '#';
   stageLink.textContent = ctaLabel;
 }
@@ -1162,7 +1320,7 @@ function previewChannel(name, description) {
 function clearPreviewFocus() {
   document.getElementById('chPlayer').classList.remove('preview-focus');
   if (document.getElementById('ch-iframe').style.display === 'none') {
-    setPlayerMessage(currentChannel ? currentChannel.description : 'Embeddable streams, replays, and curated feeds load here.');
+    setPlayerMessage(currentChannel ? (currentChannel.rotation_summary || currentChannel.description) : 'Embeddable streams, replays, and curated feeds load here.');
   }
 }
 
@@ -1201,40 +1359,62 @@ function stopPlayerResize() {
   document.getElementById('chPlayer').classList.remove('resizing');
 }
 
-function loadChannel(channel) {
-  if (!channel || (!channel.source_url && !channel.embed)) return;
-  currentChannel = channel;
-  currentUrl = channel.embed || '';
-  currentSourceUrl = channel.source_url || channel.embed || '';
+async function loadChannel(channel) {
+  if (!channel || (!channel.source_url && !channel.embed && !channel.has_rotation)) return;
+  const requestId = ++loadSequence;
+  let activeChannel = { ...channel };
+  const rotation = await resolveChannelQueue(channel);
+  if (requestId !== loadSequence) return;
 
-  const resolvedMode = channel.mode || (channel.playable ? 'live' : 'feed');
+  if (rotation && rotation.embed_url) {
+    activeChannel = {
+      ...channel,
+      embed: rotation.embed_url,
+      source_url: rotation.source_url || channel.source_url || channel.embed || '',
+      player_kind: rotation.player_kind || 'iframe',
+      mode: rotation.mode || channel.mode,
+      mode_label: rotation.mode_label || channel.mode_label,
+      resolved_count: rotation.count || 0,
+      rotation_summary: rotation.summary || '',
+    };
+  }
+
+  currentChannel = activeChannel;
+  currentUrl = activeChannel.embed || '';
+  currentSourceUrl = activeChannel.source_url || activeChannel.embed || '';
+
+  const resolvedMode = activeChannel.mode || (activeChannel.playable ? 'live' : 'feed');
   const hudStatus = document.getElementById('hudStatus');
   const placeholder = document.getElementById('placeholder');
   const iframe = document.getElementById('ch-iframe');
   const linkOut = document.getElementById('linkOut');
   const player = document.getElementById('chPlayer');
-  const linkLabel = channel.player_kind === 'feed'
+  const linkLabel = activeChannel.player_kind === 'feed'
     ? 'Open Feed'
     : (resolvedMode === 'replay' ? 'Open Replay' : 'Open Live');
 
-  document.getElementById('nowPlaying').textContent = channel.name;
+  document.getElementById('nowPlaying').textContent = activeChannel.name;
   hudStatus.textContent = resolvedMode.toUpperCase();
   hudStatus.classList.toggle('live', resolvedMode === 'live');
   hudStatus.classList.toggle('replay', resolvedMode === 'replay');
 
   linkOut.href = currentSourceUrl || '#';
-  linkOut.classList.toggle('external', channel.player_kind === 'feed');
+  linkOut.classList.toggle('external', activeChannel.player_kind === 'feed');
   linkOut.textContent = linkLabel;
-  setStageState(channel, linkLabel);
+  setStageState(activeChannel, linkLabel);
 
-  if (channel.player_kind === 'iframe' && currentUrl) {
+  if (activeChannel.player_kind === 'iframe' && currentUrl) {
+    const transitionCopy = activeChannel.rotation_summary
+      || (activeChannel.has_rotation ? 'Random autoplay queue armed.' : 'Autoplaying current source.');
+    await runTransition('Routing next source', transitionCopy, activeChannel.has_rotation ? 980 : 540);
+    if (requestId !== loadSequence) return;
     placeholder.style.display = 'none';
     iframe.style.display = 'block';
-    iframe.src = muted ? currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'muted=true' : currentUrl;
+    iframe.src = withAutoplay(currentUrl);
     setPlayerMessage(
-      channel.description || (
+      activeChannel.rotation_summary || activeChannel.description || (
         resolvedMode === 'replay'
-          ? 'Embeddable replay and playlist feeds load here.'
+          ? 'Embeddable replay and queue feeds load here.'
           : 'Embeddable live feeds and curated streams load here.'
       )
     );
@@ -1243,7 +1423,7 @@ function loadChannel(channel) {
     iframe.style.display = 'none';
     iframe.src = '';
     placeholder.style.display = 'flex';
-    setPlayerMessage(channel.description || 'This source is currently best opened directly.');
+    setPlayerMessage(activeChannel.description || 'This source is currently best opened directly.');
     player.classList.add('feed-mode');
   }
 
@@ -1252,7 +1432,7 @@ function loadChannel(channel) {
   autoFocusPlayer();
 
   document.querySelectorAll('.ch-row').forEach(r => {
-    r.classList.toggle('active', r.dataset.name === channel.name);
+    r.classList.toggle('active', r.dataset.name === activeChannel.name);
   });
 }
 
@@ -1263,9 +1443,7 @@ function toggleMute() {
   btn.classList.toggle('muted', muted);
   if (currentUrl && currentChannel && currentChannel.player_kind === 'iframe') {
     const iframe = document.getElementById('ch-iframe');
-    iframe.src = muted
-      ? currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'muted=true'
-      : currentUrl;
+    iframe.src = withAutoplay(currentUrl);
   }
 }
 

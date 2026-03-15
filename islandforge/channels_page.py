@@ -2,10 +2,17 @@
 Channel page view-model helpers.
 
 The live channels UI now renders from Jinja instead of building HTML in Python.
-This module keeps the URL normalization, feed classification, and grouping logic.
+This module keeps the URL normalization, feed classification, queue resolution,
+and grouping logic.
 """
 
 from collections import OrderedDict
+import json
+import random
+import re
+import time
+import urllib.request
+import xml.etree.ElementTree as ET
 
 
 CHANNEL_ICONS = {
@@ -97,6 +104,9 @@ CHANNEL_OVERRIDES = {
     },
 }
 
+_QUEUE_CACHE = {}
+_QUEUE_CACHE_TTL = 900
+
 
 def apply_channel_override(name: str, channel: dict) -> dict:
     if name not in CHANNEL_OVERRIDES:
@@ -105,6 +115,242 @@ def apply_channel_override(name: str, channel: dict) -> dict:
     updated = dict(channel)
     updated.update(CHANNEL_OVERRIDES[name])
     return updated
+
+
+def split_source_urls(value: str) -> list[str]:
+    raw = (value or "").strip()
+    if not raw:
+        return []
+
+    items = []
+    if raw.startswith("["):
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                items.extend(str(item or "").strip() for item in parsed)
+        except json.JSONDecodeError:
+            pass
+
+    if not items:
+        items.extend(part.strip() for part in re.split(r"[\r\n|]+", raw))
+
+    unique = []
+    seen = set()
+    for item in items:
+        if not item or item in seen:
+            continue
+        seen.add(item)
+        unique.append(item)
+    return unique
+
+
+def is_youtube_channel_feed_source(url: str) -> bool:
+    value = (url or "").strip().lower()
+    if not value:
+        return False
+    if not any(
+        marker in value
+        for marker in (
+            "youtube.com/@",
+            "youtube.com/c/",
+            "youtube.com/channel/",
+            "youtube.com/user/",
+        )
+    ):
+        return False
+    return not any(
+        marker in value
+        for marker in (
+            "youtube.com/watch",
+            "youtube.com/playlist",
+            "youtube.com/live/",
+            "youtube.com/shorts/",
+        )
+    )
+
+
+def youtube_video_id(url: str) -> str:
+    value = (url or "").strip()
+    if not value:
+        return ""
+
+    if "youtu.be/" in value:
+        return value.split("youtu.be/")[-1].split("?")[0].split("/")[0]
+
+    if "youtube.com/watch" in value:
+        for part in value.split("?")[-1].split("&"):
+            if part.startswith("v="):
+                return part[2:].split("/")[0]
+
+    if "youtube.com/live/" in value:
+        return value.split("youtube.com/live/")[-1].split("?")[0].split("/")[0]
+
+    if "youtube.com/shorts/" in value:
+        return value.split("youtube.com/shorts/")[-1].split("?")[0].split("/")[0]
+
+    return ""
+
+
+def _fetch_text(url: str, timeout: int = 6) -> str:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "TriptokForge/1.0",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        charset = response.headers.get_content_charset() or "utf-8"
+        return response.read().decode(charset, errors="ignore")
+
+
+def _youtube_channel_id(source_url: str) -> str:
+    direct_match = re.search(r"youtube\.com/channel/(UC[\w-]+)", source_url or "", re.IGNORECASE)
+    if direct_match:
+        return direct_match.group(1)
+
+    html = _fetch_text(source_url, timeout=8)
+    for pattern in (
+        r'"externalId":"(UC[\w-]+)"',
+        r'"channelId":"(UC[\w-]+)"',
+        r'https://www\.youtube\.com/channel/(UC[\w-]+)',
+    ):
+        match = re.search(pattern, html)
+        if match:
+            return match.group(1)
+    return ""
+
+
+def _youtube_feed_items(source_url: str, limit: int = 18) -> list[dict]:
+    cache_key = f"yt-feed:{source_url}"
+    cached = _QUEUE_CACHE.get(cache_key)
+    now = time.time()
+    if cached and (now - cached["time"]) < _QUEUE_CACHE_TTL:
+        return list(cached["items"])
+
+    channel_id = _youtube_channel_id(source_url)
+    if not channel_id:
+        return []
+
+    feed_text = _fetch_text(
+        f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}",
+        timeout=8,
+    )
+    root = ET.fromstring(feed_text)
+    ns = {
+        "atom": "http://www.w3.org/2005/Atom",
+        "yt": "http://www.youtube.com/xml/schemas/2015",
+    }
+    items = []
+    for entry in root.findall("atom:entry", ns)[:limit]:
+        video_id = entry.findtext("yt:videoId", default="", namespaces=ns).strip()
+        title = entry.findtext("atom:title", default="", namespaces=ns).strip()
+        if not video_id:
+            continue
+        items.append(
+            {
+                "title": title or "YouTube upload",
+                "source_url": f"https://www.youtube.com/watch?v={video_id}",
+            }
+        )
+
+    _QUEUE_CACHE[cache_key] = {"time": now, "items": items}
+    return list(items)
+
+
+def _youtube_embed_from_ids(video_ids: list[str]) -> str:
+    clean_ids = []
+    seen = set()
+    for item in video_ids:
+        video_id = (item or "").strip()
+        if not video_id or video_id in seen:
+            continue
+        seen.add(video_id)
+        clean_ids.append(video_id)
+
+    if not clean_ids:
+        return ""
+
+    if len(clean_ids) == 1:
+        return (
+            f"https://www.youtube.com/embed/{clean_ids[0]}"
+            "?autoplay=1&rel=0&playsinline=1&modestbranding=1&enablejsapi=1"
+        )
+
+    first = clean_ids[0]
+    playlist_tail = ",".join(clean_ids[1:] + [first])
+    return (
+        f"https://www.youtube.com/embed/{first}"
+        f"?playlist={playlist_tail}&autoplay=1&loop=1&rel=0&playsinline=1"
+        "&modestbranding=1&enablejsapi=1"
+    )
+
+
+def resolve_channel_rotation(source_urls: list[str], limit: int = 18) -> dict:
+    normalized = [normalize_source_url(url) for url in (source_urls or []) if url]
+    if not normalized:
+        return {}
+
+    youtube_ids = [youtube_video_id(url) for url in normalized if youtube_video_id(url)]
+    if len(youtube_ids) >= 2:
+        random.shuffle(youtube_ids)
+        return {
+            "embed_url": _youtube_embed_from_ids(youtube_ids),
+            "source_url": normalized[0],
+            "mode": "replay",
+            "mode_label": "Random Queue",
+            "player_kind": "iframe",
+            "count": len(youtube_ids),
+            "summary": f"Random autoplay queue built from {len(youtube_ids)} YouTube videos.",
+        }
+
+    for source_url in normalized:
+        if not is_youtube_channel_feed_source(source_url):
+            continue
+        items = _youtube_feed_items(source_url, limit=limit)
+        video_ids = [youtube_video_id(item.get("source_url", "")) for item in items]
+        video_ids = [video_id for video_id in video_ids if video_id]
+        if not video_ids:
+            continue
+        random.shuffle(video_ids)
+        return {
+            "embed_url": _youtube_embed_from_ids(video_ids),
+            "source_url": source_url,
+            "mode": "replay",
+            "mode_label": "Random Queue",
+            "player_kind": "iframe",
+            "count": len(video_ids),
+            "summary": f"Random autoplay queue built from the latest {len(video_ids)} uploads.",
+        }
+
+    playable = []
+    for source_url in normalized:
+        embed_url = detect_embed(source_url)
+        if is_embeddable(embed_url):
+            playable.append((source_url, embed_url))
+    if playable:
+        source_url, embed_url = random.choice(playable)
+        return {
+            "embed_url": embed_url,
+            "source_url": source_url,
+            "mode": detect_feed_mode(source_url, embed_url),
+            "mode_label": "Random Source" if len(playable) > 1 else label_for_mode(detect_feed_mode(source_url, embed_url)),
+            "player_kind": "iframe",
+            "count": len(playable),
+            "summary": f"Random source selected from {len(playable)} playable links.",
+        }
+
+    fallback = normalized[0]
+    embed_url = detect_embed(fallback)
+    return {
+        "embed_url": embed_url,
+        "source_url": fallback,
+        "mode": detect_feed_mode(fallback, embed_url),
+        "mode_label": label_for_mode(detect_feed_mode(fallback, embed_url)),
+        "player_kind": detect_player_kind(fallback, embed_url),
+        "count": len(normalized),
+        "summary": "",
+    }
 
 
 def detect_embed(url: str) -> str:
@@ -273,12 +519,14 @@ def build_channels_context(channels: list) -> dict:
         name = channel.get("name", "Unnamed")
         channel = apply_channel_override(name, channel)
         category = channel.get("category", "Other") or "Other"
-        source_url = normalize_source_url(channel.get("embed_url", ""))
-        embed_url = detect_embed(channel.get("embed_url", ""))
+        source_urls = [normalize_source_url(url) for url in split_source_urls(channel.get("embed_url", ""))]
+        source_url = source_urls[0] if source_urls else ""
+        embed_url = detect_embed(source_url)
         mode = detect_feed_mode(source_url, embed_url)
         player_kind = detect_player_kind(source_url, embed_url)
         meta = CHANNEL_META.get(name, {})
         scope = meta.get("scope") or CATEGORY_SCOPES.get(category, "General")
+        has_rotation = len(source_urls) > 1 or any(is_youtube_channel_feed_source(url) for url in source_urls)
         seen_scopes.add(scope)
 
         group = groups.setdefault(
@@ -295,12 +543,15 @@ def build_channels_context(channels: list) -> dict:
                 "description": channel.get("description", ""),
                 "embed": embed_url,
                 "source_url": source_url,
+                "source_urls": source_urls,
+                "source_count": len(source_urls),
                 "playable": is_embeddable(embed_url),
                 "player_kind": player_kind,
                 "mode": mode,
                 "mode_label": label_for_mode(mode),
                 "scope": scope,
                 "scope_slug": scope.lower().replace(" ", "-"),
+                "has_rotation": has_rotation,
                 "official": bool(meta.get("official", False)),
                 "priority": int(meta.get("priority", 999)),
             }
@@ -320,7 +571,7 @@ def build_channels_context(channels: list) -> dict:
                 (
                     channel
                     for channel in group["channels"]
-                    if channel["player_kind"] == "iframe"
+                    if channel["player_kind"] == "iframe" or channel["has_rotation"]
                 ),
                 None,
             )
