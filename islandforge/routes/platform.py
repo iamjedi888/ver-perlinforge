@@ -853,7 +853,7 @@ def _admin_redirect(anchor="overview", edit_channel=None, edit_broadcast=None):
     return redirect(f"{target}#{anchor}")
 
 
-def _ops_redirect(anchor="overview", edit_staff=None, edit_bot=None, edit_draft=None):
+def _ops_redirect(anchor="overview", edit_staff=None, edit_bot=None, edit_draft=None, edit_channel=None, edit_broadcast=None):
     params = {}
     if edit_staff is not None:
         params["edit_staff"] = edit_staff
@@ -861,6 +861,10 @@ def _ops_redirect(anchor="overview", edit_staff=None, edit_bot=None, edit_draft=
         params["edit_bot"] = edit_bot
     if edit_draft is not None:
         params["edit_draft"] = edit_draft
+    if edit_channel is not None:
+        params["edit_channel"] = edit_channel
+    if edit_broadcast is not None:
+        params["edit_broadcast"] = edit_broadcast
     target = url_for("platform.ops", **params) if params else url_for("platform.ops")
     return redirect(f"{target}#{anchor}" if anchor else target)
 
@@ -919,6 +923,74 @@ def _can_manage_bot_draft(role: str, linked_bot_slug: str, draft: dict | None) -
     if role == "bot_operator":
         return bool(linked_bot_slug and linked_bot_slug == (draft.get("bot_slug") or ""))
     return False
+
+
+def _collect_admin_console_context(authed: bool) -> dict:
+    members = (get_all_members() or []) if authed else []
+    announcements = (get_announcements() or []) if authed else []
+    audio_tracks = (get_audio_tracks() or []) if authed else []
+    islands = (get_recent_islands(limit=999) or []) if authed else []
+    wp_tracks = (get_wp_tracks() or []) if authed else []
+    channels = (get_channels(approved_only=False) or []) if authed else []
+    broadcasts = (get_site_broadcasts(limit=100) or []) if authed else []
+
+    approved_channels = []
+    pending_channels = []
+    for channel in channels:
+        if channel.get("approved"):
+            approved_channels.append(channel)
+        else:
+            pending_channels.append(channel)
+
+    approved_channels.sort(
+        key=lambda item: (
+            (item.get("category") or ""),
+            int(item.get("sort_order") or 0),
+            item.get("name") or "",
+        )
+    )
+    pending_channels.sort(
+        key=lambda item: (
+            item.get("category") or "",
+            item.get("name") or "",
+            -(item.get("id") or 0),
+        )
+    )
+
+    category_values = set(COMMON_CHANNEL_CATEGORIES)
+    category_values.update(
+        channel.get("category") or "Other"
+        for channel in channels
+        if channel.get("category")
+    )
+
+    admin_stats = {
+        "approved_channels": len(approved_channels),
+        "pending_channels": len(pending_channels),
+        "channel_categories": len({channel.get("category") or "Other" for channel in channels}),
+        "members": len(members or []),
+        "announcements": len(announcements or []),
+        "whitepages_tracks": len(wp_tracks or []),
+        "islands": len(islands or []),
+        "audio": len(audio_tracks or []),
+        "broadcasts": len(broadcasts or []),
+        "active_broadcasts": len([item for item in broadcasts if item.get("active")]),
+    }
+
+    return {
+        "members": members,
+        "announcements": announcements,
+        "audio_tracks": audio_tracks,
+        "islands": islands,
+        "wp_tracks": wp_tracks,
+        "channels": channels,
+        "broadcasts": broadcasts,
+        "approved_channels": approved_channels,
+        "pending_channels": pending_channels,
+        "channel_categories": sorted(category_values),
+        "admin_stats": admin_stats,
+        "system_status": status() if authed else {},
+    }
 
 @platform_bp.route("/")
 @platform_bp.route("/home")
@@ -1251,6 +1323,216 @@ def ops():
                 flash("Staff account removal failed.", "error")
             return _ops_redirect("staff")
 
+        if action == "announce":
+            if not permissions["announcements"]:
+                flash("Announcement controls required.", "error")
+                return _ops_redirect("control-announcements")
+            title = (request.form.get("title") or "").strip()
+            body = (request.form.get("body") or "").strip()
+            if not title:
+                flash("Announcement title is required.", "error")
+                return _ops_redirect("control-announcements")
+            post_announcement(title=title, body=body, pinned=bool(request.form.get("pinned")))
+            log_operator_event(actor_username, actor_role, "announcement_create", "announcement", title[:48], "Ops control plane")
+            flash("Announcement posted.", "success")
+            return _ops_redirect("control-announcements")
+
+        if action == "channel_create":
+            if not permissions["channels"]:
+                flash("Channel controls required.", "error")
+                return _ops_redirect("control-channels")
+            payload = _channel_payload(request.form)
+            if not payload["name"] or not payload["embed_url"]:
+                flash("Channel name and source URL are required.", "error")
+                return _ops_redirect("control-channels")
+            created = create_channel(
+                name=payload["name"],
+                category=payload["category"],
+                embed_url=payload["embed_url"],
+                description=payload["description"],
+                suggested_by=actor_username,
+                approved=payload["approved"],
+                sort_order=payload["sort_order"],
+                source_urls_json=payload["source_urls_text"],
+                search_terms_json=payload["search_terms_text"],
+                provider_hint=payload["provider_hint"],
+                rotation_mode=payload["rotation_mode"],
+                autoplay=payload["autoplay"],
+                transition_title=payload["transition_title"],
+                transition_copy=payload["transition_copy"],
+                transition_seconds=payload["transition_seconds"],
+            )
+            if not created:
+                flash("Channel creation failed.", "error")
+                return _ops_redirect("control-channels")
+            log_operator_event(actor_username, actor_role, "channel_create", "channel", payload["name"], payload["category"])
+            flash("Channel created.", "success")
+            return _ops_redirect("control-catalog")
+
+        if action == "channel_update":
+            if not permissions["channels"]:
+                flash("Channel controls required.", "error")
+                return _ops_redirect("control-channels")
+            payload = _channel_payload(request.form)
+            if not payload["channel_id"]:
+                flash("Channel id missing for update.", "error")
+                return _ops_redirect("control-channels")
+            if not payload["name"] or not payload["embed_url"]:
+                flash("Channel name and source URL are required.", "error")
+                return _ops_redirect("control-channels", edit_channel=payload["channel_id"])
+            ok = update_channel(
+                channel_id=payload["channel_id"],
+                name=payload["name"],
+                category=payload["category"],
+                embed_url=payload["embed_url"],
+                description=payload["description"],
+                sort_order=payload["sort_order"],
+                approved=payload["approved"],
+                source_urls_json=payload["source_urls_text"],
+                search_terms_json=payload["search_terms_text"],
+                provider_hint=payload["provider_hint"],
+                rotation_mode=payload["rotation_mode"],
+                autoplay=payload["autoplay"],
+                transition_title=payload["transition_title"],
+                transition_copy=payload["transition_copy"],
+                transition_seconds=payload["transition_seconds"],
+            )
+            if not ok:
+                flash("Channel update failed.", "error")
+                return _ops_redirect("control-channels", edit_channel=payload["channel_id"])
+            log_operator_event(actor_username, actor_role, "channel_update", "channel", str(payload["channel_id"]), payload["name"])
+            flash("Channel updated.", "success")
+            return _ops_redirect("control-catalog", edit_channel=payload["channel_id"])
+
+        channel_id = _to_int(request.form.get("channel_id"))
+        if action == "channel_approve":
+            if not permissions["channels"]:
+                flash("Channel controls required.", "error")
+                return _ops_redirect("control-queue")
+            if channel_id and approve_channel(channel_id, 1):
+                log_operator_event(actor_username, actor_role, "channel_approve", "channel", str(channel_id), "approved")
+                flash("Submission approved.", "success")
+            else:
+                flash("Approval failed.", "error")
+            return _ops_redirect("control-queue")
+
+        if action == "channel_unpublish":
+            if not permissions["channels"]:
+                flash("Channel controls required.", "error")
+                return _ops_redirect("control-catalog")
+            if channel_id and approve_channel(channel_id, 0):
+                log_operator_event(actor_username, actor_role, "channel_unpublish", "channel", str(channel_id), "moved to pending")
+                flash("Channel moved back to pending.", "success")
+            else:
+                flash("Unable to move channel back to pending.", "error")
+            return _ops_redirect("control-catalog")
+
+        if action in {"channel_delete", "channel_reject"}:
+            if not permissions["channels"]:
+                flash("Channel controls required.", "error")
+                return _ops_redirect("control-queue" if action == "channel_reject" else "control-catalog")
+            if channel_id and delete_channel(channel_id):
+                log_operator_event(actor_username, actor_role, action, "channel", str(channel_id), "removed")
+                flash("Submission removed." if action == "channel_reject" else "Channel deleted.", "success")
+            else:
+                flash("Delete failed.", "error")
+            return _ops_redirect("control-queue" if action == "channel_reject" else "control-catalog")
+
+        if action == "broadcast_create":
+            if not permissions["broadcasts"]:
+                flash("Broadcast controls required.", "error")
+                return _ops_redirect("control-broadcasts")
+            payload = _broadcast_payload(request.form)
+            if not payload["title"]:
+                flash("Broadcast title is required.", "error")
+                return _ops_redirect("control-broadcasts")
+            created = create_site_broadcast(
+                title=payload["title"],
+                body=payload["body"],
+                variant=payload["variant"],
+                display_mode=payload["display_mode"],
+                dismiss_mode=payload["dismiss_mode"],
+                duration_seconds=payload["duration_seconds"],
+                cta_label=payload["cta_label"],
+                cta_href=payload["cta_href"],
+                closable=payload["closable"],
+                active=payload["active"],
+                created_by=actor_username,
+                priority=payload["priority"],
+            )
+            if not created:
+                flash("Broadcast creation failed.", "error")
+                return _ops_redirect("control-broadcasts")
+            log_operator_event(actor_username, actor_role, "broadcast_create", "broadcast", payload["title"], payload["display_mode"])
+            flash("Broadcast published to the site controls.", "success")
+            return _ops_redirect("control-broadcasts")
+
+        if action == "broadcast_update":
+            if not permissions["broadcasts"]:
+                flash("Broadcast controls required.", "error")
+                return _ops_redirect("control-broadcasts")
+            payload = _broadcast_payload(request.form)
+            if not payload["broadcast_id"]:
+                flash("Broadcast id missing for update.", "error")
+                return _ops_redirect("control-broadcasts")
+            if not payload["title"]:
+                flash("Broadcast title is required.", "error")
+                return _ops_redirect("control-broadcasts", edit_broadcast=payload["broadcast_id"])
+            ok = update_site_broadcast(
+                broadcast_id=payload["broadcast_id"],
+                title=payload["title"],
+                body=payload["body"],
+                variant=payload["variant"],
+                display_mode=payload["display_mode"],
+                dismiss_mode=payload["dismiss_mode"],
+                duration_seconds=payload["duration_seconds"],
+                cta_label=payload["cta_label"],
+                cta_href=payload["cta_href"],
+                closable=payload["closable"],
+                active=payload["active"],
+                priority=payload["priority"],
+            )
+            if not ok:
+                flash("Broadcast update failed.", "error")
+                return _ops_redirect("control-broadcasts", edit_broadcast=payload["broadcast_id"])
+            log_operator_event(actor_username, actor_role, "broadcast_update", "broadcast", str(payload["broadcast_id"]), payload["title"])
+            flash("Broadcast updated.", "success")
+            return _ops_redirect("control-broadcasts", edit_broadcast=payload["broadcast_id"])
+
+        broadcast_id = _to_int(request.form.get("broadcast_id"))
+        if action == "broadcast_activate":
+            if not permissions["broadcasts"]:
+                flash("Broadcast controls required.", "error")
+                return _ops_redirect("control-broadcasts")
+            if broadcast_id and set_site_broadcast_active(broadcast_id, True):
+                log_operator_event(actor_username, actor_role, "broadcast_activate", "broadcast", str(broadcast_id), "active")
+                flash("Broadcast activated sitewide.", "success")
+            else:
+                flash("Unable to activate broadcast.", "error")
+            return _ops_redirect("control-broadcasts")
+
+        if action == "broadcast_deactivate":
+            if not permissions["broadcasts"]:
+                flash("Broadcast controls required.", "error")
+                return _ops_redirect("control-broadcasts")
+            if broadcast_id and set_site_broadcast_active(broadcast_id, False):
+                log_operator_event(actor_username, actor_role, "broadcast_deactivate", "broadcast", str(broadcast_id), "inactive")
+                flash("Broadcast deactivated.", "success")
+            else:
+                flash("Unable to deactivate broadcast.", "error")
+            return _ops_redirect("control-broadcasts")
+
+        if action == "broadcast_delete":
+            if not permissions["broadcasts"]:
+                flash("Broadcast controls required.", "error")
+                return _ops_redirect("control-broadcasts")
+            if broadcast_id and delete_site_broadcast(broadcast_id):
+                log_operator_event(actor_username, actor_role, "broadcast_delete", "broadcast", str(broadcast_id), "deleted")
+                flash("Broadcast deleted.", "success")
+            else:
+                flash("Unable to delete broadcast.", "error")
+            return _ops_redirect("control-broadcasts")
+
         if action == "bot_profile_create":
             if role != "admin":
                 flash("Admin bot controls required.", "error")
@@ -1534,6 +1816,12 @@ def ops():
         key = draft.get("status") or "draft"
         if key in draft_counts:
             draft_counts[key] += 1
+    admin_console_authed = authed and role == "admin"
+    admin_context = _collect_admin_console_context(admin_console_authed)
+    edit_channel_id = _to_int(request.args.get("edit_channel"))
+    edit_channel = get_channel(edit_channel_id) if admin_console_authed and edit_channel_id else None
+    edit_broadcast_id = _to_int(request.args.get("edit_broadcast"))
+    edit_broadcast = get_site_broadcast(edit_broadcast_id) if admin_console_authed and edit_broadcast_id else None
     ops_metrics = {
         "posts": len(posts),
         "staff": len(staff_accounts),
@@ -1541,6 +1829,10 @@ def ops():
         "drafts": len(bot_drafts),
         "pending_drafts": draft_counts.get("pending_review", 0),
         "audit": len(audit_rows),
+        "channels": len(admin_context.get("approved_channels") or []),
+        "pending_channels": len(admin_context.get("pending_channels") or []),
+        "broadcasts": len(admin_context.get("broadcasts") or []),
+        "announcements": len(admin_context.get("announcements") or []),
     }
     legacy_admin_links = [
         {"label": "Channel Editor", "href": "/admin#channel-editor"},
@@ -1578,6 +1870,23 @@ def ops():
         bot_draft_surfaces=BOT_DRAFT_SURFACES,
         bot_draft_statuses=BOT_DRAFT_STATUSES,
         legacy_admin_links=legacy_admin_links,
+        admin_console_authed=admin_console_authed,
+        edit_channel=edit_channel,
+        edit_broadcast=edit_broadcast,
+        channel_categories=admin_context.get("channel_categories") or [],
+        channel_provider_hints=CHANNEL_PROVIDER_HINTS,
+        channel_rotation_modes=CHANNEL_ROTATION_MODES,
+        broadcast_variants=BROADCAST_VARIANTS,
+        broadcast_display_modes=BROADCAST_DISPLAY_MODES,
+        broadcast_dismiss_modes=BROADCAST_DISMISS_MODES,
+        approved_channels=admin_context.get("approved_channels") or [],
+        pending_channels=admin_context.get("pending_channels") or [],
+        broadcasts=admin_context.get("broadcasts") or [],
+        announcements=admin_context.get("announcements") or [],
+        members=admin_context.get("members") or [],
+        wp_tracks=admin_context.get("wp_tracks") or [],
+        admin_stats=admin_context.get("admin_stats") or {},
+        system_status=admin_context.get("system_status") or {},
     )
 
 @platform_bp.route("/admin", methods=["GET","POST"])

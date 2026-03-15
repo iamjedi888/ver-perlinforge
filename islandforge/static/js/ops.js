@@ -149,7 +149,10 @@
   const opsGrid = document.querySelector(".ops-grid");
   const opsPanels = Array.from(document.querySelectorAll(".ops-panel"));
   const panelStateKey = "triptokforge.ops.panelState.v2";
+  const clusterStateKey = "triptokforge.ops.cluster.v1";
+  const clusterTabs = Array.from(document.querySelectorAll("[data-cluster-tab]"));
   let savedPanelState = {};
+  let activeCluster = window.localStorage.getItem(clusterStateKey) || "all";
 
   try {
     savedPanelState = JSON.parse(window.localStorage.getItem(panelStateKey) || "{}");
@@ -204,6 +207,48 @@
     });
   }
 
+  function syncClusterFilter() {
+    if (!clusterTabs.length) return;
+    const availableClusters = new Set(
+      opsPanels.map((panel) => panel.getAttribute("data-cluster") || "all")
+    );
+    if (activeCluster !== "all" && !availableClusters.has(activeCluster)) {
+      activeCluster = "all";
+    }
+    clusterTabs.forEach((tab) => {
+      const selected = (tab.getAttribute("data-cluster-tab") || "all") === activeCluster;
+      tab.classList.toggle("is-active", selected);
+    });
+    opsPanels.forEach((panel) => {
+      const cluster = panel.getAttribute("data-cluster") || "all";
+      panel.hidden = activeCluster !== "all" && cluster !== activeCluster;
+    });
+  }
+
+  function openFoldFromHash() {
+    const hash = (window.location.hash || "").replace(/^#/, "");
+    if (!hash) return;
+    const target = document.getElementById(hash);
+    if (!target) return;
+    const panel = target.closest(".ops-panel");
+    if (panel) {
+      const panelCluster = panel.getAttribute("data-cluster") || "all";
+      if (activeCluster !== "all" && panelCluster !== activeCluster) {
+        activeCluster = panelCluster;
+        try {
+          window.localStorage.setItem(clusterStateKey, activeCluster);
+        } catch (_error) {
+          // Ignore storage errors and keep the console interactive.
+        }
+        syncClusterFilter();
+      }
+    }
+    const fold = target.matches("details.control-fold") ? target : target.closest("details.control-fold");
+    if (fold) {
+      fold.open = true;
+    }
+  }
+
   opsPanels.forEach((panel, index) => {
     const state = savedPanelState[panelStorageId(panel, index)] || {};
     if (state.compact) panel.classList.add("ops-panel--compact");
@@ -226,6 +271,19 @@
     });
   });
 
+  clusterTabs.forEach((tab) => {
+    tab.addEventListener("click", function () {
+      activeCluster = tab.getAttribute("data-cluster-tab") || "all";
+      try {
+        window.localStorage.setItem(clusterStateKey, activeCluster);
+      } catch (_error) {
+        // Ignore storage errors and keep the console interactive.
+      }
+      syncClusterFilter();
+      syncOpsPanels();
+    });
+  });
+
   if (typeof ResizeObserver !== "undefined" && opsPanels.length) {
     const observer = new ResizeObserver(() => {
       syncOpsPanels();
@@ -234,6 +292,9 @@
   }
 
   window.addEventListener("resize", syncOpsPanels);
+  window.addEventListener("hashchange", openFoldFromHash);
+  syncClusterFilter();
+  openFoldFromHash();
   syncOpsPanels();
   persistPanelState();
 })();

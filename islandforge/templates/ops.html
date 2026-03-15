@@ -291,15 +291,27 @@
         {% if staff_permissions.staff %}<a href="#staff" class="tab-link">Staff</a>{% endif %}
         {% if staff_permissions.bots %}<a href="#bots" class="tab-link">Bots</a>{% endif %}
         {% if staff_permissions.bots %}<a href="#drafts" class="tab-link">Draft Queue</a>{% endif %}
+        {% if admin_console_authed %}<a href="#control-plane" class="tab-link">Control Plane</a>{% endif %}
         {% if staff_permissions.admin %}<a href="#legacy" class="tab-link">Legacy Admin</a>{% endif %}
         <a href="#audit" class="tab-link">Audit</a>
       </div>
+    </div>
+    <div class="panel-body cluster-toolbar">
+      <div class="cluster-links">
+        <button type="button" class="tab-link is-active" data-cluster-tab="all">All Modules</button>
+        {% if staff_permissions.staff %}<button type="button" class="tab-link" data-cluster-tab="people">People</button>{% endif %}
+        <button type="button" class="tab-link" data-cluster-tab="community">Community</button>
+        {% if staff_permissions.bots %}<button type="button" class="tab-link" data-cluster-tab="botops">Bot Ops</button>{% endif %}
+        {% if admin_console_authed %}<button type="button" class="tab-link" data-cluster-tab="control">Site Control</button>{% endif %}
+        <button type="button" class="tab-link" data-cluster-tab="system">System</button>
+      </div>
+      <p class="helper-text">Use these cluster tabs to collapse the deck into one mission lane at a time instead of seeing every panel at once.</p>
     </div>
   </section>
 
   <div class="ops-grid">
     {% if staff_permissions.staff %}
-    <section class="panel ops-panel ops-panel--factory" id="profile-factory" data-panel-count="2" data-panel-density="medium">
+    <section class="panel ops-panel ops-panel--factory" id="profile-factory" data-panel-count="2" data-panel-density="medium" data-cluster="people">
       <div class="panel-head">
         <div>
           <h2>Profile Factory</h2>
@@ -403,7 +415,7 @@
     </section>
     {% endif %}
 
-    <section class="panel ops-panel ops-panel--moderation" id="moderation" data-panel-count="{{ moderation_posts|length }}" data-panel-density="{% if moderation_posts %}high{% else %}low{% endif %}">
+    <section class="panel ops-panel ops-panel--moderation" id="moderation" data-panel-count="{{ moderation_posts|length }}" data-panel-density="{% if moderation_posts %}high{% else %}low{% endif %}" data-cluster="community">
       <div class="panel-head">
         <div>
           <h2>Moderation Bay</h2>
@@ -456,7 +468,7 @@
     </section>
 
     {% if staff_permissions.staff %}
-    <section class="panel ops-panel ops-panel--staff" id="staff" data-panel-count="{{ staff_accounts|length }}" data-panel-density="{% if staff_accounts|length > 4 %}high{% else %}medium{% endif %}">
+    <section class="panel ops-panel ops-panel--staff" id="staff" data-panel-count="{{ staff_accounts|length }}" data-panel-density="{% if staff_accounts|length > 4 %}high{% else %}medium{% endif %}" data-cluster="people">
       <div class="panel-head">
         <div>
           <h2>Staff Deck</h2>
@@ -555,7 +567,7 @@
     {% endif %}
 
     {% if staff_permissions.bots %}
-    <section class="panel ops-panel ops-panel--bots" id="bots" data-panel-count="{{ bot_profiles|length }}" data-panel-density="{% if bot_profiles|length > 2 %}high{% else %}medium{% endif %}">
+    <section class="panel ops-panel ops-panel--bots" id="bots" data-panel-count="{{ bot_profiles|length }}" data-panel-density="{% if bot_profiles|length > 2 %}high{% else %}medium{% endif %}" data-cluster="botops">
       <div class="panel-head">
         <div>
           <h2>Bot Workshop</h2>
@@ -671,7 +683,7 @@
     {% endif %}
 
     {% if staff_permissions.bots %}
-    <section class="panel ops-panel ops-panel--drafts" id="drafts" data-panel-count="{{ bot_drafts|length }}" data-panel-density="{% if bot_drafts|length > 3 %}high{% elif bot_drafts|length %}medium{% else %}low{% endif %}">
+    <section class="panel ops-panel ops-panel--drafts" id="drafts" data-panel-count="{{ bot_drafts|length }}" data-panel-density="{% if bot_drafts|length > 3 %}high{% elif bot_drafts|length %}medium{% else %}low{% endif %}" data-cluster="botops">
       <div class="panel-head">
         <div>
           <h2>Bot Draft Queue</h2>
@@ -872,8 +884,397 @@
     </section>
     {% endif %}
 
+    {% if admin_console_authed %}
+    <section class="panel ops-panel ops-panel--control" id="control-plane" data-panel-count="{{ admin_stats.approved_channels + admin_stats.pending_channels + admin_stats.broadcasts }}" data-panel-density="high" data-cluster="control">
+      <div class="panel-head">
+        <div>
+          <h2>Integrated Control Plane</h2>
+          <span class="panel-kicker">CHANNELS / BROADCASTS / WHITEPAGES / SYSTEM</span>
+        </div>
+        {{ panel_actions() }}
+      </div>
+      <div class="panel-body control-plane" data-panel-body>
+        <p class="section-copy">This folds the old admin shell into one organized ops lane. Each category stays in its own collapsed section so the console does not turn into a single giant form wall.</p>
+
+        <details class="control-fold" id="control-channels" {% if edit_channel %}open{% endif %}>
+          <summary>
+            <span>Channel Editor</span>
+            <span class="pill pill-blue">{{ admin_stats.approved_channels }} live / {{ admin_stats.pending_channels }} pending</span>
+          </summary>
+          <div class="control-fold__body">
+            <div id="channel-editor">
+            <form method="POST" class="stack">
+              <input type="hidden" name="action" value="{{ 'channel_update' if edit_channel else 'channel_create' }}"/>
+              {% if edit_channel %}<input type="hidden" name="channel_id" value="{{ edit_channel.id }}"/>{% endif %}
+              <div class="form-grid two">
+                <label class="field">
+                  <span>Channel name</span>
+                  <input id="channel-name" type="text" name="name" maxlength="128" value="{{ edit_channel.name if edit_channel else '' }}" required/>
+                </label>
+                <label class="field">
+                  <span>Category</span>
+                  <input id="channel-category" type="text" name="category" list="channel-category-list" maxlength="64" value="{{ edit_channel.category if edit_channel else '' }}" placeholder="Leave blank or type auto to detect"/>
+                  <datalist id="channel-category-list">
+                    <option value="Auto detect"></option>
+                    {% for category in channel_categories %}
+                    <option value="{{ category }}"></option>
+                    {% endfor %}
+                  </datalist>
+                </label>
+              </div>
+              <div class="provider-notes" id="channel-intel">
+                <div class="cluster-head">
+                  <div>
+                    <strong>Channel Intel</strong>
+                    <div class="helper-text">The deck suggests category, provider, and rotation from the current inputs before save.</div>
+                  </div>
+                  <div class="row-actions">
+                    <button type="button" class="btn" id="channel-detect-btn">Scan Signals</button>
+                    <button type="button" class="btn btn-primary" id="channel-apply-btn">Apply Suggested</button>
+                  </div>
+                </div>
+                <div class="signal-strip__body">
+                  <article class="signal-capsule">
+                    <span class="signal-capsule__label">Suggested category</span>
+                    <strong class="signal-capsule__value" id="channel-detect-category">{{ edit_channel.category if edit_channel else 'Community Picks' }}</strong>
+                    <span class="signal-capsule__copy" id="channel-detect-reason">Waiting for stronger title, source, or description signals.</span>
+                  </article>
+                  <article class="signal-capsule">
+                    <span class="signal-capsule__label">Provider hint</span>
+                    <strong class="signal-capsule__value" id="channel-detect-provider">{{ edit_channel.provider_hint if edit_channel else 'manual / mixed' }}</strong>
+                    <span class="signal-capsule__copy">Guesses the playback family from the source pool.</span>
+                  </article>
+                  <article class="signal-capsule">
+                    <span class="signal-capsule__label">Rotation profile</span>
+                    <strong class="signal-capsule__value" id="channel-detect-rotation">{{ edit_channel.rotation_mode if edit_channel else 'single' }}</strong>
+                    <span class="signal-capsule__copy">Single video, queue feed, or random pool.</span>
+                  </article>
+                </div>
+                <div class="detector-strip" id="channel-detect-tags"></div>
+              </div>
+              <div class="field">
+                <span>Source URL(s)</span>
+                <textarea id="channel-url" name="source_urls_text" maxlength="4000" placeholder="One URL per line. Supports YouTube /videos feeds, playlists, and direct video links." required>{{ edit_channel.source_urls_text if edit_channel else '' }}</textarea>
+              </div>
+              <div class="form-grid three">
+                <label class="field">
+                  <span>Sort order</span>
+                  <input id="channel-sort" type="text" name="sort_order" inputmode="numeric" value="{{ edit_channel.sort_order if edit_channel else '' }}" placeholder="auto"/>
+                </label>
+                <label class="field">
+                  <span>Provider hint</span>
+                  <input id="channel-provider" type="text" name="provider_hint" list="channel-provider-list" maxlength="32" value="{{ edit_channel.provider_hint if edit_channel else 'auto' }}"/>
+                  <datalist id="channel-provider-list">
+                    <option value="auto"></option>
+                    {% for provider in channel_provider_hints %}
+                    <option value="{{ provider }}"></option>
+                    {% endfor %}
+                  </datalist>
+                </label>
+                <label class="field">
+                  <span>Rotation mode</span>
+                  <input id="channel-rotation" type="text" name="rotation_mode" list="channel-rotation-list" maxlength="32" value="{{ edit_channel.rotation_mode if edit_channel else 'auto' }}"/>
+                  <datalist id="channel-rotation-list">
+                    <option value="auto"></option>
+                    {% for mode in channel_rotation_modes %}
+                    <option value="{{ mode }}"></option>
+                    {% endfor %}
+                  </datalist>
+                </label>
+              </div>
+              <div class="form-grid three">
+                <label class="field">
+                  <span>Status</span>
+                  <label class="toggle"><input type="checkbox" name="approved" {% if not edit_channel or edit_channel.approved %}checked{% endif %}/> Approved</label>
+                </label>
+                <label class="field">
+                  <span>Playback</span>
+                  <label class="toggle"><input type="checkbox" name="autoplay" {% if not edit_channel or edit_channel.autoplay %}checked{% endif %}/> Autoplay</label>
+                </label>
+                <label class="field">
+                  <span>Transition seconds</span>
+                  <input id="channel-transition-seconds" type="text" name="transition_seconds" inputmode="decimal" value="{{ edit_channel.transition_seconds if edit_channel else '0.9' }}" placeholder="0.9"/>
+                </label>
+              </div>
+              <div class="field">
+                <span>Hover / card description</span>
+                <textarea id="channel-description" name="description" maxlength="512" placeholder="This text appears on the channel row and acts as your hover/card context.">{{ edit_channel.description if edit_channel else '' }}</textarea>
+              </div>
+              <div class="field">
+                <span>Search terms</span>
+                <textarea id="channel-search-terms" name="search_terms_text" maxlength="2000" placeholder="One term per line. Used for provider feed matching like Square Enix music or Fortnite uploads.">{{ edit_channel.search_terms_text if edit_channel else '' }}</textarea>
+              </div>
+              <div class="form-grid two">
+                <label class="field">
+                  <span>Transition title</span>
+                  <input id="channel-transition-title" type="text" name="transition_title" maxlength="128" value="{{ edit_channel.transition_title if edit_channel else '' }}" placeholder="Autoplay Relay"/>
+                </label>
+                <label class="field">
+                  <span>Transition copy</span>
+                  <input id="channel-transition-copy" type="text" name="transition_copy" maxlength="512" value="{{ edit_channel.transition_copy if edit_channel else '' }}" placeholder="Routing next source."/>
+                </label>
+              </div>
+              <div class="row-actions">
+                <button type="submit" class="btn btn-primary">{{ "Save Channel" if edit_channel else "Create Channel" }}</button>
+                <a href="/ops#control-channels" class="btn">Reset</a>
+              </div>
+            </form>
+            </div>
+          </div>
+        </details>
+
+        <details class="control-fold" id="control-queue">
+          <summary>
+            <span>Submission Queue</span>
+            <span class="pill pill-amber">{{ pending_channels|length }} pending</span>
+          </summary>
+          <div class="control-fold__body">
+            {% if pending_channels %}
+            <div class="post-stack">
+              {% for channel in pending_channels %}
+              <article class="post-card">
+                <div class="post-top">
+                  <div>
+                    <strong>{{ channel.name }}</strong>
+                    <div class="meta-line">{{ channel.category or 'Other' }} | submitted by {{ channel.suggested_by or 'unknown' }}</div>
+                  </div>
+                  <span class="pill pill-amber">Pending</span>
+                </div>
+                <p>{{ channel.description or 'No description submitted.' }}</p>
+                <div class="helper-text">{{ channel.source_urls_text or channel.embed_url }}</div>
+                <div class="row-actions">
+                  <form method="post" class="inline-form"><input type="hidden" name="action" value="channel_approve"/><input type="hidden" name="channel_id" value="{{ channel.id }}"/><button type="submit" class="btn btn-primary">Approve</button></form>
+                  <a href="/ops?edit_channel={{ channel.id }}#control-channels" class="btn">Edit</a>
+                  <form method="post" class="inline-form"><input type="hidden" name="action" value="channel_reject"/><input type="hidden" name="channel_id" value="{{ channel.id }}"/><button type="submit" class="btn btn-danger">Reject</button></form>
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-card">No pending channel submissions right now.</div>
+            {% endif %}
+          </div>
+        </details>
+
+        <details class="control-fold" id="control-catalog">
+          <summary>
+            <span>Live Catalog</span>
+            <span class="pill pill-blue">{{ approved_channels|length }} approved</span>
+          </summary>
+          <div class="control-fold__body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Category</th><th>Sort</th><th>Config</th><th>Description</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  {% for channel in approved_channels %}
+                  <tr>
+                    <td><strong>{{ channel.name }}</strong><div class="meta-line"><a href="{{ (channel.source_urls[0] if channel.source_urls else channel.embed_url) or '#' }}" target="_blank" rel="noopener">Open source</a></div></td>
+                    <td>{{ channel.category or 'Other' }}</td>
+                    <td>{{ channel.sort_order if channel.sort_order is not none else '-' }}</td>
+                    <td>{{ channel.provider_hint or 'auto' }} | {{ channel.rotation_mode or 'single' }} | {{ 'auto' if channel.autoplay else 'manual' }}</td>
+                    <td>{{ channel.description or 'No description.' }}</td>
+                    <td class="actions-cell">
+                      <a href="/ops?edit_channel={{ channel.id }}#control-channels" class="btn">Edit</a>
+                      <form method="post" class="inline-form"><input type="hidden" name="action" value="channel_unpublish"/><input type="hidden" name="channel_id" value="{{ channel.id }}"/><button type="submit" class="btn">Move To Pending</button></form>
+                      <form method="post" class="inline-form"><input type="hidden" name="action" value="channel_delete"/><input type="hidden" name="channel_id" value="{{ channel.id }}"/><button type="submit" class="btn btn-danger">Delete</button></form>
+                    </td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="6">No approved channels yet.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+
+        <details class="control-fold" id="control-broadcasts" {% if edit_broadcast %}open{% endif %}>
+          <summary>
+            <span>Emergency UI Broadcasts</span>
+            <span class="pill {% if admin_stats.active_broadcasts %}pill-amber{% else %}pill-blue{% endif %}">{{ admin_stats.active_broadcasts }} live</span>
+          </summary>
+          <div class="control-fold__body">
+            <form method="post" class="stack">
+              <input type="hidden" name="action" value="{{ 'broadcast_update' if edit_broadcast else 'broadcast_create' }}"/>
+              {% if edit_broadcast %}<input type="hidden" name="broadcast_id" value="{{ edit_broadcast.id }}"/>{% endif %}
+              <div class="form-grid two">
+                <label class="field"><span>Broadcast title</span><input id="broadcast-title" type="text" name="title" maxlength="128" value="{{ edit_broadcast.title if edit_broadcast else '' }}" required/></label>
+                <label class="field"><span>Priority</span><input id="broadcast-priority" type="number" name="priority" value="{{ edit_broadcast.priority if edit_broadcast else 0 }}" min="0" max="999" step="1"/></label>
+              </div>
+              <label class="field"><span>Broadcast copy</span><textarea id="broadcast-body" name="body" maxlength="1024" placeholder="Sitewide service note, launch ticker copy, emergency warning, or feature spotlight.">{{ edit_broadcast.body if edit_broadcast else '' }}</textarea></label>
+              <div class="form-grid three">
+                <label class="field"><span>Variant</span><select id="broadcast-variant" name="variant">{% for variant in broadcast_variants %}<option value="{{ variant }}" {% if (edit_broadcast.variant if edit_broadcast else 'info') == variant %}selected{% endif %}>{{ variant }}</option>{% endfor %}</select></label>
+                <label class="field"><span>Display mode</span><select id="broadcast-display-mode" name="display_mode">{% for mode in broadcast_display_modes %}<option value="{{ mode }}" {% if (edit_broadcast.display_mode if edit_broadcast else 'banner') == mode %}selected{% endif %}>{{ mode }}</option>{% endfor %}</select></label>
+                <label class="field"><span>Dismiss mode</span><select id="broadcast-dismiss-mode" name="dismiss_mode">{% for mode in broadcast_dismiss_modes %}<option value="{{ mode }}" {% if (edit_broadcast.dismiss_mode if edit_broadcast else 'manual') == mode %}selected{% endif %}>{{ mode }}</option>{% endfor %}</select></label>
+              </div>
+              <div class="form-grid three">
+                <label class="field"><span>Duration seconds</span><input id="broadcast-duration" type="number" name="duration_seconds" value="{{ edit_broadcast.duration_seconds if edit_broadcast else 8 }}" min="0.5" max="120" step="0.5"/></label>
+                <label class="field"><span>CTA label</span><input id="broadcast-cta-label" type="text" name="cta_label" maxlength="64" value="{{ edit_broadcast.cta_label if edit_broadcast else '' }}"/></label>
+                <label class="field"><span>CTA link</span><input id="broadcast-cta-href" type="text" name="cta_href" maxlength="512" value="{{ edit_broadcast.cta_href if edit_broadcast else '' }}" placeholder="/dashboard or https://..."/></label>
+              </div>
+              <div class="row-actions">
+                <label class="toggle"><input type="checkbox" name="closable" {% if not edit_broadcast or edit_broadcast.closable %}checked{% endif %}/> Closable</label>
+                <label class="toggle"><input type="checkbox" name="active" {% if not edit_broadcast or edit_broadcast.active %}checked{% endif %}/> Active</label>
+              </div>
+              <div class="row-actions">
+                <button type="submit" class="btn btn-primary">{{ "Update Broadcast" if edit_broadcast else "Create Broadcast" }}</button>
+                <a href="/ops#control-broadcasts" class="btn">Clear Edit</a>
+              </div>
+            </form>
+            <div class="post-stack">
+              {% for broadcast in broadcasts %}
+              <article class="post-card">
+                <div class="post-top">
+                  <div>
+                    <strong>{{ broadcast.title }}</strong>
+                    <div class="meta-line">{{ broadcast.display_mode or 'banner' }} | {{ broadcast.dismiss_mode or 'manual' }} | priority {{ broadcast.priority or 0 }}</div>
+                  </div>
+                  <span class="pill {% if broadcast.active %}pill-blue{% else %}pill{% endif %}">{{ 'live' if broadcast.active else 'inactive' }}</span>
+                </div>
+                <p>{{ broadcast.body or 'No supporting copy.' }}</p>
+                <div class="row-actions">
+                  <a href="/ops?edit_broadcast={{ broadcast.id }}#control-broadcasts" class="btn">Edit</a>
+                  {% if broadcast.active %}
+                  <form method="post" class="inline-form"><input type="hidden" name="action" value="broadcast_deactivate"/><input type="hidden" name="broadcast_id" value="{{ broadcast.id }}"/><button type="submit" class="btn">Deactivate</button></form>
+                  {% else %}
+                  <form method="post" class="inline-form"><input type="hidden" name="action" value="broadcast_activate"/><input type="hidden" name="broadcast_id" value="{{ broadcast.id }}"/><button type="submit" class="btn btn-primary">Activate</button></form>
+                  {% endif %}
+                  <form method="post" class="inline-form"><input type="hidden" name="action" value="broadcast_delete"/><input type="hidden" name="broadcast_id" value="{{ broadcast.id }}"/><button type="submit" class="btn btn-danger">Delete</button></form>
+                </div>
+              </article>
+              {% else %}
+              <div class="empty-card">No emergency UI broadcasts configured yet.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </details>
+
+        <details class="control-fold" id="control-announcements">
+          <summary>
+            <span>Announcements + WhitePages Tracks</span>
+            <span class="pill">{{ announcements|length }} posts / {{ wp_tracks|length }} tracks</span>
+          </summary>
+          <div class="control-fold__body">
+            <div class="control-split">
+              <div class="stack">
+                <form method="post" class="form-card">
+                  <input type="hidden" name="action" value="announce"/>
+                  <h3>Post Announcement</h3>
+                  <label class="field"><span>Title</span><input id="announcement-title" type="text" name="title" maxlength="256" required/></label>
+                  <label class="field"><span>Body</span><textarea id="announcement-body" name="body" placeholder="Write the announcement text here."></textarea></label>
+                  <label class="toggle"><input type="checkbox" name="pinned"/> Pin to top</label>
+                  <div class="row-actions"><button type="submit" class="btn btn-primary">Post Announcement</button></div>
+                </form>
+                <div class="post-stack">
+                  {% for announcement in announcements %}
+                  <article class="post-card">
+                    <div class="post-top">
+                      <strong>{{ announcement.title or announcement.get('title', '') }}</strong>
+                      {% if announcement.pinned or announcement.get('pinned') %}<span class="pill pill-blue">Pinned</span>{% endif %}
+                    </div>
+                    <p>{{ announcement.body or announcement.get('body', '') }}</p>
+                    <div class="meta-line">{{ announcement.created_at or '' }}</div>
+                  </article>
+                  {% else %}
+                  <div class="empty-card">No announcements posted yet.</div>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="stack">
+                <div class="form-card">
+                  <h3>WhitePages Tracks</h3>
+                  <div class="stack">
+                    <div class="form-grid two">
+                      <label class="field"><span>Title</span><input id="wp-title" type="text" maxlength="256"/></label>
+                      <label class="field"><span>Artist</span><input id="wp-artist" type="text" maxlength="128"/></label>
+                    </div>
+                    <div class="form-grid two">
+                      <label class="field"><span>Source type</span><input id="wp-type" list="track-type-list" value="soundcloud"/><datalist id="track-type-list"><option value="soundcloud"></option><option value="youtube"></option><option value="audio"></option></datalist></label>
+                      <label class="field"><span>Embed or media URL</span><input id="wp-url" type="url" maxlength="1024"/></label>
+                    </div>
+                    <div class="helper-text" id="wp-url-hint">Paste a SoundCloud, YouTube, or direct audio URL.</div>
+                    <div class="row-actions">
+                      <button type="button" class="btn btn-primary" onclick="addTrack()">Add Track</button>
+                      <span class="pill" id="track-count">{{ wp_tracks|length }} tracks</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="post-stack track-list" id="track-list">
+                  {% if wp_tracks %}
+                    {% for track in wp_tracks %}
+                    <article class="post-card">
+                      <div class="post-top">
+                        <strong>{{ track.title }}</strong>
+                        <span class="pill">{{ track.source_type or 'source' }}</span>
+                      </div>
+                      <p>{{ track.artist or '-' }}</p>
+                      <div class="meta-line">{{ track.embed_url or '' }}</div>
+                      <div class="row-actions">
+                        <button type="button" class="btn btn-danger" onclick="deleteTrack({{ track.id }})">Remove</button>
+                      </div>
+                    </article>
+                    {% endfor %}
+                  {% else %}
+                    <div class="empty-card">No WhitePages tracks yet.</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="control-fold" id="control-system">
+          <summary>
+            <span>System Status + Member Registry</span>
+            <span class="pill {% if system_status.get('oracle_online') %}pill-blue{% else %}pill-red{% endif %}">{{ 'oracle live' if system_status.get('oracle_online') else 'oracle offline' }}</span>
+          </summary>
+          <div class="control-fold__body">
+            <div class="control-split">
+              <div class="stack">
+                <div class="status-grid">
+                  {% for label, key in [('Oracle Driver','oracle_driver'), ('Oracle Config','oracle_config'), ('Oracle Online','oracle_online'), ('OCI SDK','oci_sdk'), ('OCI Config','oci_config'), ('Fallback Mode','fallback_mode')] %}
+                  <article class="summary-tile">
+                    <strong>{{ label }}</strong>
+                    <span class="{{ 'pill pill-blue' if system_status.get(key) else 'pill pill-red' }}">{{ 'ready' if system_status.get(key) else 'off' }}</span>
+                  </article>
+                  {% endfor %}
+                </div>
+                <div class="row-actions">
+                  <a href="/health" target="_blank" rel="noopener" class="btn">Open Health</a>
+                  <a href="/channels" target="_blank" rel="noopener" class="btn">Open Channels</a>
+                  <a href="/whitepages" target="_blank" rel="noopener" class="btn">Open WhitePages</a>
+                </div>
+              </div>
+              <div class="stack">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Epic ID</th><th>Display</th><th>Skin</th><th>Joined</th></tr></thead>
+                    <tbody>
+                      {% for member in members %}
+                      <tr>
+                        <td>{{ member.epic_id or member.get('epic_id', '') }}</td>
+                        <td>{{ member.display_name or member.get('display_name', '') }}</td>
+                        <td>{{ member.skin_name or member.get('skin_name', '-') }}</td>
+                        <td>{{ member.created_at or '' }}</td>
+                      </tr>
+                      {% else %}
+                      <tr><td colspan="4">No members yet.</td></tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+    {% endif %}
+
     {% if staff_permissions.admin %}
-    <section class="panel ops-panel ops-panel--legacy" id="legacy" data-panel-count="{{ legacy_admin_links|length }}" data-panel-density="low">
+    <section class="panel ops-panel ops-panel--legacy" id="legacy" data-panel-count="{{ legacy_admin_links|length }}" data-panel-density="low" data-cluster="control">
       <div class="panel-head">
         <div>
           <h2>Legacy Admin Bridge</h2>
@@ -882,7 +1283,7 @@
         {{ panel_actions() }}
       </div>
       <div class="panel-body" data-panel-body>
-        <p class="section-copy">Channels, broadcasts, announcements, and system surfaces still live in the existing admin shell. This bridge keeps the new role-aware console separate from the older full-control modules.</p>
+        <p class="section-copy">The key legacy modules now live above inside the integrated control plane. Keep this bridge only as a safety fallback until you are comfortable removing `/admin` entirely.</p>
         <div class="link-grid">
           {% for item in legacy_admin_links %}
           <a href="{{ item.href }}" class="link-card">
@@ -895,7 +1296,7 @@
     </section>
     {% endif %}
 
-    <section class="panel ops-panel ops-panel--audit" id="audit" data-panel-count="{{ audit_rows|length }}" data-panel-density="{% if audit_rows|length > 10 %}high{% else %}medium{% endif %}">
+    <section class="panel ops-panel ops-panel--audit" id="audit" data-panel-count="{{ audit_rows|length }}" data-panel-density="{% if audit_rows|length > 10 %}high{% else %}medium{% endif %}" data-cluster="system">
       <div class="panel-head">
         <div>
           <h2>Audit Rail</h2>
@@ -934,5 +1335,8 @@
 <script id="llm-provider-catalog" type="application/json">{{ llm_provider_catalog|tojson }}</script>
 <script id="role-default-permissions" type="application/json">{{ role_default_permissions|tojson }}</script>
 <script src="/static/js/ops.js"></script>
+{% if admin_console_authed %}
+<script src="/static/js/admin.js"></script>
+{% endif %}
 </body>
 </html>

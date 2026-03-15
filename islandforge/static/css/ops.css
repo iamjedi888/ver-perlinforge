@@ -784,6 +784,23 @@ textarea {
   flex-wrap: wrap;
 }
 
+.cluster-toolbar {
+  display: grid;
+  gap: 14px;
+}
+
+.cluster-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tab-link.is-active {
+  color: var(--teal);
+  border-color: rgba(0, 229, 160, 0.28);
+  background: rgba(0, 229, 160, 0.08);
+}
+
 .signal-capsule {
   display: grid;
   gap: 8px;
@@ -977,6 +994,10 @@ textarea {
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28), 0 0 32px rgba(0, 229, 160, 0.08);
 }
 
+.ops-panel[hidden] {
+  display: none !important;
+}
+
 .form-grid.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1129,6 +1150,72 @@ tbody td {
 .link-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   margin-top: 16px;
+}
+
+.control-plane {
+  display: grid;
+  gap: 16px;
+}
+
+.control-fold {
+  border: 1px solid rgba(92, 121, 165, 0.18);
+  border-radius: 22px;
+  background: rgba(7, 10, 18, 0.54);
+  overflow: hidden;
+}
+
+.control-fold summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
+  cursor: pointer;
+  padding: 18px 20px;
+  font-family: "Orbitron", monospace;
+  letter-spacing: 0.08em;
+}
+
+.control-fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.control-fold summary::after {
+  content: "+";
+  margin-left: auto;
+  color: var(--jarvis-cyan);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.9rem;
+}
+
+.control-fold[open] summary::after {
+  content: "−";
+}
+
+.control-fold__body {
+  display: grid;
+  gap: 16px;
+  padding: 0 20px 20px;
+}
+
+.cluster-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.control-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 .bot-grid {
@@ -1292,6 +1379,10 @@ button[disabled] {
   }
 
   .hero-side {
+    grid-template-columns: 1fr;
+  }
+
+  .control-split {
     grid-template-columns: 1fr;
   }
 

@@ -30,7 +30,7 @@
   --dim:       #3a4a60;
   --nav-h:     56px;
   --dock-h:    62px;
-  --stage-max: 1180px;
+  --stage-max: 1320px;
   --stage-gap: clamp(12px, 1.8vw, 22px);
   --viewport-h: 100vh;
   --guide-collapsed: 58px;
@@ -156,8 +156,8 @@ nav.ch-nav {
   border: 1px solid rgba(0,145,255,.2);
   box-shadow: 0 0 40px rgba(0,145,255,.08), inset 0 0 40px rgba(0,145,255,.03);
   animation: holo-border-pulse 4s ease-in-out infinite;
-  width: min(100%, var(--stage-max), calc((var(--viewport-h) - var(--nav-h) - 214px) * 16 / 9));
-  min-width: min(100%, 420px);
+  width: min(100%, var(--stage-max), calc((var(--viewport-h) - var(--nav-h) - 164px) * 16 / 9));
+  min-width: min(100%, 560px);
   max-width: 100%;
   aspect-ratio: 16 / 9;
   margin-inline: auto;
@@ -363,7 +363,7 @@ nav.ch-nav {
 .ch-player.feed-mode .arc-text {
   color: var(--teal);
 }
-#ch-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
+#ch-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; background: #000; }
 .ch-player.active #ch-iframe {
   filter: brightness(1.08) contrast(1.08) saturate(1.06);
 }
@@ -984,7 +984,7 @@ body.channels-console .console-dock {
         <a id="stageLink" class="stage-link" href="#" target="_blank" rel="noopener">Open Feed</a>
       </div>
 
-      <iframe id="ch-iframe" src="" allow="autoplay; fullscreen; picture-in-picture"
+      <iframe id="ch-iframe" src="" allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
               allowfullscreen style="display:none;width:100%;height:100%;border:none;"></iframe>
       <div class="player-resize" id="playerResize" title="Drag to resize player"></div>
     </div>
@@ -1110,7 +1110,7 @@ body.channels-console .console-dock {
 </footer>
 
 <script>
-const PLAYER_SIZE_KEY = 'ttf.channels.playerWidth';
+const PLAYER_SIZE_KEY = 'ttf.channels.playerWidth.v3';
 const defaultChannel = {{ default_channel|tojson if default_channel else 'null' }};
 let currentUrl = '';
 let currentSourceUrl = '';
@@ -1158,6 +1158,8 @@ function withAutoplay(url, autoplayEnabled = true) {
       resolved.searchParams.set('playsinline', '1');
       resolved.searchParams.set('rel', '0');
       resolved.searchParams.set('modestbranding', '1');
+      resolved.searchParams.set('controls', '1');
+      resolved.searchParams.set('vq', 'hd1080');
       resolved.searchParams.set('enablejsapi', '1');
       if (muted) {
         resolved.searchParams.set('mute', '1');
@@ -1263,11 +1265,11 @@ function setStageState(channel, ctaLabel) {
 
 function getPlayerBounds() {
   const rootStyles = getComputedStyle(document.documentElement);
-  const stageMax = parseFloat(rootStyles.getPropertyValue('--stage-max')) || 1180;
+  const stageMax = parseFloat(rootStyles.getPropertyValue('--stage-max')) || 1320;
   const navHeight = parseFloat(rootStyles.getPropertyValue('--nav-h')) || 56;
   const containerWidth = document.querySelector('.ch-main').clientWidth;
-  const minWidth = Math.min(Math.max(420, Math.floor(containerWidth * 0.62)), containerWidth);
-  const viewportBasedWidth = Math.max(420, Math.floor((window.innerHeight - navHeight - 214) * 16 / 9));
+  const minWidth = Math.min(Math.max(560, Math.floor(containerWidth * 0.72)), containerWidth);
+  const viewportBasedWidth = Math.max(560, Math.floor((window.innerHeight - navHeight - 164) * 16 / 9));
   const maxWidth = Math.max(minWidth, Math.min(stageMax, containerWidth, viewportBasedWidth));
   return { minWidth, maxWidth };
 }
@@ -1298,6 +1300,16 @@ function resetPlayerSize() {
   const player = document.getElementById('chPlayer');
   player.style.width = '';
   localStorage.removeItem(PLAYER_SIZE_KEY);
+}
+
+function primePlayerSize() {
+  if (window.innerWidth <= 760) return;
+  if (localStorage.getItem(PLAYER_SIZE_KEY)) {
+    restorePlayerSize();
+    return;
+  }
+  const bounds = getPlayerBounds();
+  applyPlayerSize(bounds.maxWidth);
 }
 
 function pulsePlayerZoom(persist) {
@@ -1585,7 +1597,7 @@ async function submitSuggest() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  restorePlayerSize();
+  primePlayerSize();
   document.querySelectorAll('.cat-hd').forEach(hd => {
     hd.classList.add('open');
   });
@@ -1605,6 +1617,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (localStorage.getItem(PLAYER_SIZE_KEY)) {
       restorePlayerSize();
+    } else {
+      primePlayerSize();
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      window.setTimeout(() => {
+        if (localStorage.getItem(PLAYER_SIZE_KEY)) {
+          restorePlayerSize();
+        } else {
+          primePlayerSize();
+        }
+      }, 120);
     }
   });
   if (window.innerWidth <= 760) {
