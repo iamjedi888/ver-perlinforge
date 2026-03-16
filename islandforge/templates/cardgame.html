@@ -32,9 +32,9 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
 .hero h1 span{display:block;color:var(--teal)}
 .hero p,.copy{color:var(--mid);line-height:1.68}
 .hero-metrics{display:grid;gap:12px}
-.metric-card,.panel,.chip-card,.deck-card,.road-card,.step-card,.signal-card{padding:16px;border:1px solid rgba(35,50,68,.94);background:rgba(10,15,22,.96)}
-.metric-card strong,.chip-card strong,.deck-card strong,.road-card strong,.signal-card strong{display:block;margin-top:8px;font-family:'Orbitron',monospace}
-.metric-card span,.chip-card span,.deck-card span,.road-card span,.signal-card span{display:block;font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.metric-card,.panel,.chip-card,.deck-card,.road-card,.step-card,.signal-card,.matrix-card{padding:16px;border:1px solid rgba(35,50,68,.94);background:rgba(10,15,22,.96)}
+.metric-card strong,.chip-card strong,.deck-card strong,.road-card strong,.signal-card strong,.matrix-card strong{display:block;margin-top:8px;font-family:'Orbitron',monospace}
+.metric-card span,.chip-card span,.deck-card span,.road-card span,.signal-card span,.matrix-card span{display:block;font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
 .hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
 .btn,.chip-btn{appearance:none;border:1px solid rgba(19,166,255,.16);background:rgba(19,166,255,.05);color:var(--text);cursor:pointer;transition:.16s}
 .btn{padding:12px 16px;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;text-decoration:none}
@@ -50,8 +50,14 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
 .chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .chip-btn{padding:9px 12px;font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase}
 .chip-btn.active{border-color:rgba(0,229,160,.34);background:rgba(0,229,160,.1);color:var(--teal)}
+.identity-stack{display:grid;gap:12px;margin-top:16px}
+.identity-bar{display:flex;flex-wrap:wrap;gap:8px;padding:12px;border:1px solid rgba(35,50,68,.94);background:rgba(8,12,18,.94)}
+.role-chip,.essence-chip,.gene-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid rgba(35,50,68,.94);font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase}
+.role-chip{background:rgba(19,166,255,.08);color:#b7d6ff}
+.essence-chip,.gene-chip{background:rgba(0,229,160,.06);color:#cdece7}
+.essence-chip::before,.gene-chip::before{content:'';width:10px;height:10px;border-radius:999px;background:currentColor;box-shadow:0 0 14px currentColor}
 .mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
-.mini-grid .chip-card{min-height:94px}
+.mini-grid .chip-card{min-height:108px}
 .generator-note{margin-top:16px;padding:12px 14px;border:1px solid rgba(35,50,68,.94);background:rgba(8,12,18,.94);color:var(--mid);line-height:1.6}
 .scene-shell{position:relative;border:1px solid var(--border);background:linear-gradient(180deg,rgba(9,13,20,.98),rgba(4,7,12,.98));overflow:hidden;min-height:620px}
 .scene-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(35,50,68,.92);background:rgba(7,10,15,.94)}
@@ -61,20 +67,29 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
 .scene-status{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
 .scene-wrap{height:560px}
 #cardScene{width:100%;height:100%}
-.below-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.8fr);gap:18px;margin-top:18px}
-.deck-grid,.steps{display:grid;gap:12px}
-.deck-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.below-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.85fr);gap:18px;margin-top:18px}
+.deck-grid,.steps,.matrix-grid{display:grid;gap:12px}
+.deck-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.matrix-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
 .deck-card h3,.step-card h3{font-size:.86rem;margin-top:10px}
 .step-card{display:grid;gap:8px}
 .roadmap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
 .road-card{min-height:160px}
 .road-card p{margin:10px 0 0;color:var(--mid);line-height:1.58}
 .stats-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
-.signal-card em{display:block;margin-top:6px;font-style:normal;color:var(--mid)}
-.empty{padding:20px;border:1px dashed rgba(35,50,68,.92);color:var(--mid);line-height:1.6}
+.signal-card em,.matrix-card em{display:block;margin-top:6px;font-style:normal;color:var(--mid)}
 .footer-note{margin-top:18px;color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase}
-@media (max-width:1120px){.hero,.lab-grid,.below-grid{grid-template-columns:1fr}.roadmap,.deck-grid,.mini-grid,.stats-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:720px){.page{width:min(100%,calc(100% - 12px))}.hero,.panel{padding:18px}.search-row{flex-direction:column}.roadmap,.deck-grid,.mini-grid,.stats-list{grid-template-columns:1fr}.scene-wrap{height:480px}}
+@media (max-width:1120px){
+  .hero,.lab-grid,.below-grid{grid-template-columns:1fr}
+  .roadmap,.deck-grid,.mini-grid,.stats-list,.matrix-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:720px){
+  .page{width:min(100%,calc(100% - 12px))}
+  .hero,.panel{padding:18px}
+  .search-row{flex-direction:column}
+  .roadmap,.deck-grid,.mini-grid,.stats-list,.matrix-grid{grid-template-columns:1fr}
+  .scene-wrap{height:480px}
+}
 </style>
 </head>
 <body>
@@ -85,47 +100,45 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
       <span class="eyebrow">Card Lab / A-Frame Prototype</span>
       <h1>Triptok<span>Card Arena</span></h1>
       <p>
-        This is no longer just a roadmap page. The cardgame now has a live prototype lane:
-        search a player, derive a commander card from Battle Royale stats, and preview the deck on a 3D table.
-        A-Frame gives us the fastest path to a playable visual layer before committing to a heavier engine.
+        TriptokCard is now framed as an original seven-role tactical shell. Search a player, derive a live deck profile,
+        and preview the flagship cards on a 3D table while the rules engine matures behind it.
       </p>
       <div class="hero-actions">
-        <button type="button" class="btn primary" id="heroGenerate">Generate Card</button>
+        <button type="button" class="btn primary" id="heroGenerate">Generate Shell</button>
         <a href="/leaderboard" class="btn">Open Leaderboard</a>
         <a href="/arena" class="btn">Open Arena</a>
       </div>
     </div>
     <div class="hero-metrics">
       <article class="metric-card">
-        <span>Prototype lane</span>
-        <strong>Embedded A-Frame table</strong>
-        <p class="copy">3D playmat, floating cards, and focus controls without waiting for a full game client.</p>
+        <span>Original frame</span>
+        <strong>Seven role deck core</strong>
+        <p class="copy">Leader, General, Unit, Tactic, Field, Relic, and Primordial are the base Triptok taxonomy.</p>
       </article>
       <article class="metric-card">
-        <span>Card source</span>
-        <strong id="cardSourceBadge">Battle Royale stats</strong>
-        <p class="copy">Uses the existing player lookup surface, with preview fallback if live keyed data is not available.</p>
+        <span>Identity layer</span>
+        <strong id="cardSourceBadge">Essence + Gene</strong>
+        <p class="copy">Player stats map into an elemental lane, a lineage profile, and a combat style instead of copied card-IP language.</p>
       </article>
       <article class="metric-card">
         <span>Deck direction</span>
-        <strong id="deckDirectionBadge">Commander shell</strong>
-        <p class="copy">One hero card, two support pieces, one field rule, and one burst action is enough to prove the loop.</p>
+        <strong id="deckDirectionBadge">Adaptive shell</strong>
+        <p class="copy">The live prototype proves readable depth first: flagship cards, role spread, and reaction-ready pacing.</p>
       </article>
     </div>
   </section>
-
   <section class="lab-grid">
     <div class="panel">
       <div class="panel-head">
         <div>
           <span class="eyebrow">Card Forge</span>
-          <h2>Player to commander card</h2>
+          <h2>Player to TriptokCard shell</h2>
         </div>
         <span class="scene-status" id="cardStatus">Waiting for player input</span>
       </div>
       <p class="copy">
-        Search a Fortnite display name, then convert that stat profile into a commander card, support cards, and a deck angle.
-        The stat mapping is intentionally readable right now so you can critique the design before we harden the real game rules.
+        Search a Fortnite display name, then convert that stat profile into a readable TriptokCard shell.
+        The generator maps wins, eliminations, K/D, win rate, match volume, and pressure into roles, essence, gene, and archetype.
       </p>
       <div class="search-row" style="margin-top:16px">
         <input id="playerSearch" class="input" type="text" placeholder="Search a Fortnite player" value="{{ current_player_name }}"/>
@@ -137,31 +150,36 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
         <button type="button" class="chip-btn" data-archetype="control">Control</button>
         <button type="button" class="chip-btn" data-archetype="combo">Combo</button>
       </div>
+      <div class="identity-stack">
+        <div class="identity-bar" id="roleBar"></div>
+        <div class="identity-bar" id="essenceBar"></div>
+        <div class="identity-bar" id="geneBar"></div>
+      </div>
       <div class="mini-grid">
         <article class="chip-card">
-          <span>Element</span>
+          <span>Essence</span>
           <strong id="heroElement">Storm</strong>
-          <p class="copy" id="heroElementCopy">Calculated from the strongest stat lane.</p>
+          <p class="copy" id="heroElementCopy">Elemental lane calculated from the strongest stat posture.</p>
         </article>
         <article class="chip-card">
-          <span>Rarity</span>
-          <strong id="heroRarity">Rare</strong>
-          <p class="copy" id="heroRarityCopy">Driven by wins, win rate, and consistency.</p>
+          <span>Gene</span>
+          <strong id="heroRarity">Prime</strong>
+          <p class="copy" id="heroRarityCopy">Lineage profile determined by consistency, burst, and match history.</p>
         </article>
         <article class="chip-card">
-          <span>Deck lane</span>
+          <span>Archetype</span>
           <strong id="heroArchetype">Adaptive</strong>
-          <p class="copy" id="heroArchetypeCopy">Switches based on your chosen shell.</p>
+          <p class="copy" id="heroArchetypeCopy">Selected shell biases cost, shield, and reaction pacing.</p>
         </article>
       </div>
       <div class="generator-note" id="generatorNote">
-        Generate a player card to see the current stat-to-card mapping. This page is the prelaunch game lab, not the final multiplayer rules engine.
+        Generate a player shell to see the full TriptokCard mapping. This is the live prototype lane for role identity, not the finished multiplayer rules engine.
       </div>
       <div class="stats-list" id="derivedStats">
-        <article class="signal-card"><span>Attack</span><strong>--</strong><em>Power from eliminations and pressure.</em></article>
-        <article class="signal-card"><span>Shield</span><strong>--</strong><em>Stability from K/D and match depth.</em></article>
-        <article class="signal-card"><span>Cost</span><strong>--</strong><em>Energy curve for the commander lane.</em></article>
-        <article class="signal-card"><span>Ability</span><strong>--</strong><em>Derived from win rate and archetype.</em></article>
+        <article class="signal-card"><span>Leader ATK</span><strong>--</strong><em>Pressure from eliminations, wins, and pace.</em></article>
+        <article class="signal-card"><span>Leader SHD</span><strong>--</strong><em>Stability from K/D, matches, and control bias.</em></article>
+        <article class="signal-card"><span>Charge Curve</span><strong>--</strong><em>How expensive the shell feels across the command lane.</em></article>
+        <article class="signal-card"><span>Reaction Window</span><strong>--</strong><em>How this shell prefers to fight during clash and resolve.</em></article>
       </div>
     </div>
 
@@ -169,8 +187,8 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
       <div class="scene-toolbar">
         <div class="scene-toolbar__group">
           <button type="button" class="scene-focus active" data-focus="board">Board</button>
-          <button type="button" class="scene-focus" data-focus="commander">Commander</button>
-          <button type="button" class="scene-focus" data-focus="support">Support</button>
+          <button type="button" class="scene-focus" data-focus="leader">Leader</button>
+          <button type="button" class="scene-focus" data-focus="flank">Flank</button>
         </div>
         <div class="scene-status" id="sceneMode">Board focus</div>
       </div>
@@ -198,35 +216,35 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
           <a-ring position="0 0.04 -1.1" rotation="-90 0 0" radius-inner="1.65" radius-outer="1.95" color="#13a6ff" material="emissive: #13a6ff; emissiveIntensity: 0.9"></a-ring>
           <a-ring position="0 0.03 -1.1" rotation="-90 0 0" radius-inner="2.2" radius-outer="2.35" color="#00e5a0" material="emissive: #00e5a0; emissiveIntensity: 0.6"></a-ring>
 
-          <a-entity id="commanderCard" position="0 1.72 -1.1" rotation="-18 0 0" animation="property: position; to: 0 1.84 -1.1; dir: alternate; dur: 2400; loop: true; easing: easeInOutSine">
+          <a-entity id="leaderCard" position="0 1.72 -1.1" rotation="-18 0 0" animation="property: position; to: 0 1.84 -1.1; dir: alternate; dur: 2400; loop: true; easing: easeInOutSine">
             <a-box width="1.68" height="2.34" depth="0.05" color="#122231" material="metalness: 0.28; roughness: 0.42"></a-box>
-            <a-plane id="commanderFrame" position="0 0 0.028" width="1.6" height="2.26" color="#193447" material="emissive: #13a6ff; emissiveIntensity: 0.12"></a-plane>
-            <a-plane id="commanderArt" position="0 0.36 0.03" width="1.25" height="0.88" color="#1d5a73"></a-plane>
-            <a-entity id="commanderName" position="0 0.93 0.032" text="value: Storm Runner; align: center; color: #f7fbff; width: 2.7; wrapCount: 14; font: mozillavr"></a-entity>
-            <a-entity id="commanderMeta" position="0 -0.08 0.032" text="value: Rare Commander; align: center; color: #9fd8f2; width: 2.45; wrapCount: 18; font: mozillavr"></a-entity>
-            <a-entity id="commanderAbility" position="0 -0.56 0.032" text="value: Ability loading...; align: center; color: #f8cb7a; width: 2.45; wrapCount: 24; lineHeight: 48; font: mozillavr"></a-entity>
-            <a-entity id="commanderStats" position="0 -0.95 0.032" text="value: 0 ATK / 0 SHD / 0 COST; align: center; color: #ffffff; width: 2.7; wrapCount: 18; font: mozillavr"></a-entity>
+            <a-plane id="leaderFrame" position="0 0 0.028" width="1.6" height="2.26" color="#193447" material="emissive: #13a6ff; emissiveIntensity: 0.12"></a-plane>
+            <a-plane id="leaderArt" position="0 0.36 0.03" width="1.25" height="0.88" color="#1d5a73"></a-plane>
+            <a-entity id="leaderName" position="0 0.93 0.032" text="value: Signal Vanguard; align: center; color: #f7fbff; width: 2.7; wrapCount: 14; font: mozillavr"></a-entity>
+            <a-entity id="leaderMeta" position="0 -0.08 0.032" text="value: Leader / Storm / Prime; align: center; color: #9fd8f2; width: 2.45; wrapCount: 18; font: mozillavr"></a-entity>
+            <a-entity id="leaderAbility" position="0 -0.56 0.032" text="value: Ability loading...; align: center; color: #f8cb7a; width: 2.45; wrapCount: 24; lineHeight: 48; font: mozillavr"></a-entity>
+            <a-entity id="leaderStats" position="0 -0.95 0.032" text="value: 0 ATK / 0 SHD / 0 COST; align: center; color: #ffffff; width: 2.7; wrapCount: 18; font: mozillavr"></a-entity>
           </a-entity>
 
-          <a-entity id="supportCardLeft" position="-2.05 1.28 -1.65" rotation="-18 18 0" animation="property: position; to: -2.05 1.4 -1.65; dir: alternate; dur: 2200; loop: true; easing: easeInOutSine">
+          <a-entity id="generalCard" position="-2.05 1.28 -1.65" rotation="-18 18 0" animation="property: position; to: -2.05 1.4 -1.65; dir: alternate; dur: 2200; loop: true; easing: easeInOutSine">
             <a-box width="1.3" height="1.84" depth="0.04" color="#0f1a25"></a-box>
-            <a-plane id="supportLeftFrame" position="0 0 0.024" width="1.22" height="1.76" color="#21405b"></a-plane>
-            <a-entity id="supportLeftName" position="0 0.54 0.026" text="value: Field Node; align: center; color: #f7fbff; width: 2.15; wrapCount: 15; font: mozillavr"></a-entity>
-            <a-entity id="supportLeftBody" position="0 -0.18 0.026" text="value: Grants setup pressure.; align: center; color: #9fd8f2; width: 2.0; wrapCount: 20; lineHeight: 46; font: mozillavr"></a-entity>
+            <a-plane id="generalFrame" position="0 0 0.024" width="1.22" height="1.76" color="#21405b"></a-plane>
+            <a-entity id="generalName" position="0 0.54 0.026" text="value: Signal Marshal; align: center; color: #f7fbff; width: 2.15; wrapCount: 15; font: mozillavr"></a-entity>
+            <a-entity id="generalBody" position="0 -0.18 0.026" text="value: Grants command pressure.; align: center; color: #9fd8f2; width: 2.0; wrapCount: 20; lineHeight: 46; font: mozillavr"></a-entity>
           </a-entity>
 
-          <a-entity id="supportCardRight" position="2.05 1.28 -1.65" rotation="-18 -18 0" animation="property: position; to: 2.05 1.4 -1.65; dir: alternate; dur: 2200; loop: true; easing: easeInOutSine">
+          <a-entity id="primordialCard" position="2.05 1.28 -1.65" rotation="-18 -18 0" animation="property: position; to: 2.05 1.4 -1.65; dir: alternate; dur: 2200; loop: true; easing: easeInOutSine">
             <a-box width="1.3" height="1.84" depth="0.04" color="#0f1a25"></a-box>
-            <a-plane id="supportRightFrame" position="0 0 0.024" width="1.22" height="1.76" color="#3a2c4f"></a-plane>
-            <a-entity id="supportRightName" position="0 0.54 0.026" text="value: Burst Stack; align: center; color: #f7fbff; width: 2.15; wrapCount: 15; font: mozillavr"></a-entity>
-            <a-entity id="supportRightBody" position="0 -0.18 0.026" text="value: Converts momentum into pressure.; align: center; color: #9fd8f2; width: 2.0; wrapCount: 20; lineHeight: 46; font: mozillavr"></a-entity>
+            <a-plane id="primordialFrame" position="0 0 0.024" width="1.22" height="1.76" color="#3a2c4f"></a-plane>
+            <a-entity id="primordialName" position="0 0.54 0.026" text="value: Primordial Rift; align: center; color: #f7fbff; width: 2.15; wrapCount: 15; font: mozillavr"></a-entity>
+            <a-entity id="primordialBody" position="0 -0.18 0.026" text="value: Converts momentum into finish pressure.; align: center; color: #9fd8f2; width: 2.0; wrapCount: 20; lineHeight: 46; font: mozillavr"></a-entity>
           </a-entity>
 
           <a-cylinder position="0 0.2 1.65" radius="0.16" height="0.28" color="#13a6ff" material="emissive: #13a6ff; emissiveIntensity: 1.2"></a-cylinder>
           <a-cylinder position="-0.48 0.2 1.48" radius="0.16" height="0.28" color="#00e5a0" material="emissive: #00e5a0; emissiveIntensity: 1.2"></a-cylinder>
           <a-cylinder position="0.48 0.2 1.48" radius="0.16" height="0.28" color="#ffb347" material="emissive: #ffb347; emissiveIntensity: 1.2"></a-cylinder>
 
-          <a-entity id="boardTicker" position="0 0.46 2.25" text="value: TriptokCard deck lab online.; align: center; color: #9fd8f2; width: 6.8; wrapCount: 44; font: mozillavr"></a-entity>
+          <a-entity id="boardTicker" position="0 0.46 2.25" text="value: TriptokCard shell lab online.; align: center; color: #9fd8f2; width: 6.8; wrapCount: 44; font: mozillavr"></a-entity>
         </a-scene>
       </div>
     </div>
@@ -241,40 +259,60 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
         </div>
       </div>
       <div class="deck-grid" id="deckGrid">
-        <article class="deck-card"><span>Commander</span><strong>Waiting for card</strong><p class="copy">Generate a player card to build the shell.</p></article>
-        <article class="deck-card"><span>Support A</span><strong>Waiting for card</strong><p class="copy">Utility card appears here.</p></article>
-        <article class="deck-card"><span>Support B</span><strong>Waiting for card</strong><p class="copy">Burst or control card appears here.</p></article>
+        <article class="deck-card"><span>Leader</span><strong>Waiting for shell</strong><p class="copy">Generate a player shell to populate the flagship card.</p></article>
+        <article class="deck-card"><span>General</span><strong>Waiting for shell</strong><p class="copy">Command support card appears here.</p></article>
+        <article class="deck-card"><span>Unit</span><strong>Waiting for shell</strong><p class="copy">Board pressure card appears here.</p></article>
+        <article class="deck-card"><span>Tactic</span><strong>Waiting for shell</strong><p class="copy">Reaction card appears here.</p></article>
+        <article class="deck-card"><span>Field</span><strong>Waiting for shell</strong><p class="copy">Arena condition appears here.</p></article>
+        <article class="deck-card"><span>Relic</span><strong>Waiting for shell</strong><p class="copy">Passive artifact appears here.</p></article>
+        <article class="deck-card"><span>Primordial</span><strong>Waiting for shell</strong><p class="copy">Late-cycle finisher appears here.</p></article>
       </div>
-      <div class="footer-note">This is the fast prototype lane. The next real build is hand zones, turn flow, and deck persistence.</div>
+      <div class="footer-note">Prototype target: prove the seven-role shell, readable identity mapping, and the first live deck logic before PvP rules harden.</div>
     </div>
 
     <div class="panel">
       <div class="panel-head">
         <div>
-          <span class="eyebrow">Current Loop</span>
-          <h2>What is live now</h2>
+          <span class="eyebrow">Original System</span>
+          <h2>Essence, gene, and timing matrix</h2>
         </div>
       </div>
-      <div class="steps">
+      <div class="matrix-grid">
+        <article class="matrix-card">
+          <span>Essences</span>
+          <strong>Combat mood layer</strong>
+          <em id="essenceMatrixCopy">Storm, Ember, Verdant, Void, Solar, and Tidal shape how decks pressure and pivot.</em>
+        </article>
+        <article class="matrix-card">
+          <span>Genes</span>
+          <strong>Lineage behavior</strong>
+          <em id="geneMatrixCopy">Genes define the synergy language behind recursion, banners, growth, relic loops, and burst.</em>
+        </article>
+        <article class="matrix-card">
+          <span>Turn Flow</span>
+          <strong>Reaction-ready pacing</strong>
+          <em id="turnFlowCopy">Draw, deploy, open command, clash, resolve tactics, and stabilize the round.</em>
+        </article>
+      </div>
+      <div class="steps" style="margin-top:16px">
         <article class="step-card">
           <span>Step 01</span>
           <h3>Search a player</h3>
-          <p class="copy">Use the existing Battle Royale lookup surface already in the site.</p>
+          <p class="copy">Use the existing Battle Royale lookup lane already in the site.</p>
         </article>
         <article class="step-card">
           <span>Step 02</span>
-          <h3>Generate a commander</h3>
-          <p class="copy">Convert wins, K/D, eliminations, matches, and win rate into a readable card shell.</p>
+          <h3>Generate a seven-role shell</h3>
+          <p class="copy">Convert wins, K/D, eliminations, matches, and win rate into an original TriptokCard package.</p>
         </article>
         <article class="step-card">
           <span>Step 03</span>
-          <h3>Preview the deck in 3D</h3>
-          <p class="copy">A-Frame lets the game table feel real before we wire in a complete rules engine.</p>
+          <h3>Preview the flagship cards in 3D</h3>
+          <p class="copy">A-Frame keeps the table tactile while the full rules engine and deck persistence come online.</p>
         </article>
       </div>
     </div>
   </section>
-
   <section class="panel" style="margin-top:18px">
     <div class="panel-head">
       <div>
@@ -285,23 +323,23 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
     <div class="roadmap">
       <article class="road-card">
         <span>Phase 1</span>
-        <strong>Card generator</strong>
-        <p>Stat mapping, rarity logic, live art treatment, and stable support-card recipes.</p>
+        <strong>Role shell engine</strong>
+        <p>Stabilize the seven-role generator, readable rarity and identity logic, and live deck framing.</p>
       </article>
       <article class="road-card">
         <span>Phase 2</span>
         <strong>Deck builder</strong>
-        <p>Saved decks, curve checks, lane filters, and a gallery that can be shared on-site.</p>
+        <p>Saved decks, curve checks, lineage filters, and a gallery that can be shared on-site.</p>
       </article>
       <article class="road-card">
         <span>Phase 3</span>
         <strong>Rules engine</strong>
-        <p>Turn order, stack resolution, combat, elemental interactions, and practice AI.</p>
+        <p>Turn order, reaction windows, clash resolution, field states, and practice AI.</p>
       </article>
       <article class="road-card">
         <span>Phase 4</span>
         <strong>PvP arena</strong>
-        <p>Multiplayer matches, ladder seasons, spectating, and replay export back into the site.</p>
+        <p>Multiplayer matches, ranked seasons, spectating, and replay export back into the site.</p>
       </article>
     </div>
   </section>
@@ -309,34 +347,57 @@ h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
 {% include "_site_footer.html" %}
 <script>
 const starterName = {{ current_player_name|tojson }};
+const foundationData = {{ cardgame_foundation|tojson }};
 const focusPositions = {
   board: { position: "0 2.6 5.9", label: "Board focus" },
-  commander: { position: "0 2.2 3.65", label: "Commander focus" },
-  support: { position: "1.75 2.15 4.3", label: "Support focus" },
+  leader: { position: "0 2.2 3.65", label: "Leader focus" },
+  flank: { position: "1.75 2.15 4.3", label: "Flank focus" },
 };
 
-const archetypeConfig = {
-  adaptive: { label: "Adaptive", attackBias: 1.0, shieldBias: 1.0, costBias: 1.0, copy: "Balanced shell that stays readable while the ruleset is still forming." },
-  aggro: { label: "Aggro", attackBias: 1.25, shieldBias: 0.85, costBias: 0.9, copy: "Front-load pressure and keep the curve low." },
-  control: { label: "Control", attackBias: 0.92, shieldBias: 1.25, costBias: 1.1, copy: "Higher shield and resource drag for slower matches." },
-  combo: { label: "Combo", attackBias: 1.08, shieldBias: 0.95, costBias: 1.2, copy: "Lower baseline pressure with a stronger ability payoff." },
-};
-
-const elementPalette = {
-  Storm: { frame: "#1f5375", art: "#296e96", glow: "#13a6ff" },
-  Ember: { frame: "#6b321d", art: "#8a4d2f", glow: "#ff7b2f" },
-  Verdant: { frame: "#205540", art: "#2c7156", glow: "#00e5a0" },
-  Void: { frame: "#443363", art: "#5b4582", glow: "#aa66ff" },
-  Solar: { frame: "#65511f", art: "#80692d", glow: "#ffb347" },
-};
-
-let activeArchetype = "adaptive";
-let lastCardModel = null;
+const roleDefinitions = Array.isArray(foundationData.roles) ? foundationData.roles : [];
+const essenceDefinitions = Array.isArray(foundationData.essences) ? foundationData.essences : [];
+const geneDefinitions = Array.isArray(foundationData.genes) ? foundationData.genes : [];
+const turnFlow = Array.isArray(foundationData.turn_flow) ? foundationData.turn_flow : [];
+const reactionWindows = Array.isArray(foundationData.reaction_windows) ? foundationData.reaction_windows : [];
+const archetypeConfig = Object.fromEntries(
+  (Array.isArray(foundationData.archetypes) ? foundationData.archetypes : []).map(item => [
+    item.key,
+    {
+      label: item.label,
+      attackBias: item.key === "aggro" ? 1.25 : item.key === "control" ? 0.92 : item.key === "combo" ? 1.08 : 1.0,
+      shieldBias: item.key === "aggro" ? 0.85 : item.key === "control" ? 1.25 : item.key === "combo" ? 0.95 : 1.0,
+      costBias: item.key === "aggro" ? 0.9 : item.key === "control" ? 1.1 : item.key === "combo" ? 1.2 : 1.0,
+      copy: item.copy || "",
+    },
+  ])
+);
 
 function $(id){ return document.getElementById(id); }
 function clamp(value, min, max){ return Math.max(min, Math.min(max, value)); }
 function fmtNum(value){ return Number(value || 0).toFixed(2); }
 function parsePercent(value){ return Number.parseFloat(String(value || "0").replace("%","")) || 0; }
+function shadeColor(hex, percent){
+  const cleaned = String(hex || "#13a6ff").replace("#", "");
+  const value = cleaned.length === 3 ? cleaned.split("").map(char => `${char}${char}`).join("") : cleaned;
+  const amount = clamp(percent, -100, 100) / 100;
+  const mix = amount < 0 ? 0 : 255;
+  const ratio = Math.abs(amount);
+  const channels = [0, 2, 4].map(index => {
+    const base = Number.parseInt(value.slice(index, index + 2), 16) || 0;
+    return Math.round(base + (mix - base) * ratio).toString(16).padStart(2, "0");
+  });
+  return `#${channels.join("")}`;
+}
+
+const essencePalette = Object.fromEntries(
+  essenceDefinitions.map(item => {
+    const color = item.color || "#13a6ff";
+    return [item.name, { glow: color, frame: shadeColor(color, -34), art: shadeColor(color, -18) }];
+  })
+);
+
+let activeArchetype = "adaptive";
+let lastCardModel = null;
 
 function setSceneFocus(mode){
   const target = focusPositions[mode] || focusPositions.board;
@@ -350,15 +411,42 @@ function setStatus(text){
   $("cardStatus").textContent = text;
 }
 
-function toneFromStats(stats){
+function renderFoundationBars(){
+  $("roleBar").innerHTML = roleDefinitions.map(item => `<span class="role-chip" title="${item.summary || ""}">${item.name}</span>`).join("");
+  $("essenceBar").innerHTML = essenceDefinitions.map(item => `<span class="essence-chip" title="${item.identity || ""}" style="color:${item.color || "#13a6ff"}">${item.name}</span>`).join("");
+  $("geneBar").innerHTML = geneDefinitions.map(item => `<span class="gene-chip" title="${item.identity || ""}">${item.name}</span>`).join("");
+  $("essenceMatrixCopy").textContent = essenceDefinitions.map(item => `${item.name} - ${item.identity}`).join(" | ");
+  $("geneMatrixCopy").textContent = geneDefinitions.map(item => `${item.name} - ${item.identity}`).join(" | ");
+  $("turnFlowCopy").textContent = turnFlow.length ? turnFlow.join(" -> ") : "Draw, deploy, open command, clash, resolve tactics, stabilize.";
+}
+
+function essenceFromStats(stats){
   const wins = Number(stats.wins || 0);
   const kd = Number(stats.kd || 0);
   const kills = Number(stats.kills || 0);
+  const matches = Number(stats.matches || 0);
+  const winPct = parsePercent(stats.winPct);
   if (wins >= 120 || kd >= 4.5) return "Storm";
-  if (kills >= 2500) return "Ember";
-  if (Number(stats.matches || 0) >= 800) return "Verdant";
-  if (parsePercent(stats.winPct) >= 12) return "Solar";
+  if (kills >= 2500 || Number(stats.avgElim || 0) >= 5) return "Ember";
+  if (matches >= 800) return "Verdant";
+  if (winPct >= 12) return "Solar";
+  if (kd >= 2.4 && matches >= 300) return "Tidal";
   return "Void";
+}
+
+function geneFromStats(stats){
+  const wins = Number(stats.wins || 0);
+  const kd = Number(stats.kd || 0);
+  const kills = Number(stats.kills || 0);
+  const matches = Number(stats.matches || 0);
+  const avgElim = Number(stats.avgElim || 0);
+  const winPct = parsePercent(stats.winPct);
+  if (wins >= 220 || kd >= 5.5) return "Prime";
+  if (avgElim >= 5 || kills >= 3200) return "Riftborn";
+  if (matches >= 1200) return "Wildcore";
+  if (winPct >= 10 && kd >= 2.2) return "Synthetic";
+  if (wins >= 70 && matches >= 400) return "Relicbound";
+  return "Echo";
 }
 
 function rarityFromStats(stats){
@@ -372,104 +460,96 @@ function rarityFromStats(stats){
   return "Uncommon";
 }
 
-function abilityFromModel(model){
-  if (activeArchetype === "aggro") return "On entry, gain +2 attack if your last turn dealt damage.";
-  if (activeArchetype === "control") return "Whenever you block, draw a tactic if your shield is still above half.";
-  if (activeArchetype === "combo") return "If you cast two support cards this turn, double this card's next burst.";
-  return "Once per round, convert one support card into either attack or shield.";
+function leaderAbility(){
+  if (activeArchetype === "aggro") return "When your Leader enters clash, gain +2 attack if a Unit already pressured this round.";
+  if (activeArchetype === "control") return "When shielding would prevent damage, draw a Tactic if your Field is active.";
+  if (activeArchetype === "combo") return "If you resolve a Relic and a Tactic in the same round, double the next Primordial burst.";
+  return "Once each round, convert one allied role into either attack, shield, or charge.";
+}
+
+function buildRoleCards(name, essence, gene, rarity, stats, profile){
+  const attack = clamp(Math.round(((Number(stats.kills || 0) / Math.max(Number(stats.matches || 0), 1)) * 2.5 + Number(stats.avgElim || 0) + Number(stats.wins || 0) / 22) * profile.attackBias), 2, 12);
+  const shield = clamp(Math.round((Number(stats.kd || 0) * 2.8 + Number(stats.matches || 0) / 220) * profile.shieldBias), 2, 12);
+  const cost = clamp(Math.round(((attack + shield) / 3.2) * profile.costBias), 1, 8);
+  const geneTone = geneDefinitions.find(item => item.name === gene)?.identity || "Identity tuning online.";
+  const essenceTone = essenceDefinitions.find(item => item.name === essence)?.identity || "Combat posture online.";
+  return {
+    leader: { role: "Leader", name, title: `${rarity} ${essence} Leader`, attack, shield, cost, text: leaderAbility() },
+    general: { role: "General", name: `${gene} Marshal`, text: `Boost allied Units and Relics while your ${essence} lane is active.` },
+    unit: { role: "Unit", name: `${essence} Vanguard`, text: `Pressure side lanes and hold tempo while ${name} advances.` },
+    tactic: { role: "Tactic", name: `${profile.label} Reaction`, text: activeArchetype === "control" ? "Negate 1 incoming burst and reposition a Unit." : "Convert charge into a fast pressure spike." },
+    field: { role: "Field", name: `${essence} Grid`, text: `${essenceTone}. This arena layer keeps the shell in its preferred posture.` },
+    relic: { role: "Relic", name: `${gene} Relay`, text: `${geneTone} Passive line that sharpens sequencing and resolve windows.` },
+    primordial: { role: "Primordial", name: `${essence} Ascendant`, text: activeArchetype === "combo" ? "Awaken after a chained resolve window and finish the board." : "Late-cycle finisher that converts board control into a closing swing." },
+    attack,
+    shield,
+    cost,
+  };
 }
 
 function deriveDeck(payload){
   const stats = payload.stats || {};
-  const profile = archetypeConfig[activeArchetype];
-  const wins = Number(stats.wins || 0);
-  const kd = Number(stats.kd || 0);
-  const kills = Number(stats.kills || 0);
-  const matches = Number(stats.matches || 0);
-  const avgElim = Number(stats.avgElim || 0);
-  const element = toneFromStats(stats);
-  const rarity = rarityFromStats(stats);
-  const attack = clamp(Math.round(((kills / Math.max(matches, 1)) * 2.5 + avgElim + wins / 22) * profile.attackBias), 2, 12);
-  const shield = clamp(Math.round((kd * 2.8 + matches / 220) * profile.shieldBias), 2, 12);
-  const cost = clamp(Math.round(((attack + shield) / 3.2) * profile.costBias), 1, 8);
+  const profile = archetypeConfig[activeArchetype] || archetypeConfig.adaptive;
   const name = (payload.player || {}).name || "Unknown Player";
-  const commander = {
-    name,
-    title: `${rarity} Commander`,
-    element,
-    rarity,
-    attack,
-    shield,
-    cost,
-    ability: abilityFromModel({ attack, shield, cost }),
-  };
-  const supports = [
-    {
-      name: `${element} Field Node`,
-      body: activeArchetype === "control" ? "Reduce incoming burst damage by 1 this turn." : "Add one energy if your commander is already on board.",
-      frame: elementPalette[element]?.frame || elementPalette.Void.frame,
-    },
-    {
-      name: `${profile.label} Burst`,
-      body: activeArchetype === "combo" ? "Store charge, then release it for doubled attack next turn." : "Gain immediate pressure based on current attack.",
-      frame: activeArchetype === "aggro" ? elementPalette.Ember.frame : elementPalette.Void.frame,
-    },
-  ];
-  const deck = [
-    `${name} / ${rarity} / ${element}`,
-    `${supports[0].name} - setup anchor`,
-    `${supports[1].name} - tempo spike`,
-  ];
+  const essence = essenceFromStats(stats);
+  const gene = geneFromStats(stats);
+  const rarity = rarityFromStats(stats);
+  const roles = buildRoleCards(name, essence, gene, rarity, stats, profile);
   return {
     source: payload.source || "preview",
     profile,
-    commander,
-    supports,
-    deck,
-    summary: `Wins ${wins} | K/D ${fmtNum(kd)} | Matches ${matches} | Win Rate ${stats.winPct || "0%"}`,
+    essence,
+    gene,
+    rarity,
+    summary: `Wins ${Number(stats.wins || 0)} | K/D ${fmtNum(stats.kd)} | Matches ${Number(stats.matches || 0)} | Win Rate ${stats.winPct || "0%"}`,
+    stats,
+    ...roles,
   };
 }
 
 function updateScene(model){
-  const palette = elementPalette[model.commander.element] || elementPalette.Void;
-  $("commanderFrame").setAttribute("color", palette.frame);
-  $("commanderFrame").setAttribute("material", `emissive: ${palette.glow}; emissiveIntensity: 0.15`);
-  $("commanderArt").setAttribute("color", palette.art);
-  $("commanderName").setAttribute("text", "value", model.commander.name);
-  $("commanderMeta").setAttribute("text", "value", `${model.commander.rarity} ${model.commander.element} Commander`);
-  $("commanderAbility").setAttribute("text", "value", model.commander.ability);
-  $("commanderStats").setAttribute("text", "value", `${model.commander.attack} ATK / ${model.commander.shield} SHD / ${model.commander.cost} COST`);
-
-  $("supportLeftFrame").setAttribute("color", model.supports[0].frame);
-  $("supportRightFrame").setAttribute("color", model.supports[1].frame);
-  $("supportLeftName").setAttribute("text", "value", model.supports[0].name);
-  $("supportLeftBody").setAttribute("text", "value", model.supports[0].body);
-  $("supportRightName").setAttribute("text", "value", model.supports[1].name);
-  $("supportRightBody").setAttribute("text", "value", model.supports[1].body);
-  $("boardTicker").setAttribute("text", "value", `${model.commander.name} / ${model.commander.element} / ${model.profile.label} shell`);
+  const palette = essencePalette[model.essence] || { frame: "#193447", art: "#1d5a73", glow: "#13a6ff" };
+  $("leaderFrame").setAttribute("color", palette.frame);
+  $("leaderFrame").setAttribute("material", `emissive: ${palette.glow}; emissiveIntensity: 0.15`);
+  $("leaderArt").setAttribute("color", palette.art);
+  $("leaderName").setAttribute("text", "value", model.leader.name);
+  $("leaderMeta").setAttribute("text", "value", `${model.leader.role} / ${model.essence} / ${model.gene}`);
+  $("leaderAbility").setAttribute("text", "value", model.leader.text);
+  $("leaderStats").setAttribute("text", "value", `${model.attack} ATK / ${model.shield} SHD / ${model.cost} COST`);
+  $("generalFrame").setAttribute("color", shadeColor(palette.frame, 12));
+  $("generalName").setAttribute("text", "value", model.general.name);
+  $("generalBody").setAttribute("text", "value", model.general.text);
+  $("primordialFrame").setAttribute("color", shadeColor(palette.glow, -22));
+  $("primordialName").setAttribute("text", "value", model.primordial.name);
+  $("primordialBody").setAttribute("text", "value", model.primordial.text);
+  $("boardTicker").setAttribute("text", "value", `${model.leader.name} / ${model.essence} / ${model.gene} / ${model.profile.label} shell`);
 }
 
 function renderDeckCards(model){
-  $("heroElement").textContent = model.commander.element;
-  $("heroElementCopy").textContent = `${model.commander.attack} attack and ${model.commander.shield} shield are tuned for the ${model.commander.element} lane.`;
-  $("heroRarity").textContent = model.commander.rarity;
-  $("heroRarityCopy").textContent = `Source: ${model.summary}`;
+  $("heroElement").textContent = model.essence;
+  $("heroElementCopy").textContent = `${model.essence} lane selected from live combat posture and stat emphasis.`;
+  $("heroRarity").textContent = model.gene;
+  $("heroRarityCopy").textContent = `Gene lane: ${model.summary}`;
   $("heroArchetype").textContent = model.profile.label;
   $("heroArchetypeCopy").textContent = model.profile.copy;
   $("cardSourceBadge").textContent = model.source === "fortnite-api" ? "Live Fortnite data" : "Preview stat lane";
   $("deckDirectionBadge").textContent = `${model.profile.label} shell`;
-  $("generatorNote").textContent = `${model.commander.name} resolves as a ${model.commander.rarity} ${model.commander.element} commander. ${model.commander.ability}`;
+  $("generatorNote").textContent = `${model.leader.name} resolves as a ${model.rarity} ${model.essence} ${model.gene} shell. ${model.leader.text}`;
   $("derivedStats").innerHTML = [
-    ["Attack", model.commander.attack, "Power from eliminations and pressure."],
-    ["Shield", model.commander.shield, "Stability from K/D and match depth."],
-    ["Cost", model.commander.cost, "Energy curve for the commander lane."],
-    ["Ability", model.commander.rarity, model.commander.ability],
+    ["Leader ATK", model.attack, "Pressure from eliminations, wins, and pace."],
+    ["Leader SHD", model.shield, "Stability from K/D, match volume, and board posture."],
+    ["Charge Curve", model.cost, "Resource demand across the command lane."],
+    ["Reaction Window", reactionWindows[activeArchetype === "combo" ? 3 : activeArchetype === "control" ? 2 : 1] || "Resolve chain", "Preferred timing window for this shell."],
   ].map(([label, value, copy]) => `<article class="signal-card"><span>${label}</span><strong>${value}</strong><em>${copy}</em></article>`).join("");
   $("deckGrid").innerHTML = [
-    ["Commander", model.commander.name, `${model.commander.attack} ATK / ${model.commander.shield} SHD / ${model.commander.cost} COST`],
-    ["Support A", model.supports[0].name, model.supports[0].body],
-    ["Support B", model.supports[1].name, model.supports[1].body],
-  ].map(([slot, title, copy]) => `<article class="deck-card"><span>${slot}</span><strong>${title}</strong><p class="copy">${copy}</p></article>`).join("");
+    model.leader,
+    model.general,
+    model.unit,
+    model.tactic,
+    model.field,
+    model.relic,
+    model.primordial,
+  ].map(card => `<article class="deck-card"><span>${card.role}</span><strong>${card.name}</strong><p class="copy">${card.text}</p></article>`).join("");
 }
 
 async function generateCard(){
@@ -479,21 +559,21 @@ async function generateCard(){
     setStatus("Enter a player name first");
     return;
   }
-  setStatus("Generating card");
+  setStatus("Generating shell");
   try{
     const response = await fetch(`/api/stats?name=${encodeURIComponent(value)}`, { credentials: "same-origin" });
     const payload = await response.json();
     if (!payload.ok) {
       setStatus("Player lookup failed");
-      $("generatorNote").textContent = payload.error || "Could not derive a card from that player right now.";
+      $("generatorNote").textContent = payload.error || "Could not derive a TriptokCard shell from that player right now.";
       return;
     }
     const model = deriveDeck(payload);
     lastCardModel = model;
     renderDeckCards(model);
     updateScene(model);
-    setSceneFocus("commander");
-    setStatus(`Ready: ${model.commander.name}`);
+    setSceneFocus("leader");
+    setStatus(`Ready: ${model.leader.name}`);
   } catch (_error) {
     setStatus("Lookup error");
     $("generatorNote").textContent = "The card lab could not reach player lookup right now.";
@@ -511,21 +591,16 @@ document.querySelectorAll("#archetypeButtons .chip-btn").forEach(button => {
     if (lastCardModel) {
       $("generateCardButton").click();
     } else {
-      $("heroArchetype").textContent = archetypeConfig[activeArchetype].label;
-      $("heroArchetypeCopy").textContent = archetypeConfig[activeArchetype].copy;
+      $("heroArchetype").textContent = (archetypeConfig[activeArchetype] || archetypeConfig.adaptive).label;
+      $("heroArchetypeCopy").textContent = (archetypeConfig[activeArchetype] || archetypeConfig.adaptive).copy;
     }
   });
 });
 
 $("generateCardButton").addEventListener("click", generateCard);
 $("heroGenerate").addEventListener("click", generateCard);
-$("playerSearch").addEventListener("keydown", event => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    generateCard();
-  }
-});
 
+renderFoundationBars();
 setSceneFocus("board");
 if (starterName) {
   $("playerSearch").value = starterName;

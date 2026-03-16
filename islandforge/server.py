@@ -3,6 +3,7 @@ TriptokForge Main Server
 All route logic lives in routes/ as Blueprints.
 """
 
+import json
 import os
 
 from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session
@@ -40,6 +41,9 @@ _assert_supported_hosting()
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
 
+BASE_DIR = os.path.dirname(__file__)
+CARDGAME_FOUNDATION_PATH = os.path.join(BASE_DIR, "config", "triptokcard_foundation.json")
+
 PUBLIC_PATHS = {
     "/",
     "/home",
@@ -62,6 +66,25 @@ PUBLIC_PREFIXES = (
     "/admin",
     "/ops",
 )
+
+
+def load_cardgame_foundation():
+    try:
+        with open(CARDGAME_FOUNDATION_PATH, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+            if isinstance(data, dict):
+                return data
+    except Exception:
+        pass
+    return {
+        "name": "TriptokCard",
+        "roles": [],
+        "essences": [],
+        "genes": [],
+        "archetypes": [],
+        "turn_flow": [],
+        "reaction_windows": [],
+    }
 
 PROTECTED_PAGE_ROOTS = (
     "/forge",
@@ -266,7 +289,11 @@ def news_page():
 def cardgame():
     user = session.get("user") or {}
     current_player_name = user.get("display_name") or session.get("display_name") or ""
-    return render_template("cardgame.html", current_player_name=current_player_name)
+    return render_template(
+        "cardgame.html",
+        current_player_name=current_player_name,
+        cardgame_foundation=load_cardgame_foundation(),
+    )
 
 
 @app.route("/sitemap.xml")

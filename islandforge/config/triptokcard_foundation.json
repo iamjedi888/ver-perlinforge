@@ -1,0 +1,150 @@
+{
+  "name": "TriptokCard",
+  "subtitle": "Original tactical card arena for TriptokForge",
+  "roles": [
+    {
+      "name": "Leader",
+      "summary": "Your named anchor card. Only one Leader starts active and defines deck identity."
+    },
+    {
+      "name": "General",
+      "summary": "The strategic support commander that amplifies your Leader and unlocks formation bonuses."
+    },
+    {
+      "name": "Unit",
+      "summary": "Board presence cards that attack lanes, hold zones, and absorb pressure."
+    },
+    {
+      "name": "Tactic",
+      "summary": "Fast-play reaction cards used during clash and resolve windows."
+    },
+    {
+      "name": "Field",
+      "summary": "Persistent arena conditions that reshape tempo, geography, and resource flow."
+    },
+    {
+      "name": "Relic",
+      "summary": "Artifact-grade upgrades that add passives, conversions, and triggered bursts."
+    },
+    {
+      "name": "Primordial",
+      "summary": "Late-cycle mythic manifestations that swing the board and define finish conditions."
+    }
+  ],
+  "essences": [
+    {
+      "name": "Storm",
+      "color": "#13a6ff",
+      "identity": "Velocity, uplink pressure, aerial tempo"
+    },
+    {
+      "name": "Ember",
+      "color": "#ff7b2f",
+      "identity": "Burst damage, aggro lines, ignition chains"
+    },
+    {
+      "name": "Verdant",
+      "color": "#00e5a0",
+      "identity": "Growth, sustain, regeneration, board spread"
+    },
+    {
+      "name": "Void",
+      "color": "#aa66ff",
+      "identity": "Disruption, recursion, stealth pressure"
+    },
+    {
+      "name": "Solar",
+      "color": "#ffb347",
+      "identity": "Radiance, shielding, disciplined tempo"
+    },
+    {
+      "name": "Tidal",
+      "color": "#27d2d8",
+      "identity": "Flow, repositioning, adaptive control"
+    }
+  ],
+  "genes": [
+    {
+      "name": "Riftborn",
+      "identity": "High-volatility lineage tuned for portals, blink movement, and aggressive openings."
+    },
+    {
+      "name": "Wildcore",
+      "identity": "Organic growth line built around Verdant scaling, packs, and habitat spread."
+    },
+    {
+      "name": "Synthetic",
+      "identity": "Clean machine lineage that rewards sequencing, precision, and relic loops."
+    },
+    {
+      "name": "Prime",
+      "identity": "Heroic first-line genome for direct combat, banners, and high floor consistency."
+    },
+    {
+      "name": "Echo",
+      "identity": "Memory-driven line that duplicates tactics, recurs bursts, and extends resolve windows."
+    },
+    {
+      "name": "Relicbound",
+      "identity": "Artifact-linked bloodline built around gear, field control, and ancient awakenings."
+    }
+  ],
+  "archetypes": [
+    {
+      "key": "adaptive",
+      "label": "Adaptive",
+      "copy": "Balanced shell that can pivot between pressure and board control."
+    },
+    {
+      "key": "aggro",
+      "label": "Aggro",
+      "copy": "Fast pressure, low curve, aggressive tactic chains."
+    },
+    {
+      "key": "control",
+      "label": "Control",
+      "copy": "Longer games, stronger reaction timing, higher shield and field value."
+    },
+    {
+      "key": "combo",
+      "label": "Combo",
+      "copy": "Synergy-first shell that aims to line up relic, tactic, and primordial spikes."
+    }
+  ],
+  "card_schema": {
+    "required_fields": [
+      "name",
+      "role",
+      "essence",
+      "gene",
+      "rarity",
+      "cost",
+      "attack",
+      "shield",
+      "text"
+    ],
+    "optional_fields": [
+      "tags",
+      "trigger_window",
+      "burst_value",
+      "field_rule",
+      "relic_passive",
+      "lineage_bonus"
+    ]
+  },
+  "turn_flow": [
+    "Draw and refresh your charge.",
+    "Deploy one Leader or Unit alignment action.",
+    "Open the Command window for General, Field, and Relic plays.",
+    "Enter Clash where Units and Leaders pressure lanes.",
+    "Use Tactics during Reaction and Resolve windows.",
+    "Stabilize the board, score field advantages, and end the round."
+  ],
+  "reaction_windows": [
+    "Deploy window",
+    "Clash declaration",
+    "Damage response",
+    "Resolve chain",
+    "End step"
+  ]
+}
