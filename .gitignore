@@ -32,3 +32,9 @@ Thumbs.db
 # Secrets — NEVER commit these
 .env.local
 secrets.txt
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
