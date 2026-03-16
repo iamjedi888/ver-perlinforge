@@ -346,6 +346,8 @@ def init_schema():
         conn.commit()
         cur.close()
         conn.close()
+        _clear_table_columns_cache()
+        ensure_core_schema()
         print("[oracle_db] Schema ready.")
         return True
     except Exception as e:
@@ -366,9 +368,31 @@ CHANNEL_SCHEMA_COLUMNS = {
 }
 
 _channel_schema_checked = False
+_core_schema_checked = False
+_table_columns_cache = {}
+
+CORE_SCHEMA_COLUMNS = {
+    "MEMBERS": {
+        "LAST_SEEN": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+    },
+    "AUDIO_TRACKS": {
+        "DURATION_S": "NUMBER(10,3)",
+    },
+    "ANNOUNCEMENTS": {
+        "POSTED_BY": "VARCHAR2(128)",
+    },
+    "ISLAND_SAVES": {
+        "BIOME_STATS": "VARCHAR2(2048)",
+    },
+}
 
 
 def _column_exists(cur, table_name, column_name):
+    table_name = table_name.upper()
+    column_name = column_name.upper()
+    cached = _table_columns_cache.get(table_name)
+    if cached is not None:
+        return column_name in cached
     cur.execute(
         """
         SELECT COUNT(*)
@@ -377,12 +401,87 @@ def _column_exists(cur, table_name, column_name):
            AND column_name = :column_name
         """,
         {
-            "table_name": table_name.upper(),
-            "column_name": column_name.upper(),
+            "table_name": table_name,
+            "column_name": column_name,
         },
     )
     row = cur.fetchone()
     return bool(row and int(row[0] or 0) > 0)
+
+
+def _get_table_columns(cur, table_name):
+    table_name = table_name.upper()
+    cached = _table_columns_cache.get(table_name)
+    if cached is not None:
+        return cached
+    cur.execute(
+        """
+        SELECT column_name
+          FROM user_tab_columns
+         WHERE table_name = :table_name
+        """,
+        {"table_name": table_name},
+    )
+    columns = {str(row[0] or "").upper() for row in cur.fetchall()}
+    _table_columns_cache[table_name] = columns
+    return columns
+
+
+def _clear_table_columns_cache(*table_names):
+    if not table_names:
+        _table_columns_cache.clear()
+        return
+    for table_name in table_names:
+        _table_columns_cache.pop(str(table_name or "").upper(), None)
+
+
+def ensure_core_schema():
+    global _core_schema_checked
+    if _core_schema_checked or not db_available():
+        return False
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        for table_name, columns in CORE_SCHEMA_COLUMNS.items():
+            for column_name, definition in columns.items():
+                if _column_exists(cur, table_name, column_name):
+                    continue
+                cur.execute(f"ALTER TABLE {table_name.lower()} ADD ({column_name} {definition})")
+                _clear_table_columns_cache(table_name)
+
+        if _column_exists(cur, "MEMBERS", "LAST_SEEN"):
+            cur.execute(
+                """
+                UPDATE members
+                   SET last_seen = COALESCE(last_seen, created_at, CURRENT_TIMESTAMP)
+                 WHERE last_seen IS NULL
+                """
+            )
+        if _column_exists(cur, "ANNOUNCEMENTS", "POSTED_BY"):
+            cur.execute(
+                """
+                UPDATE announcements
+                   SET posted_by = COALESCE(posted_by, 'Admin')
+                 WHERE posted_by IS NULL
+                """
+            )
+        if _column_exists(cur, "ISLAND_SAVES", "BIOME_STATS"):
+            cur.execute(
+                """
+                UPDATE island_saves
+                   SET biome_stats = COALESCE(biome_stats, '[]')
+                 WHERE biome_stats IS NULL
+                """
+            )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        _core_schema_checked = True
+        return True
+    except Exception as e:
+        print(f"[oracle_db] ensure_core_schema error: {e}")
+        return False
 
 
 def _to_json_text_list(value):
@@ -461,25 +560,37 @@ def ensure_channel_schema():
         rows = cur.fetchall()
         for channel_id, embed_url in rows:
             source_urls = _to_json_text_list(embed_url)
+            source_urls_json = json.dumps(source_urls)
             cur.execute(
                 """
                 UPDATE channels
-                   SET source_urls_json = COALESCE(source_urls_json, :source_urls_json),
-                       autoplay = COALESCE(autoplay, 1),
+                   SET autoplay = COALESCE(autoplay, 1),
                        rotation_mode = COALESCE(rotation_mode, :rotation_mode),
                        transition_seconds = COALESCE(transition_seconds, 0.9)
                  WHERE id = :id
                 """,
                 {
                     "id": channel_id,
-                    "source_urls_json": json.dumps(source_urls),
                     "rotation_mode": "queue" if len(source_urls) > 1 else "single",
+                },
+            )
+            cur.execute(
+                """
+                UPDATE channels
+                   SET source_urls_json = TO_CLOB(:source_urls_json)
+                 WHERE id = :id
+                   AND source_urls_json IS NULL
+                """,
+                {
+                    "id": channel_id,
+                    "source_urls_json": source_urls_json,
                 },
             )
 
         conn.commit()
         cur.close()
         conn.close()
+        _clear_table_columns_cache("CHANNELS")
         _channel_schema_checked = True
         return True
     except Exception as e:
@@ -1996,26 +2107,33 @@ def get_all_members():
     if not db_available():
         return _json_get_members()
     try:
+        ensure_core_schema()
         conn = get_connection()
         cur  = conn.cursor()
-        cur.execute("""
-            SELECT epic_id, display_name, avatar_url, skin_img, skin_name, last_seen
-            FROM members ORDER BY last_seen DESC
-        """)
+        columns = _get_table_columns(cur, "MEMBERS")
+        select_parts = ["epic_id", "display_name"]
+        for optional in ("avatar_url", "skin_img", "skin_name", "last_seen"):
+            if optional.upper() in columns:
+                select_parts.append(optional)
+        order_by = "last_seen DESC" if "LAST_SEEN" in columns else "created_at DESC" if "CREATED_AT" in columns else "display_name ASC"
+        cur.execute(f"SELECT {', '.join(select_parts)} FROM members ORDER BY {order_by}")
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        return [
-            {
-                "epic_id":      r[0],
-                "display_name": r[1],
-                "avatar_url":   r[2] or "",
-                "skin_img":     r[3] or "",
-                "skin_name":    r[4] or "Default",
-                "last_seen":    str(r[5]),
-            }
-            for r in rows
-        ]
+        results = []
+        for row in rows:
+            record = dict(zip(select_parts, row))
+            results.append(
+                {
+                    "epic_id": record.get("epic_id"),
+                    "display_name": record.get("display_name"),
+                    "avatar_url": record.get("avatar_url") or "",
+                    "skin_img": record.get("skin_img") or "",
+                    "skin_name": record.get("skin_name") or "Default",
+                    "last_seen": str(record.get("last_seen") or ""),
+                }
+            )
+        return results
     except Exception as e:
         print(f"[oracle_db] get_all_members error: {e}")
         return []
@@ -2067,41 +2185,58 @@ def get_audio_tracks(uploader_id=""):
     if not db_available():
         return _json_get_audio_tracks()
     try:
+        ensure_core_schema()
         conn = get_connection()
         cur  = conn.cursor()
+        columns = _get_table_columns(cur, "AUDIO_TRACKS")
+        select_parts = [
+            "filename",
+            "size_bytes",
+            "storage_url",
+            "sub_bass",
+            "bass",
+            "midrange",
+            "presence",
+            "brilliance",
+            "tempo_bpm",
+        ]
+        if "DURATION_S" in columns:
+            select_parts.append("duration_s")
+        if "CREATED_AT" in columns:
+            select_parts.append("created_at")
+        order_by = "created_at DESC" if "CREATED_AT" in columns else "id DESC"
+        sql = f"SELECT {', '.join(select_parts)} FROM audio_tracks"
         if uploader_id:
-            cur.execute("""
-                SELECT filename, size_bytes, storage_url, sub_bass, bass, midrange,
-                       presence, brilliance, tempo_bpm, duration_s, created_at
-                FROM audio_tracks WHERE uploader_id=:uid ORDER BY created_at DESC
-            """, {"uid": uploader_id})
+            sql += " WHERE uploader_id = :uid"
+            params = {"uid": uploader_id}
         else:
-            cur.execute("""
-                SELECT filename, size_bytes, storage_url, sub_bass, bass, midrange,
-                       presence, brilliance, tempo_bpm, duration_s, created_at
-                FROM audio_tracks ORDER BY created_at DESC
-            """)
+            params = {}
+        sql += f" ORDER BY {order_by}"
+        cur.execute(sql, params)
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        return [
-            {
-                "filename":    r[0],
-                "size_kb":     round((r[1] or 0) / 1024, 1),
-                "storage_url": r[2] or "",
-                "weights": {
-                    "sub_bass":   float(r[3] or 0.5),
-                    "bass":       float(r[4] or 0.5),
-                    "midrange":   float(r[5] or 0.5),
-                    "presence":   float(r[6] or 0.5),
-                    "brilliance": float(r[7] or 0.5),
-                    "tempo_bpm":  float(r[8] or 120.0),
-                    "duration_s": float(r[9] or 0),
-                },
-                "created_at": str(r[10]),
-            }
-            for r in rows
-        ]
+        results = []
+        for row in rows:
+            record = dict(zip(select_parts, row))
+            results.append(
+                {
+                    "filename": record.get("filename"),
+                    "size_kb": round((record.get("size_bytes") or 0) / 1024, 1),
+                    "storage_url": record.get("storage_url") or "",
+                    "weights": {
+                        "sub_bass": float(record.get("sub_bass") or 0.5),
+                        "bass": float(record.get("bass") or 0.5),
+                        "midrange": float(record.get("midrange") or 0.5),
+                        "presence": float(record.get("presence") or 0.5),
+                        "brilliance": float(record.get("brilliance") or 0.5),
+                        "tempo_bpm": float(record.get("tempo_bpm") or 120.0),
+                        "duration_s": float(record.get("duration_s") or 0),
+                    },
+                    "created_at": str(record.get("created_at") or ""),
+                }
+            )
+        return results
     except Exception as e:
         print(f"[oracle_db] get_audio_tracks error: {e}")
         return []
@@ -2133,26 +2268,42 @@ def get_announcements():
     if not db_available():
         return _json_load("announcements.json", [])
     try:
+        ensure_core_schema()
         conn = get_connection()
         cur  = conn.cursor()
-        cur.execute("""
-            SELECT id, title, body, posted_by, pinned, created_at
-            FROM announcements ORDER BY pinned DESC, created_at DESC
-        """)
+        columns = _get_table_columns(cur, "ANNOUNCEMENTS")
+        select_parts = ["id", "title", "body"]
+        if "POSTED_BY" in columns:
+            select_parts.append("posted_by")
+        if "PINNED" in columns:
+            select_parts.append("pinned")
+        if "CREATED_AT" in columns:
+            select_parts.append("created_at")
+        order_parts = []
+        if "PINNED" in columns:
+            order_parts.append("pinned DESC")
+        if "CREATED_AT" in columns:
+            order_parts.append("created_at DESC")
+        if not order_parts:
+            order_parts.append("id DESC")
+        cur.execute(f"SELECT {', '.join(select_parts)} FROM announcements ORDER BY {', '.join(order_parts)}")
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        return [
-            {
-                "id":         r[0],
-                "title":      r[1],
-                "body":       r[2] or "",
-                "posted_by":  r[3] or "Admin",
-                "pinned":     bool(r[4]),
-                "created_at": str(r[5]),
-            }
-            for r in rows
-        ]
+        results = []
+        for row in rows:
+            record = dict(zip(select_parts, row))
+            results.append(
+                {
+                    "id": record.get("id"),
+                    "title": record.get("title"),
+                    "body": record.get("body") or "",
+                    "posted_by": record.get("posted_by") or "Admin",
+                    "pinned": bool(record.get("pinned") or 0),
+                    "created_at": str(record.get("created_at") or ""),
+                }
+            )
+        return results
     except Exception as e:
         print(f"[oracle_db] get_announcements error: {e}")
         return []
@@ -2231,31 +2382,48 @@ def get_recent_islands(limit=20):
     if not db_available():
         return []
     try:
+        ensure_core_schema()
         conn = get_connection()
         cur  = conn.cursor()
-        cur.execute("""
-            SELECT seed, creator_id, world_size_cm, water_level, plots_count,
-                   preview_url, biome_stats, created_at
-            FROM island_saves
-            ORDER BY created_at DESC
-            FETCH FIRST :lim ROWS ONLY
-        """, {"lim": limit})
+        columns = _get_table_columns(cur, "ISLAND_SAVES")
+        select_parts = ["seed", "creator_id", "world_size_cm", "water_level", "plots_count", "preview_url"]
+        if "BIOME_STATS" in columns:
+            select_parts.append("biome_stats")
+        if "CREATED_AT" in columns:
+            select_parts.append("created_at")
+        order_by = "created_at DESC" if "CREATED_AT" in columns else "id DESC"
+        cur.execute(
+            f"""
+            SELECT {', '.join(select_parts)}
+              FROM island_saves
+             ORDER BY {order_by}
+             FETCH FIRST :lim ROWS ONLY
+            """,
+            {"lim": limit},
+        )
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        return [
-            {
-                "seed":          r[0],
-                "creator_id":    r[1] or "",
-                "world_size_cm": r[2],
-                "water_level":   float(r[3] or 0.2),
-                "plots_count":   r[4],
-                "preview_url":   r[5] or "",
-                "biome_stats":   json.loads(r[6] or "[]"),
-                "created_at":    str(r[7]),
-            }
-            for r in rows
-        ]
+        results = []
+        for row in rows:
+            record = dict(zip(select_parts, row))
+            try:
+                biome_stats = json.loads(record.get("biome_stats") or "[]")
+            except Exception:
+                biome_stats = []
+            results.append(
+                {
+                    "seed": record.get("seed"),
+                    "creator_id": record.get("creator_id") or "",
+                    "world_size_cm": record.get("world_size_cm"),
+                    "water_level": float(record.get("water_level") or 0.2),
+                    "plots_count": record.get("plots_count"),
+                    "preview_url": record.get("preview_url") or "",
+                    "biome_stats": biome_stats,
+                    "created_at": str(record.get("created_at") or ""),
+                }
+            )
+        return results
     except Exception as e:
         print(f"[oracle_db] get_recent_islands error: {e}")
         return []
