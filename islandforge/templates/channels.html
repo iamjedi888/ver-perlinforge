@@ -31,6 +31,7 @@
   --nav-h:     56px;
   --dock-h:    62px;
   --stage-max: 1320px;
+  --stage-default-max: 1160px;
   --stage-gap: clamp(12px, 1.8vw, 22px);
   --viewport-h: 100vh;
   --guide-collapsed: 58px;
@@ -139,7 +140,7 @@ nav.ch-nav {
   max-width: 480px;
 }
 .hud-actions {
-  display: flex; gap: 8px; align-items: center; padding-left: 20px; flex-shrink: 0;
+  display: flex; gap: 8px; align-items: center; padding-left: 20px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end;
 }
 .hud-btn {
   font-family: 'Share Tech Mono', monospace; font-size: .54rem; letter-spacing: 2px;
@@ -150,16 +151,18 @@ nav.ch-nav {
 .hud-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
 .hud-btn.on { border-color: var(--teal); color: var(--teal); background: var(--teal-dim); }
 .hud-btn.muted { border-color: var(--amber); color: var(--amber); }
+.hud-btn.secondary { color: var(--jarvis); border-color: rgba(0,234,255,.2); background: rgba(0,234,255,.05); }
 
 .ch-player {
   flex: 0 0 auto; position: relative; overflow: hidden; background: #000;
   border: 1px solid rgba(0,145,255,.2);
   box-shadow: 0 0 40px rgba(0,145,255,.08), inset 0 0 40px rgba(0,145,255,.03);
   animation: holo-border-pulse 4s ease-in-out infinite;
-  width: min(100%, var(--stage-max), calc((var(--viewport-h) - var(--nav-h) - 164px) * 16 / 9));
+  width: min(100%, var(--stage-default-max), calc((var(--viewport-h) - var(--nav-h) - var(--dock-h) - 238px) * 16 / 9));
   min-width: min(100%, 560px);
   max-width: 100%;
   aspect-ratio: 16 / 9;
+  max-height: calc(var(--viewport-h) - var(--nav-h) - var(--dock-h) - 238px);
   margin-inline: auto;
   border-radius: 18px;
   touch-action: none;
@@ -380,20 +383,45 @@ nav.ch-nav {
 }
 .player-resize {
   position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 42px;
+  height: 42px;
+  z-index: 15;
+  cursor: nwse-resize;
+  border: 1px solid rgba(0,234,255,.18);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(0,234,255,.12), rgba(0,145,255,.05)),
+    rgba(4,8,14,.76);
+  box-shadow: 0 8px 24px rgba(0,0,0,.24);
+  opacity: .94;
+  transition: opacity .15s ease, border-color .15s ease, transform .15s ease;
+}
+.player-resize::before,
+.player-resize::after {
+  content: '';
+  position: absolute;
   right: 10px;
   bottom: 10px;
-  width: 18px;
-  height: 18px;
-  z-index: 12;
-  cursor: nwse-resize;
-  border-right: 2px solid rgba(0,234,255,.5);
-  border-bottom: 2px solid rgba(0,234,255,.5);
-  opacity: .78;
-  transition: opacity .15s ease, border-color .15s ease;
+  border-right: 2px solid rgba(0,234,255,.78);
+  border-bottom: 2px solid rgba(0,234,255,.78);
+  border-radius: 2px;
+}
+.player-resize::before {
+  width: 14px;
+  height: 14px;
+}
+.player-resize::after {
+  width: 8px;
+  height: 8px;
+  right: 18px;
+  bottom: 18px;
 }
 .player-resize:hover {
   opacity: 1;
   border-color: var(--jarvis);
+  transform: translateY(-1px) scale(1.04);
 }
 
 .glass-controls {
@@ -452,6 +480,27 @@ nav.ch-nav {
   background: rgba(255,170,0,.08);
 }
 .gc-right { margin-left: auto; display: flex; gap: 8px; }
+
+@media (max-width: 1180px) {
+  .jarvis-hud {
+    height: auto;
+    align-items: stretch;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .hud-segment {
+    padding: 0 14px 0 0;
+    border-right: none;
+  }
+  .hud-actions {
+    width: 100%;
+    padding-left: 0;
+  }
+  .ch-player {
+    width: min(100%, calc((var(--viewport-h) - var(--nav-h) - var(--dock-h) - 270px) * 16 / 9));
+  }
+}
 
 .ch-guide {
   width: var(--guide-collapsed); flex-shrink: 0; display: flex; flex-direction: column;
@@ -966,6 +1015,8 @@ body.channels-console .console-dock {
       </div>
       <div class="hud-actions">
         <button class="hud-btn" id="muteBtn" onclick="toggleMute()">MUTE</button>
+        <button class="hud-btn secondary" type="button" onclick="goFullscreen()">FULLSCREEN</button>
+        <button class="hud-btn" type="button" onclick="fitPlayerToStage()">FIT STAGE</button>
         <button class="hud-btn" id="theaterBtn" onclick="toggleTheater()">THEATER</button>
       </div>
     </div>
@@ -1130,7 +1181,7 @@ body.channels-console .console-dock {
 </footer>
 
 <script>
-const PLAYER_SIZE_KEY = 'ttf.channels.playerWidth.v4';
+const PLAYER_SIZE_KEY = 'ttf.channels.playerWidth.v5';
 const LOAD_FAILOVER_MS = 9000;
 const defaultChannel = {{ default_channel|tojson if default_channel else 'null' }};
 let currentUrl = '';
@@ -1533,14 +1584,16 @@ function setStageState(channel, ctaLabel) {
 }
 
 function getPlayerBounds() {
-  const rootStyles = getComputedStyle(document.documentElement);
-  const stageMax = parseFloat(rootStyles.getPropertyValue('--stage-max')) || 1320;
-  const navHeight = parseFloat(rootStyles.getPropertyValue('--nav-h')) || 56;
+  const shell = document.getElementById('chShell');
   const containerWidth = document.querySelector('.ch-main').clientWidth;
-  const minWidth = Math.min(Math.max(640, Math.floor(containerWidth * 0.76)), containerWidth);
-  const viewportBasedWidth = Math.max(640, Math.floor((window.innerHeight - navHeight - 140) * 16 / 9));
-  const maxWidth = Math.max(minWidth, Math.min(stageMax, containerWidth, viewportBasedWidth));
-  return { minWidth, maxWidth };
+  const shellHeight = shell ? shell.clientHeight : window.innerHeight;
+  const minWidth = Math.min(Math.max(560, Math.floor(containerWidth * 0.48)), containerWidth);
+  const maxHeight = Math.max(340, Math.min(Math.floor(shellHeight * 0.61), shellHeight - 206));
+  const widthByHeight = Math.floor(maxHeight * 16 / 9);
+  const widthByLayout = Math.floor(containerWidth * 0.88);
+  const maxWidth = Math.max(minWidth, Math.min(widthByHeight, widthByLayout, 1160));
+  const idealWidth = Math.max(minWidth, Math.min(maxWidth, Math.floor(maxWidth * 0.92)));
+  return { minWidth, maxWidth, idealWidth };
 }
 
 function applyPlayerSize(width) {
@@ -1571,14 +1624,19 @@ function resetPlayerSize() {
   localStorage.removeItem(PLAYER_SIZE_KEY);
 }
 
+function fitPlayerToStage() {
+  if (window.innerWidth <= 760) return;
+  const bounds = getPlayerBounds();
+  applyPlayerSize(bounds.idealWidth);
+}
+
 function primePlayerSize() {
   if (window.innerWidth <= 760) return;
   if (localStorage.getItem(PLAYER_SIZE_KEY)) {
     restorePlayerSize();
     return;
   }
-  const bounds = getPlayerBounds();
-  applyPlayerSize(bounds.maxWidth);
+  fitPlayerToStage();
 }
 
 function pulsePlayerZoom(persist) {
@@ -1595,8 +1653,7 @@ function pulsePlayerZoom(persist) {
 function autoFocusPlayer() {
   if (window.innerWidth <= 760) return;
   if (!localStorage.getItem(PLAYER_SIZE_KEY)) {
-    const bounds = getPlayerBounds();
-    applyPlayerSize(bounds.maxWidth);
+    fitPlayerToStage();
   }
   pulsePlayerZoom(true);
   window.setTimeout(() => {
@@ -1636,15 +1693,21 @@ function beginPlayerResize(event) {
   const rect = player.getBoundingClientRect();
   resizeState = {
     startX: event.clientX,
+    startY: event.clientY,
     startWidth: rect.width,
   };
   player.classList.add('resizing');
+  if (event.target.setPointerCapture) {
+    event.target.setPointerCapture(event.pointerId);
+  }
   event.preventDefault();
 }
 
 function onPlayerResize(event) {
   if (!resizeState) return;
-  const delta = event.clientX - resizeState.startX;
+  const deltaX = event.clientX - resizeState.startX;
+  const deltaY = (event.clientY - resizeState.startY) * (16 / 9);
+  const delta = (deltaX + deltaY) / 2;
   applyPlayerSize(resizeState.startWidth + delta);
 }
 
@@ -1867,6 +1930,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('ch-iframe').addEventListener('load', () => {
     clearQueueWatchdog();
+  });
+  document.getElementById('chPlayer').addEventListener('dblclick', (event) => {
+    if (event.target.closest('.player-resize')) {
+      return;
+    }
+    goFullscreen();
   });
   document.getElementById('playerResize').addEventListener('pointerdown', beginPlayerResize);
   window.addEventListener('pointermove', onPlayerResize);
