@@ -190,7 +190,7 @@ def generate():
         data           = request.get_json(force=True)
         island_name    = (data.get("island_name") or data.get("world_name") or "").strip()
         seed           = int(data.get("seed", 42))
-        size           = int(data.get("size", 2017))
+        size           = int(data.get("size", 1009))
         requested_size_px = size
         n_plots        = int(data.get("plots", 32))
         spacing        = int(data.get("spacing", 40))
@@ -206,7 +206,7 @@ def generate():
         cluster_spread = float(data.get("cluster_spread", 1.0))
         theme_name     = _normalize_theme_name(data.get("theme"))
         theme_key      = _theme_lookup_key(theme_name)
-        ws_raw = data.get("world_size", "double_br")
+        ws_raw = data.get("world_size", "uefn_max")
         if isinstance(ws_raw, str) and ws_raw in WORLD_SIZE_PRESETS:
             world_size_cm = WORLD_SIZE_PRESETS[ws_raw]
         else:

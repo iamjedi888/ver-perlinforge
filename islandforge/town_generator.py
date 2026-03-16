@@ -528,7 +528,24 @@ def apply_town_to_terrain(terrain, town_mask, street_mask,
       - Farm area: very flat, slightly lower than town pad
     """
     terrain = np.asarray(terrain, dtype=np.float32)
-    size    = terrain.shape[0]
+    active_mask = town_mask | street_mask | lot_mask | plaza_mask | farm_mask
+    active_points = np.argwhere(active_mask)
+    if len(active_points) == 0:
+        return terrain
+
+    size = terrain.shape[0]
+    margin = max(8, int(np.sqrt(float(active_mask.sum())) * 0.6))
+    r0 = max(0, int(active_points[:, 0].min()) - margin)
+    r1 = min(size, int(active_points[:, 0].max()) + margin + 1)
+    c0 = max(0, int(active_points[:, 1].min()) - margin)
+    c1 = min(size, int(active_points[:, 1].max()) + margin + 1)
+
+    patch = terrain[r0:r1, c0:c1]
+    local_town_mask = town_mask[r0:r1, c0:c1]
+    local_street_mask = street_mask[r0:r1, c0:c1]
+    local_lot_mask = lot_mask[r0:r1, c0:c1]
+    local_plaza_mask = plaza_mask[r0:r1, c0:c1]
+    local_farm_mask = farm_mask[r0:r1, c0:c1]
 
     # Sample target elevation at town center
     tc_elev = float(terrain[town_center_row, town_center_col])
@@ -540,46 +557,47 @@ def apply_town_to_terrain(terrain, town_mask, street_mask,
     farm_elev   = np.clip(pad_elev - 0.015, 0.22, 0.55)
 
     # Smooth blend radius for town border
-    YY, XX = np.meshgrid(np.arange(size), np.arange(size), indexing='ij')
-    dist_to_tc = np.sqrt((YY - town_center_row)**2 + (XX - town_center_col)**2)
-    town_r_px  = int(np.sum(town_mask) ** 0.5)  # approx radius
+    yy = np.arange(r0, r1, dtype=np.float32)[:, None]
+    xx = np.arange(c0, c1, dtype=np.float32)[None, :]
+    dist_to_tc = np.sqrt((yy - float(town_center_row))**2 + (xx - float(town_center_col))**2)
+    town_r_px  = max(4, int(np.sum(local_town_mask) ** 0.5))  # approx radius
 
     # Gaussian blend of pad elevation over town footprint
-    town_float = town_mask.astype(np.float32, copy=False)
+    town_float = local_town_mask.astype(np.float32, copy=False)
     town_blur  = gaussian_filter(town_float, sigma=max(2, town_r_px * 0.2))
     town_blend = np.clip(town_blur * 3.0, 0, 1)
 
     # Apply pad elevation blend
-    terrain = terrain * (1 - town_blend) + pad_elev * town_blend
+    patch = patch * (1 - town_blend) + pad_elev * town_blend
 
     # Streets: slightly recessed
-    street_blend = gaussian_filter(street_mask.astype(np.float32, copy=False), sigma=0.8)
-    terrain = np.where(street_mask,
-                       terrain * 0.1 + street_elev * 0.9,
-                       terrain)
+    patch = np.where(local_street_mask,
+                     patch * 0.1 + street_elev * 0.9,
+                     patch)
 
     # Lots: precisely flat
-    terrain = np.where(lot_mask,
-                       terrain * 0.05 + pad_elev * 0.95,
-                       terrain)
+    patch = np.where(local_lot_mask,
+                     patch * 0.05 + pad_elev * 0.95,
+                     patch)
 
     # Plaza: flat at pad elevation
-    terrain = np.where(plaza_mask,
-                       terrain * 0.05 + pad_elev * 0.95,
-                       terrain)
+    patch = np.where(local_plaza_mask,
+                     patch * 0.05 + pad_elev * 0.95,
+                     patch)
 
     # Farm: gently flat
-    farm_blend = gaussian_filter(farm_mask.astype(np.float32, copy=False), sigma=1.5)
-    terrain = terrain * (1 - farm_blend * 0.7) + farm_elev * (farm_blend * 0.7)
+    farm_blend = gaussian_filter(local_farm_mask.astype(np.float32, copy=False), sigma=1.5)
+    patch = patch * (1 - farm_blend * 0.7) + farm_elev * (farm_blend * 0.7)
 
     # Final smooth of the whole town region to remove seams
     # Only smooth pixels near the town
     near_town = (dist_to_tc < town_r_px * 1.8)
-    smoothed  = gaussian_filter(terrain, sigma=1.2)
+    smoothed  = gaussian_filter(patch, sigma=1.2)
     blend_near = np.clip((1 - dist_to_tc / (town_r_px * 1.8)), 0, 1) * 0.3
-    terrain   = np.where(near_town,
-                         terrain * (1 - blend_near) + smoothed * blend_near,
-                         terrain)
+    patch = np.where(near_town,
+                     patch * (1 - blend_near) + smoothed * blend_near,
+                     patch)
+    terrain[r0:r1, c0:c1] = patch
 
     return terrain
 

@@ -122,6 +122,51 @@ def nn(size, oct, per, lac, scale, seed):
     lo,hi = n.min(), n.max()
     return ((n-lo)/(hi-lo+1e-9)).astype(np.float32, copy=False)
 
+
+def _radial_bounds(size, row, col, radius):
+    radius_px = max(1, int(math.ceil(radius)))
+    r0 = max(0, row - radius_px)
+    r1 = min(size, row + radius_px + 1)
+    c0 = max(0, col - radius_px)
+    c1 = min(size, col + radius_px + 1)
+    return r0, r1, c0, c1
+
+
+def _apply_local_radial_blend(
+    terrain,
+    row,
+    col,
+    radius,
+    target_value,
+    blend_strength=1.0,
+    falloff_power=2.0,
+):
+    """Blend a circular terrain patch without repainting the entire map."""
+    size = terrain.shape[0]
+    r0, r1, c0, c1 = _radial_bounds(size, row, col, radius)
+    yy = np.arange(r0, r1, dtype=np.float32)[:, None]
+    xx = np.arange(c0, c1, dtype=np.float32)[None, :]
+    dist = np.sqrt((yy - float(row)) ** 2 + (xx - float(col)) ** 2)
+    local_mask = dist < float(radius)
+    if not np.any(local_mask):
+        return terrain
+
+    blend = np.clip(1.0 - dist / max(float(radius), 1e-6), 0.0, 1.0).astype(
+        np.float32, copy=False
+    )
+    if falloff_power != 1.0:
+        blend = np.power(blend, falloff_power, dtype=np.float32)
+    if blend_strength != 1.0:
+        blend *= np.float32(blend_strength)
+
+    patch = terrain[r0:r1, c0:c1]
+    patch_values = patch[local_mask]
+    local_blend = blend[local_mask]
+    patch[local_mask] = (
+        patch_values * (1.0 - local_blend) + np.float32(target_value) * local_blend
+    )
+    return terrain
+
 # ─────────────────────────────────────────────────────────────
 # AUDIO ANALYSIS
 # ─────────────────────────────────────────────────────────────
@@ -361,13 +406,9 @@ def inject_pois(terrain, island_mask, size, seed, midrange=0.5, n_pois=None, poi
             poi_centers.append((py, px))
             break
 
-    # Flatten each POI area
-    YY, XX = np.meshgrid(np.arange(size), np.arange(size), indexing='ij')
     for (py, px) in poi_centers:
         # POI radius — varies with midrange
         poi_r = size * (0.04 + midrange * 0.025) * max(0.82, min(1.18, poi_scale))
-        dist  = np.sqrt((YY-py)**2 + (XX-px)**2)
-        blend = np.clip(1 - dist / poi_r, 0, 1) ** 2
 
         # Target elevation — some POIs raised, some lowered
         current_elev = terrain[py, px]
@@ -377,7 +418,15 @@ def inject_pois(terrain, island_mask, size, seed, midrange=0.5, n_pois=None, poi
         else:
             target = np.clip(current_elev - rng.uniform(0.04, 0.08), 0.02, 0.4)
 
-        terrain = terrain * (1 - blend) + target * blend
+        terrain = _apply_local_radial_blend(
+            terrain,
+            py,
+            px,
+            poi_r,
+            target,
+            blend_strength=1.0,
+            falloff_power=2.0,
+        )
 
     return terrain, poi_centers
 
@@ -392,11 +441,11 @@ def simulate_rivers(terrain, island_mask, size, seed, midrange=0.5, river_scale=
     """
     rng = np.random.default_rng(seed + 3000)
     n_rivers = max(1, min(6, int(round((1 + midrange * 3) * river_scale))))
+    land = island_mask > 0.5
+    high = (terrain > 0.45) & land
 
     for _ in range(n_rivers):
         # Start from upper third of terrain on land
-        land = island_mask > 0.5
-        high = (terrain > 0.45) & land
         candidates = np.argwhere(high)
         if len(candidates) == 0:
             continue
@@ -433,16 +482,20 @@ def simulate_rivers(terrain, island_mask, size, seed, midrange=0.5, river_scale=
         # Carve river — wide and shallow
         river_width  = size * (0.018 + midrange * 0.012) * max(0.75, min(1.35, river_scale))
         river_depth  = 0.045  # very shallow
-        YY, XX = np.meshgrid(np.arange(size), np.arange(size), indexing='ij')
 
         # Sample every N steps for performance
         for i in range(0, len(path), 3):
             py, px = path[i]
-            dist = np.sqrt((YY-py)**2 + (XX-px)**2)
-            # Wide smooth valley profile
-            blend = np.clip(1 - dist / river_width, 0, 1) ** 1.5
             target = np.clip(terrain[py,px] - river_depth, 0.01, 1)
-            terrain = terrain * (1 - blend * 0.6) + target * blend * 0.6
+            terrain = _apply_local_radial_blend(
+                terrain,
+                py,
+                px,
+                river_width,
+                target,
+                blend_strength=0.6,
+                falloff_power=1.5,
+            )
 
     return terrain
 
@@ -458,8 +511,6 @@ def build_roads(terrain, size, poi_centers, seed):
     road_mask = np.zeros((size,size), dtype=bool)
     rng = np.random.default_rng(seed + 8000)
     road_width = max(3, size // 100)
-
-    YY, XX = np.meshgrid(np.arange(size), np.arange(size), indexing='ij')
 
     # Connect each POI to nearest neighbour
     connected = {0}
@@ -481,22 +532,40 @@ def build_roads(terrain, size, poi_centers, seed):
         connected.add(best_j)
         remaining.discard(best_j)
 
-        # Draw road segment
+        # Draw a smooth curved road segment with one control point.
         py1,px1 = poi_centers[best_i]
         py2,px2 = poi_centers[best_j]
-        steps = max(int(best_dist * 1.5), 40)
+        steps = max(int(best_dist * 0.85), 28)
+        dy = py2 - py1
+        dx = px2 - px1
+        seg_len = max(math.hypot(dy, dx), 1.0)
+        perp_y = -dx / seg_len
+        perp_x = dy / seg_len
+        curve_mag = rng.uniform(-0.06, 0.06) * size
+        ctrl_y = (py1 + py2) * 0.5 + perp_y * curve_mag
+        ctrl_x = (px1 + px2) * 0.5 + perp_x * curve_mag
+
         for s in range(steps+1):
             t = s / steps
-            # Slight curve via midpoint offset
-            mid_offset_y = rng.uniform(-0.06, 0.06) * size * math.sin(t * math.pi)
-            mid_offset_x = rng.uniform(-0.06, 0.06) * size * math.sin(t * math.pi)
-            ry = int(np.clip(py1 + (py2-py1)*t + mid_offset_y, 0, size-1))
-            rx = int(np.clip(px1 + (px2-px1)*t + mid_offset_x, 0, size-1))
-            dist = np.sqrt((YY-ry)**2 + (XX-rx)**2)
-            blend = np.clip(1 - dist / road_width, 0, 1) ** 2
+            omt = 1.0 - t
+            ry = int(np.clip((omt * omt * py1) + (2 * omt * t * ctrl_y) + (t * t * py2), 0, size - 1))
+            rx = int(np.clip((omt * omt * px1) + (2 * omt * t * ctrl_x) + (t * t * px2), 0, size - 1))
             road_elev = terrain[ry, rx]
-            terrain = terrain * (1-blend*0.8) + road_elev * blend * 0.8
-            road_mask |= (blend > 0.4)
+            terrain = _apply_local_radial_blend(
+                terrain,
+                ry,
+                rx,
+                road_width,
+                road_elev,
+                blend_strength=0.8,
+                falloff_power=2.0,
+            )
+            r0, r1, c0, c1 = _radial_bounds(size, ry, rx, road_width)
+            yy = np.arange(r0, r1, dtype=np.float32)[:, None]
+            xx = np.arange(c0, c1, dtype=np.float32)[None, :]
+            road_mask[r0:r1, c0:c1] |= (
+                np.sqrt((yy - float(ry)) ** 2 + (xx - float(rx)) ** 2) <= float(road_width)
+            )
 
     return terrain, road_mask
 

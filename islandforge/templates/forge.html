@@ -725,11 +725,11 @@
         <div class="psec-copy">Define the map resolution and the plot layout pressure before the biome and town pass lands. Keep the direct UEFN square import lane at 2017 x 2017 or below.</div>
       </div>
       <div class="ctrl">
-        <label>Resolution <span class="val" id="size-val">2017²</span></label>
-        <select id="size" onchange="document.getElementById('size-val').textContent=this.value+'²';wsUpdateInfo(_wsCm,_wsPreset,parseInt(document.querySelector('.ws-card-active')?.dataset.px||2017))">
+        <label>Resolution <span class="val" id="size-val">1009²</span></label>
+        <select id="size" onchange="document.getElementById('size-val').textContent=this.value+'²';wsUpdateInfo(_wsCm,_wsPreset,parseInt(document.querySelector('.ws-card-active')?.dataset.px||1009))">
           <option value="505">505 × 505 — Quick test</option>
-          <option value="1009">1009 × 1009 — Standard / BR</option>
-          <option value="2017" selected>2017 × 2017 — UEFN direct max ✓</option>
+          <option value="1009" selected>1009 × 1009 — Live default / UEFN</option>
+          <option value="2017">2017 × 2017 — UEFN direct max ✓</option>
           <option value="4033">4033 × 4033 — Research master (not direct UEFN)</option>
         </select>
       </div>
@@ -750,7 +750,7 @@
         </div>
         <div class="intel-card">
           <span>Current locker</span>
-          <strong id="brief-resolution">2017 × 2017 direct import rail</strong>
+          <strong id="brief-resolution">1009 × 1009 live import rail</strong>
         </div>
       </div>
     </div>
@@ -770,8 +770,8 @@
           <div class="ws-km">0.5 km</div>
           <div class="ws-desc">Default island</div>
         </div>
-        <div class="ws-card" data-preset="uefn_max"     data-cm="100000"   data-px="1009" onclick="selectWorldSize(this)">
-          <div class="ws-name">UEFN Max</div>
+        <div class="ws-card ws-card-active" data-preset="uefn_max"     data-cm="100000"   data-px="1009" onclick="selectWorldSize(this)">
+          <div class="ws-name">UEFN Max <span style="color:var(--accent);font-size:8px">DEFAULT</span></div>
           <div class="ws-km">1 km</div>
           <div class="ws-desc">Creative limit</div>
         </div>
@@ -780,8 +780,8 @@
           <div class="ws-km">5.5 km</div>
           <div class="ws-desc">Chapter 2 scale</div>
         </div>
-        <div class="ws-card ws-card-active" data-preset="double_br" data-cm="1100000" data-px="2017" onclick="selectWorldSize(this)">
-          <div class="ws-name">Double BR <span style="color:var(--accent);font-size:8px">DEFAULT</span></div>
+        <div class="ws-card" data-preset="double_br" data-cm="1100000" data-px="2017" onclick="selectWorldSize(this)">
+          <div class="ws-name">Double BR</div>
           <div class="ws-km">11 km</div>
           <div class="ws-desc">2× Battle Royale</div>
         </div>
@@ -799,8 +799,8 @@
 
       <!-- Custom cm input -->
       <div class="ctrl">
-        <label>Custom Size (cm) <span class="val" id="ws-cm-val">1,100,000</span></label>
-        <input type="range" id="ws_cm_slider" min="0" max="100" value="38"
+        <label>Custom Size (cm) <span class="val" id="ws-cm-val">100,000</span></label>
+        <input type="range" id="ws_cm_slider" min="0" max="100" value="12"
                oninput="wsSliderChange(this.value)"/>
         <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:3px">
           <span>500m</span><span>5km</span><span>11km</span><span>37km</span><span>81km</span>
@@ -818,8 +818,8 @@
 
       <!-- Resolution recommendation -->
       <div style="margin-top:10px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;font-family:var(--mono);font-size:9px;line-height:1.8;color:var(--dim)">
-        <span style="color:var(--med)">REC HEIGHTMAP:</span> <span id="ws-rec-px" style="color:var(--accent)">2017 × 2017 px</span><br>
-        <span style="color:var(--med)">RESOLUTION:</span> <span id="ws-cpp" style="color:var(--text)">~546 cm/px (~5.5 m/px)</span>
+          <span style="color:var(--med)">REC HEIGHTMAP:</span> <span id="ws-rec-px" style="color:var(--accent)">1009 × 1009 px</span><br>
+          <span style="color:var(--med)">RESOLUTION:</span> <span id="ws-cpp" style="color:var(--text)">~99 cm/px (~1.0 m/px)</span>
       </div>
 
       <!-- Streaming / partition warning — shown when width exceeds current 1km lane -->
@@ -1824,8 +1824,8 @@ const WS_STOPS = [
   {pos:75,  p:'skyrim'},
   {pos:100, p:'gta5'},
 ];
-let _wsCm = 1_100_000;
-let _wsPreset = 'double_br';
+let _wsCm = 100_000;
+let _wsPreset = 'uefn_max';
 let _audioAnalysis = null;
 let _currentWorldSizeCm = _wsCm;
 
