@@ -729,7 +729,7 @@
         <select id="size" onchange="document.getElementById('size-val').textContent=this.value+'²';wsUpdateInfo(_wsCm,_wsPreset,parseInt(document.querySelector('.ws-card-active')?.dataset.px||1009))">
           <option value="505">505 × 505 — Quick test</option>
           <option value="1009" selected>1009 × 1009 — Live default / UEFN</option>
-          <option value="2017">2017 × 2017 — UEFN direct max ✓</option>
+          <option value="2017">2017 × 2017 — HQ / may downshift live</option>
           <option value="4033">4033 × 4033 — Research master (not direct UEFN)</option>
         </select>
       </div>
@@ -1617,6 +1617,16 @@ function updateAudioMission(filename = _playerFile) {
   syncGenerateGate();
 }
 
+function setAudioMissionPending(filename) {
+  _audioAnalysis = null;
+  $('audio-mission-state').textContent = 'Analysing';
+  $('audio-track-name').textContent = filename || 'No audio loaded';
+  $('audio-profile').textContent = 'Decoding source';
+  $('audio-mission-note').textContent = `Streaming ${filename || 'audio'} now. Forge is refreshing the analysis rail in the background so playback does not wait on server-side decoding.`;
+  syncForgeConsole();
+  syncGenerateGate();
+}
+
 // ── Load a file into the player ──
 async function playerLoad(filename, autoplay = true) {
   _playerFile = filename;
@@ -1722,7 +1732,7 @@ async function refreshAudioLib() {
       <div class="audio-file-item ${f.filename===_playerFile ? ((!_audio.paused)?'playing':'active') : ''}" data-fn="${f.filename}">
         <button class="audio-play-btn" data-fn="${f.filename}">${(f.filename===_playerFile && !_audio.paused)?'⏸':'▶'}</button>
         <span class="audio-file-name" title="${f.filename}">${f.filename}</span>
-        <span class="audio-file-size">${f.size_kb}kb</span>
+        <span class="audio-file-size">${f.size_kb}kb${f.duration_s ? ` • ${fmtTime(f.duration_s)}` : ''}</span>
         <button class="audio-file-del" onclick="deleteAudio(event,'${f.filename}')" title="Delete">✕</button>
       </div>
     `).join('');
@@ -1752,19 +1762,21 @@ async function refreshAudioLib() {
 }
 
 async function selectAudio(filename) {
-  setStatus('LOADING AUDIO...');
+  setStatus('STREAMING AUDIO...');
   try {
-    const r = await fetch('/audio/select', {
+    const analysisPromise = fetch('/audio/select', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({filename})
     });
+    await playerLoad(filename, true);
+    setAudioMissionPending(filename);
+    const r = await analysisPromise;
     const d = await parseApiResponse(r, 'Audio selection failed');
     applyWeights(d.weights);
     showBands(d.weights);
-    await playerLoad(filename, true);
     await refreshAudioLib();
     setStatus('READY');
-    toast(`▶ ${filename}`);
+    toast(`▶ ${filename}${d.analysis_source === 'cache' ? ' • cached analysis' : ''}`);
   } catch(e) {
     setStatus('READY');
     toast(e.message, true);

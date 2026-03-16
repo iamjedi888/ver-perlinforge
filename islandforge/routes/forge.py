@@ -80,6 +80,52 @@ THEME_ALIASES = {
     "chapter6": "Chapter 6",
 }
 UEFN_DIRECT_IMPORT_MAX_PX = 2017
+LIVE_RUNTIME_MAX_PX = max(505, min(2017, int(os.environ.get("FORGE_LIVE_MAX_PX", "1009"))))
+
+
+def _analysis_cache_path(audio_path: str) -> str:
+    return f"{audio_path}.analysis.json"
+
+
+def _normalize_audio_weights(weights: dict | None) -> dict:
+    merged = DEFAULT_WEIGHTS.copy()
+    if isinstance(weights, dict):
+        for key in DEFAULT_WEIGHTS:
+            try:
+                merged[key] = float(weights.get(key, merged[key]))
+            except Exception:
+                pass
+    return merged
+
+
+def _load_cached_audio_analysis(audio_path: str) -> dict | None:
+    cache_path = _analysis_cache_path(audio_path)
+    if not os.path.exists(cache_path):
+        return None
+    try:
+        with open(cache_path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        return _normalize_audio_weights(payload)
+    except Exception:
+        return None
+
+
+def _store_cached_audio_analysis(audio_path: str, weights: dict) -> None:
+    cache_path = _analysis_cache_path(audio_path)
+    try:
+        _write_json(cache_path, _normalize_audio_weights(weights))
+    except Exception:
+        pass
+
+
+def _get_audio_analysis(audio_path: str) -> tuple[dict, str]:
+    cached = _load_cached_audio_analysis(audio_path)
+    if cached:
+        return cached, "cache"
+    weights = analyse_audio(audio_path) if AUDIO_AVAILABLE else DEFAULT_WEIGHTS.copy()
+    weights = _normalize_audio_weights(weights)
+    _store_cached_audio_analysis(audio_path, weights)
+    return weights, "fresh"
 
 
 def _sanitize_world_name(value: str) -> str:
@@ -216,7 +262,14 @@ def generate():
         if size not in (505, 1009, 2017, 4033):
             size = 1009
         uefn_import_note = None
-        if size > UEFN_DIRECT_IMPORT_MAX_PX:
+        if size > LIVE_RUNTIME_MAX_PX:
+            size = LIVE_RUNTIME_MAX_PX
+            runtime_note = (
+                f"Live Forge runtime currently generates up to {LIVE_RUNTIME_MAX_PX}px synchronously for stability. "
+                f"Requested {requested_size_px}px was downshifted for this run."
+            )
+            uefn_import_note = f"{runtime_note} {uefn_import_note}".strip() if uefn_import_note else runtime_note
+        elif size > UEFN_DIRECT_IMPORT_MAX_PX:
             size = UEFN_DIRECT_IMPORT_MAX_PX
             uefn_import_note = (
                 f"Requested {requested_size_px}px exceeds the current direct UEFN square landscape lane. "
@@ -226,6 +279,11 @@ def generate():
             weights.setdefault(k, v)
         weights = blend_theme_audio_weights(weights, theme_key)
 
+        print(
+            f"[forge] generate start size={size} requested={requested_size_px} world_size_cm={world_size_cm} "
+            f"theme={theme_name} audio={_state.get('audio_filename') or '-'}",
+            flush=True,
+        )
         height, road_mask = generate_terrain(size, seed, weights, water_level, theme_name=theme_key)
         moisture = generate_moisture(size, seed)
         themed_colours = BIOME_COLOURS
@@ -287,6 +345,7 @@ def generate():
             )
             verse_package = verse_result.get("verse_package") or {}
 
+        print(f"[forge] terrain complete size={size} plots={len(plots)}", flush=True)
         from PIL import Image
         hm_16 = (height * 65535).astype(np.uint16)
         hm_img = Image.fromarray(hm_16)
@@ -382,6 +441,7 @@ def generate():
             del export_biome_map
         gc.collect()
 
+        print(f"[forge] generate complete output={output_folder_name}", flush=True)
         return jsonify({
             "ok": True,
             "preview_b64": prev_b64,
@@ -413,19 +473,28 @@ def upload_audio():
         stem, sfx = os.path.splitext(safe); c = 1
         while os.path.exists(save_path): save_path = os.path.join(AUDIO_DIR, f"{stem}_{c}{sfx}"); c += 1
         f.save(save_path)
-        if AUDIO_AVAILABLE:
-            weights = analyse_audio(save_path)
-        else:
-            weights = DEFAULT_WEIGHTS.copy()
+        weights, analysis_source = _get_audio_analysis(save_path)
         _state["audio_path"] = save_path; _state["audio_filename"] = os.path.basename(save_path); _state["audio_weights"] = weights
-        return jsonify({"ok":True,"filename":os.path.basename(save_path),"weights":weights})
+        return jsonify({"ok":True,"filename":os.path.basename(save_path),"weights":weights,"analysis_source":analysis_source})
     except Exception as e:
         traceback.print_exc(); return jsonify({"ok":False,"error":str(e)}),500
 
 @forge_bp.route("/audio/list")
 def audio_list():
     try:
-        files = [{"filename":fn,"size_kb":round(os.path.getsize(os.path.join(AUDIO_DIR,fn))/1024,1),"active":_state["audio_filename"]==fn} for fn in sorted(os.listdir(AUDIO_DIR)) if os.path.splitext(fn)[1].lower() in SUPPORTED_EXTS]
+        files = []
+        for fn in sorted(os.listdir(AUDIO_DIR)):
+            if os.path.splitext(fn)[1].lower() not in SUPPORTED_EXTS:
+                continue
+            path = os.path.join(AUDIO_DIR, fn)
+            cached = _load_cached_audio_analysis(path)
+            files.append({
+                "filename": fn,
+                "size_kb": round(os.path.getsize(path) / 1024, 1),
+                "active": _state["audio_filename"] == fn,
+                "analysis_ready": bool(cached),
+                "duration_s": round(float(cached.get("duration_s", 0.0)), 2) if cached else 0.0,
+            })
         return jsonify({"ok":True,"files":files})
     except Exception as e: return jsonify({"ok":False,"error":str(e)}),500
 
@@ -434,9 +503,9 @@ def audio_select():
     try:
         data = request.get_json(force=True); path = os.path.join(AUDIO_DIR, os.path.basename(data.get("filename","")))
         if not os.path.exists(path): return jsonify({"ok":False,"error":"Not found"}),404
-        weights = analyse_audio(path) if AUDIO_AVAILABLE else DEFAULT_WEIGHTS.copy()
+        weights, analysis_source = _get_audio_analysis(path)
         _state["audio_path"] = path; _state["audio_filename"] = os.path.basename(path); _state["audio_weights"] = weights
-        return jsonify({"ok":True,"filename":os.path.basename(path),"weights":weights})
+        return jsonify({"ok":True,"filename":os.path.basename(path),"weights":weights,"analysis_source":analysis_source})
     except Exception as e: traceback.print_exc(); return jsonify({"ok":False,"error":str(e)}),500
 
 @forge_bp.route("/audio/<filename>", methods=["DELETE"])

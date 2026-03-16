@@ -220,7 +220,8 @@ def build_island_mask(size, seed, presence, bpm=120.0):
     """
     rng = np.random.default_rng(seed + 9000)
     cy, cx = size//2, size//2
-    ys = np.arange(size); xs = np.arange(size)
+    ys = np.arange(size, dtype=np.float32)
+    xs = np.arange(size, dtype=np.float32)
     YY, XX = np.meshgrid(ys, xs, indexing='ij')
 
     # Base ellipse — slower bpm = wider, rounder; faster = more elongated
@@ -232,7 +233,7 @@ def build_island_mask(size, seed, presence, bpm=120.0):
     cos_a, sin_a = math.cos(angle), math.sin(angle)
     dx = (XX - cx) * cos_a + (YY - cy) * sin_a
     dy = -(XX - cx) * sin_a + (YY - cy) * cos_a
-    base_mask = 1.0 - np.clip(np.sqrt((dx/rx)**2 + (dy/ry)**2), 0, 1)
+    base_mask = (1.0 - np.clip(np.sqrt((dx/rx)**2 + (dy/ry)**2), 0, 1)).astype(np.float32, copy=False)
 
     # Large warp — creates bays and peninsulas
     warp_scale = 0.8 + presence * 0.6
@@ -249,7 +250,7 @@ def build_island_mask(size, seed, presence, bpm=120.0):
     mask += coast_noise * 0.06 * presence
 
     # Smooth and normalise
-    mask = gaussian_filter(mask, sigma=size*0.015)
+    mask = gaussian_filter(mask.astype(np.float32, copy=False), sigma=size*0.015)
     lo, hi = mask.min(), mask.max()
     mask = (mask - lo) / (hi - lo + 1e-9)
     return np.clip(mask, 0, 1).astype(np.float32, copy=False)
@@ -280,7 +281,8 @@ def build_fortnite_terrain(size, seed, w, island_mask, terrain_profile=None):
     brilliance = w.get("brilliance", 0.3)
 
     cy, cx = size // 2, size // 2
-    ys = np.arange(size); xs = np.arange(size)
+    ys = np.arange(size, dtype=np.float32)
+    xs = np.arange(size, dtype=np.float32)
     YY, XX = np.meshgrid(ys, xs, indexing='ij')
     dist_center = np.sqrt(((YY-cy)/size)**2 + ((XX-cx)/size)**2) * 2
     dist_center = np.clip(dist_center, 0, 1)
