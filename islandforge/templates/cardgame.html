@@ -1,496 +1,535 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCG Roadmap — TriptokForge</title>
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg:       #07090d;
-            --deep:     #04060a;
-            --panel:    #0d1018;
-            --border:   #1a2535;
-            --border2:  #243040;
-            --teal:     #00e5a0;
-            --teal-dim: rgba(0,229,160,.07);
-            --teal-glow:rgba(0,229,160,.25);
-            --blue:     #0091ff;
-            --blue-dim: rgba(0,145,255,.07);
-            --amber:    #ffaa00;
-            --red:      #ff3355;
-            --text:     #c8d8e8;
-            --mid:      #7a8aa8;
-            --dim:      #3a4a60;
-        }
-
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Rajdhani', sans-serif;
-            line-height: 1.6;
-        }
-
-        /* Grid background */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(0,229,160,.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,229,160,.02) 1px, transparent 1px);
-            background-size: 64px 64px;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        /* ── Hero ──────────────────────────────────────────────────── */
-        .hero {
-            position: relative;
-            z-index: 1;
-            padding: 100px 20px 80px;
-            text-align: center;
-            border-bottom: 1px solid var(--border);
-            background: linear-gradient(180deg, rgba(0,145,255,.04) 0%, transparent 100%);
-        }
-
-        .hero::after {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(0,229,160,.3) 30%, rgba(0,145,255,.3) 70%, transparent);
-        }
-
-        .hero-badge {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: .6rem;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: var(--blue);
-            margin-bottom: 16px;
-            display: inline-block;
-            padding: 4px 16px;
-            border: 1px solid rgba(0,145,255,.25);
-            border-radius: 2px;
-        }
-
-        .hero h1 {
-            font-family: 'Orbitron', monospace;
-            font-size: clamp(32px, 5vw, 64px);
-            font-weight: 900;
-            letter-spacing: 4px;
-            color: var(--teal);
-            text-shadow: 0 0 30px var(--teal-glow);
-            margin-bottom: 16px;
-            text-transform: uppercase;
-        }
-
-        .hero h1 em {
-            color: var(--blue);
-            font-style: normal;
-            text-shadow: 0 0 30px var(--blue-dim);
-        }
-
-        .hero p {
-            font-size: clamp(14px, 2vw, 18px);
-            color: var(--mid);
-            max-width: 700px;
-            margin: 0 auto;
-            font-weight: 300;
-            line-height: 1.7;
-        }
-
-        /* ── Container ──────────────────────────────────────────────── */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 64px 28px 100px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .section { margin-bottom: 64px; }
-
-        .section-title {
-            font-family: 'Orbitron', monospace;
-            font-size: .75rem;
-            font-weight: 700;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: var(--blue);
-            margin-bottom: 24px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section-title::before {
-            content: '//';
-            color: var(--dim);
-            font-size: .65rem;
-        }
-
-        .section-intro {
-            color: var(--mid);
-            font-size: 15px;
-            font-weight: 300;
-            line-height: 1.7;
-            max-width: 800px;
-        }
-
-        /* ── Phase Cards ─────────────────────────────────────────────── */
-        .phase {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--teal);
-            padding: 28px 28px 24px;
-            margin-bottom: 16px;
-            position: relative;
-            transition: border-color .15s, box-shadow .15s;
-        }
-
-        .phase::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, var(--teal), transparent);
-            opacity: .3;
-        }
-
-        .phase:hover {
-            border-color: rgba(0,229,160,.4);
-            box-shadow: 0 0 20px rgba(0,229,160,.04);
-        }
-
-        .phase-header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-
-        .phase h3 {
-            font-family: 'Orbitron', monospace;
-            font-size: .82rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            color: var(--teal);
-            text-transform: uppercase;
-            flex: 1;
-        }
-
-        .status-badge {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: .5rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            padding: 3px 12px;
-            border-radius: 2px;
-            flex-shrink: 0;
-        }
-
-        .status-badge.planned {
-            background: rgba(58,74,96,.4);
-            color: var(--dim);
-            border: 1px solid var(--border2);
-        }
-
-        .status-badge.active {
-            background: rgba(0,229,160,.08);
-            color: var(--teal);
-            border: 1px solid rgba(0,229,160,.25);
-        }
-
-        .status-badge.coming {
-            background: rgba(0,145,255,.07);
-            color: var(--blue);
-            border: 1px solid rgba(0,145,255,.2);
-        }
-
-        .phase ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-
-        .phase li {
-            padding-left: 20px;
-            position: relative;
-            color: var(--text);
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        .phase li::before {
-            content: '▸';
-            position: absolute;
-            left: 0;
-            color: var(--teal);
-            opacity: .6;
-        }
-
-        /* ── Concept Cards Grid ──────────────────────────────────────── */
-        .concepts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 16px;
-            margin-top: 20px;
-        }
-
-        .concept {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            padding: 22px;
-            position: relative;
-            transition: border-color .15s;
-        }
-
-        .concept::after {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(0,145,255,.2), transparent);
-        }
-
-        .concept:hover { border-color: rgba(0,145,255,.3); }
-
-        .concept h4 {
-            font-family: 'Orbitron', monospace;
-            font-size: .62rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            color: var(--blue);
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .concept p {
-            color: var(--mid);
-            font-size: 14px;
-            font-weight: 300;
-            line-height: 1.6;
-        }
-
-        /* ── Timeline ────────────────────────────────────────────────── */
-        .timeline {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-        }
-
-        .tl-item {
-            display: flex;
-            gap: 20px;
-            position: relative;
-        }
-
-        .tl-item:not(:last-child) .tl-line {
-            position: absolute;
-            left: 15px;
-            top: 32px;
-            bottom: -16px;
-            width: 1px;
-            background: linear-gradient(180deg, rgba(0,229,160,.3), rgba(0,229,160,.05));
-        }
-
-        .tl-dot {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: var(--panel);
-            border: 1.5px solid rgba(0,229,160,.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-family: 'Orbitron', monospace;
-            font-size: .5rem;
-            font-weight: 700;
-            color: var(--teal);
-            margin-top: 4px;
-        }
-
-        .tl-content {
-            flex: 1;
-            padding-bottom: 28px;
-        }
-
-        .tl-phase-name {
-            font-family: 'Orbitron', monospace;
-            font-size: .62rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            color: var(--teal);
-            text-transform: uppercase;
-            margin-bottom: 3px;
-        }
-
-        .tl-duration {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: .58rem;
-            color: var(--dim);
-            letter-spacing: 2px;
-        }
-
-        /* ── Responsive ──────────────────────────────────────────────── */
-        @media (max-width: 768px) {
-            .hero { padding: 80px 16px 60px; }
-            .container { padding: 40px 16px 80px; }
-            .concepts-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TriptokCard Lab - TriptokForge</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+<style>
+:root{
+  --bg:#06090f;
+  --panel:#0c1119;
+  --panel-2:#0a0f16;
+  --border:#233244;
+  --text:#d5e4f3;
+  --mid:#7f93ab;
+  --dim:#4a5c72;
+  --teal:#00e5a0;
+  --blue:#13a6ff;
+  --amber:#ffb347;
+  --danger:#ff647d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,rgba(19,166,255,.12),transparent 35%),linear-gradient(180deg,#06090f,#03050a 76%);color:var(--text);font-family:'Rajdhani',sans-serif}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,160,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.02) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0}
+.page{position:relative;z-index:1;width:min(1440px,calc(100% - 24px));margin:0 auto;padding:26px 0 80px}
+.hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr);gap:20px;padding:28px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(12,17,25,.96),rgba(7,11,17,.98));box-shadow:0 18px 44px rgba(0,0,0,.32)}
+.eyebrow{display:inline-block;margin-bottom:12px;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.32em;text-transform:uppercase;color:var(--blue)}
+h1,h2,h3{margin:0;font-family:'Orbitron',monospace;text-transform:uppercase}
+.hero h1{font-size:clamp(2.1rem,4vw,4.3rem);line-height:.94}
+.hero h1 span{display:block;color:var(--teal)}
+.hero p,.copy{color:var(--mid);line-height:1.68}
+.hero-metrics{display:grid;gap:12px}
+.metric-card,.panel,.chip-card,.deck-card,.road-card,.step-card,.signal-card{padding:16px;border:1px solid rgba(35,50,68,.94);background:rgba(10,15,22,.96)}
+.metric-card strong,.chip-card strong,.deck-card strong,.road-card strong,.signal-card strong{display:block;margin-top:8px;font-family:'Orbitron',monospace}
+.metric-card span,.chip-card span,.deck-card span,.road-card span,.signal-card span{display:block;font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.btn,.chip-btn{appearance:none;border:1px solid rgba(19,166,255,.16);background:rgba(19,166,255,.05);color:var(--text);cursor:pointer;transition:.16s}
+.btn{padding:12px 16px;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;text-decoration:none}
+.btn:hover,.chip-btn:hover{border-color:rgba(0,229,160,.28);color:var(--teal)}
+.btn.primary{border-color:rgba(0,229,160,.34);background:rgba(0,229,160,.12);color:var(--teal)}
+.lab-grid{display:grid;grid-template-columns:minmax(360px,.9fr) minmax(0,1.3fr);gap:18px;margin-top:18px}
+.panel{padding:22px}
+.panel-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-end;margin-bottom:16px}
+.panel-head h2{font-size:clamp(1.2rem,2vw,1.8rem)}
+.search-row{display:flex;gap:10px}
+.input{width:100%;padding:14px 16px;border:1px solid var(--border);background:rgba(255,255,255,.02);color:var(--text);font:inherit}
+.input:focus{outline:none;border-color:rgba(0,229,160,.36);box-shadow:0 0 0 3px rgba(0,229,160,.08)}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip-btn{padding:9px 12px;font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase}
+.chip-btn.active{border-color:rgba(0,229,160,.34);background:rgba(0,229,160,.1);color:var(--teal)}
+.mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.mini-grid .chip-card{min-height:94px}
+.generator-note{margin-top:16px;padding:12px 14px;border:1px solid rgba(35,50,68,.94);background:rgba(8,12,18,.94);color:var(--mid);line-height:1.6}
+.scene-shell{position:relative;border:1px solid var(--border);background:linear-gradient(180deg,rgba(9,13,20,.98),rgba(4,7,12,.98));overflow:hidden;min-height:620px}
+.scene-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(35,50,68,.92);background:rgba(7,10,15,.94)}
+.scene-toolbar__group{display:flex;flex-wrap:wrap;gap:8px}
+.scene-focus{padding:9px 12px;border:1px solid rgba(35,50,68,.92);background:rgba(255,255,255,.02);color:var(--mid);cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.18em;text-transform:uppercase}
+.scene-focus:hover,.scene-focus.active{border-color:rgba(0,229,160,.34);color:var(--teal);background:rgba(0,229,160,.08)}
+.scene-status{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.scene-wrap{height:560px}
+#cardScene{width:100%;height:100%}
+.below-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.8fr);gap:18px;margin-top:18px}
+.deck-grid,.steps{display:grid;gap:12px}
+.deck-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.deck-card h3,.step-card h3{font-size:.86rem;margin-top:10px}
+.step-card{display:grid;gap:8px}
+.roadmap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.road-card{min-height:160px}
+.road-card p{margin:10px 0 0;color:var(--mid);line-height:1.58}
+.stats-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+.signal-card em{display:block;margin-top:6px;font-style:normal;color:var(--mid)}
+.empty{padding:20px;border:1px dashed rgba(35,50,68,.92);color:var(--mid);line-height:1.6}
+.footer-note{margin-top:18px;color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase}
+@media (max-width:1120px){.hero,.lab-grid,.below-grid{grid-template-columns:1fr}.roadmap,.deck-grid,.mini-grid,.stats-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:720px){.page{width:min(100%,calc(100% - 12px))}.hero,.panel{padding:18px}.search-row{flex-direction:column}.roadmap,.deck-grid,.mini-grid,.stats-list{grid-template-columns:1fr}.scene-wrap{height:480px}}
+</style>
 </head>
 <body>
+{% include "_nav.html" %}
+<main class="page">
+  <section class="hero">
+    <div>
+      <span class="eyebrow">Card Lab / A-Frame Prototype</span>
+      <h1>Triptok<span>Card Arena</span></h1>
+      <p>
+        This is no longer just a roadmap page. The cardgame now has a live prototype lane:
+        search a player, derive a commander card from Battle Royale stats, and preview the deck on a 3D table.
+        A-Frame gives us the fastest path to a playable visual layer before committing to a heavier engine.
+      </p>
+      <div class="hero-actions">
+        <button type="button" class="btn primary" id="heroGenerate">Generate Card</button>
+        <a href="/leaderboard" class="btn">Open Leaderboard</a>
+        <a href="/arena" class="btn">Open Arena</a>
+      </div>
+    </div>
+    <div class="hero-metrics">
+      <article class="metric-card">
+        <span>Prototype lane</span>
+        <strong>Embedded A-Frame table</strong>
+        <p class="copy">3D playmat, floating cards, and focus controls without waiting for a full game client.</p>
+      </article>
+      <article class="metric-card">
+        <span>Card source</span>
+        <strong id="cardSourceBadge">Battle Royale stats</strong>
+        <p class="copy">Uses the existing player lookup surface, with preview fallback if live keyed data is not available.</p>
+      </article>
+      <article class="metric-card">
+        <span>Deck direction</span>
+        <strong id="deckDirectionBadge">Commander shell</strong>
+        <p class="copy">One hero card, two support pieces, one field rule, and one burst action is enough to prove the loop.</p>
+      </article>
+    </div>
+  </section>
 
-{% include '_nav.html' %}
-
-<div class="hero">
-    <div class="hero-badge">&#9733; TriptokForge TCG &middot; Development Roadmap</div>
-    <h1>Triptok<em>Card</em></h1>
-    <p>Epic Games player data transformed into playable trading cards.<br>
-       MTG mechanics &times; Pokémon type system &times; Fortnite live stats &mdash; all converging into one competitive card game.</p>
-</div>
-
-<div class="container">
-
-    <div class="section">
-        <div class="section-title">Vision</div>
-        <p class="section-intro">
-            Generate unique, data-driven trading cards from Epic Games player statistics. Every player's
-            performance metrics — wins, eliminations, K/D ratio, playstyle — feed directly into card rarity,
-            power level, element type, and special abilities. Your Fortnite career becomes a deck.
-        </p>
+  <section class="lab-grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">Card Forge</span>
+          <h2>Player to commander card</h2>
+        </div>
+        <span class="scene-status" id="cardStatus">Waiting for player input</span>
+      </div>
+      <p class="copy">
+        Search a Fortnite display name, then convert that stat profile into a commander card, support cards, and a deck angle.
+        The stat mapping is intentionally readable right now so you can critique the design before we harden the real game rules.
+      </p>
+      <div class="search-row" style="margin-top:16px">
+        <input id="playerSearch" class="input" type="text" placeholder="Search a Fortnite player" value="{{ current_player_name }}"/>
+        <button type="button" class="btn primary" id="generateCardButton">Generate</button>
+      </div>
+      <div class="chip-row" id="archetypeButtons">
+        <button type="button" class="chip-btn active" data-archetype="adaptive">Adaptive</button>
+        <button type="button" class="chip-btn" data-archetype="aggro">Aggro</button>
+        <button type="button" class="chip-btn" data-archetype="control">Control</button>
+        <button type="button" class="chip-btn" data-archetype="combo">Combo</button>
+      </div>
+      <div class="mini-grid">
+        <article class="chip-card">
+          <span>Element</span>
+          <strong id="heroElement">Storm</strong>
+          <p class="copy" id="heroElementCopy">Calculated from the strongest stat lane.</p>
+        </article>
+        <article class="chip-card">
+          <span>Rarity</span>
+          <strong id="heroRarity">Rare</strong>
+          <p class="copy" id="heroRarityCopy">Driven by wins, win rate, and consistency.</p>
+        </article>
+        <article class="chip-card">
+          <span>Deck lane</span>
+          <strong id="heroArchetype">Adaptive</strong>
+          <p class="copy" id="heroArchetypeCopy">Switches based on your chosen shell.</p>
+        </article>
+      </div>
+      <div class="generator-note" id="generatorNote">
+        Generate a player card to see the current stat-to-card mapping. This page is the prelaunch game lab, not the final multiplayer rules engine.
+      </div>
+      <div class="stats-list" id="derivedStats">
+        <article class="signal-card"><span>Attack</span><strong>--</strong><em>Power from eliminations and pressure.</em></article>
+        <article class="signal-card"><span>Shield</span><strong>--</strong><em>Stability from K/D and match depth.</em></article>
+        <article class="signal-card"><span>Cost</span><strong>--</strong><em>Energy curve for the commander lane.</em></article>
+        <article class="signal-card"><span>Ability</span><strong>--</strong><em>Derived from win rate and archetype.</em></article>
+      </div>
     </div>
 
-    <div class="section">
-        <div class="section-title">Development Roadmap</div>
-
-        <div class="phase">
-            <div class="phase-header">
-                <h3>Phase 1 &mdash; Card Generation Engine</h3>
-                <span class="status-badge planned">Planned</span>
-            </div>
-            <ul>
-                <li>Connect to Epic Games API for live player stats</li>
-                <li>Map stats to card attributes: Wins → Rarity, Eliminations → Power, K/D → Toughness</li>
-                <li>Dynamic card art generation using player skin + background palette</li>
-                <li>Ability system derived from player achievements and playstyle</li>
-            </ul>
+    <div class="scene-shell">
+      <div class="scene-toolbar">
+        <div class="scene-toolbar__group">
+          <button type="button" class="scene-focus active" data-focus="board">Board</button>
+          <button type="button" class="scene-focus" data-focus="commander">Commander</button>
+          <button type="button" class="scene-focus" data-focus="support">Support</button>
         </div>
+        <div class="scene-status" id="sceneMode">Board focus</div>
+      </div>
+      <div class="scene-wrap">
+        <a-scene
+          id="cardScene"
+          embedded
+          renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true"
+          vr-mode-ui="enabled: false"
+          loading-screen="enabled: false"
+          background="color: #03060b"
+        >
+          <a-entity light="type: ambient; intensity: 0.82; color: #93d6ff"></a-entity>
+          <a-entity light="type: point; intensity: 1.35; distance: 18; color: #13a6ff" position="0 5.5 4"></a-entity>
+          <a-entity light="type: point; intensity: 1.05; distance: 16; color: #00e5a0" position="-3.8 3 -1.5"></a-entity>
+          <a-entity light="type: point; intensity: 0.9; distance: 16; color: #ffb347" position="3.8 2.8 -1.5"></a-entity>
 
-        <div class="phase">
-            <div class="phase-header">
-                <h3>Phase 2 &mdash; Card Browser &amp; Deck Builder</h3>
-                <span class="status-badge planned">Planned</span>
-            </div>
-            <ul>
-                <li>Searchable card database with filters (rarity, element, power range)</li>
-                <li>Drag-and-drop deck builder with 60-card minimum enforcement</li>
-                <li>Mana curve visualization and synergy analyzer</li>
-                <li>Save / load decks to Oracle DB per account</li>
-            </ul>
-        </div>
+          <a-entity id="deckCameraRig" position="0 2.6 5.9">
+            <a-entity camera look-controls="enabled: false"></a-entity>
+          </a-entity>
 
-        <div class="phase">
-            <div class="phase-header">
-                <h3>Phase 3 &mdash; Game Engine</h3>
-                <span class="status-badge planned">Planned</span>
-            </div>
-            <ul>
-                <li>Turn-based gameplay: Draw → Main → Combat → End phase loop</li>
-                <li>Type advantage matrix (Fire &gt; Grass &gt; Water &gt; Fire, etc.)</li>
-                <li>Combat resolution with MTG-style stack mechanics and instants</li>
-                <li>AI opponent for practice mode with adjustable difficulty</li>
-            </ul>
-        </div>
+          <a-sky color="#04070d"></a-sky>
+          <a-plane position="0 0 -1.1" rotation="-90 0 0" width="10" height="10" color="#08111b" material="metalness: 0.42; roughness: 0.58"></a-plane>
+          <a-plane position="0 0.01 -1.1" rotation="-90 0 0" width="7.6" height="5.1" color="#0b1b25" material="metalness: 0.18; roughness: 0.84"></a-plane>
+          <a-ring position="0 0.04 -1.1" rotation="-90 0 0" radius-inner="1.65" radius-outer="1.95" color="#13a6ff" material="emissive: #13a6ff; emissiveIntensity: 0.9"></a-ring>
+          <a-ring position="0 0.03 -1.1" rotation="-90 0 0" radius-inner="2.2" radius-outer="2.35" color="#00e5a0" material="emissive: #00e5a0; emissiveIntensity: 0.6"></a-ring>
 
-        <div class="phase">
-            <div class="phase-header">
-                <h3>Phase 4 &mdash; Multiplayer &amp; Social</h3>
-                <span class="status-badge planned">Planned</span>
-            </div>
-            <ul>
-                <li>Real-time PvP battles via WebSockets</li>
-                <li>Ranked ladder system with seasonal resets</li>
-                <li>Tournament brackets with prize pools</li>
-                <li>Spectator mode and replay system</li>
-            </ul>
+          <a-entity id="commanderCard" position="0 1.72 -1.1" rotation="-18 0 0" animation="property: position; to: 0 1.84 -1.1; dir: alternate; dur: 2400; loop: true; easing: easeInOutSine">
+            <a-box width="1.68" height="2.34" depth="0.05" color="#122231" material="metalness: 0.28; roughness: 0.42"></a-box>
+            <a-plane id="commanderFrame" position="0 0 0.028" width="1.6" height="2.26" color="#193447" material="emissive: #13a6ff; emissiveIntensity: 0.12"></a-plane>
+            <a-plane id="commanderArt" position="0 0.36 0.03" width="1.25" height="0.88" color="#1d5a73"></a-plane>
+            <a-entity id="commanderName" position="0 0.93 0.032" text="value: Storm Runner; align: center; color: #f7fbff; width: 2.7; wrapCount: 14; font: mozillavr"></a-entity>
+            <a-entity id="commanderMeta" position="0 -0.08 0.032" text="value: Rare Commander; align: center; color: #9fd8f2; width: 2.45; wrapCount: 18; font: mozillavr"></a-entity>
+            <a-entity id="commanderAbility" position="0 -0.56 0.032" text="value: Ability loading...; align: center; color: #f8cb7a; width: 2.45; wrapCount: 24; lineHeight: 48; font: mozillavr"></a-entity>
+            <a-entity id="commanderStats" position="0 -0.95 0.032" text="value: 0 ATK / 0 SHD / 0 COST; align: center; color: #ffffff; width: 2.7; wrapCount: 18; font: mozillavr"></a-entity>
+          </a-entity>
+
+          <a-entity id="supportCardLeft" position="-2.05 1.28 -1.65" rotation="-18 18 0" animation="property: position; to: -2.05 1.4 -1.65; dir: alternate; dur: 2200; loop: true; easing: easeInOutSine">
+            <a-box width="1.3" height="1.84" depth="0.04" color="#0f1a25"></a-box>
+            <a-plane id="supportLeftFrame" position="0 0 0.024" width="1.22" height="1.76" color="#21405b"></a-plane>
+            <a-entity id="supportLeftName" position="0 0.54 0.026" text="value: Field Node; align: center; color: #f7fbff; width: 2.15; wrapCount: 15; font: mozillavr"></a-entity>
+            <a-entity id="supportLeftBody" position="0 -0.18 0.026" text="value: Grants setup pressure.; align: center; color: #9fd8f2; width: 2.0; wrapCount: 20; lineHeight: 46; font: mozillavr"></a-entity>
+          </a-entity>
+
+          <a-entity id="supportCardRight" position="2.05 1.28 -1.65" rotation="-18 -18 0" animation="property: position; to: 2.05 1.4 -1.65; dir: alternate; dur: 2200; loop: true; easing: easeInOutSine">
+            <a-box width="1.3" height="1.84" depth="0.04" color="#0f1a25"></a-box>
+            <a-plane id="supportRightFrame" position="0 0 0.024" width="1.22" height="1.76" color="#3a2c4f"></a-plane>
+            <a-entity id="supportRightName" position="0 0.54 0.026" text="value: Burst Stack; align: center; color: #f7fbff; width: 2.15; wrapCount: 15; font: mozillavr"></a-entity>
+            <a-entity id="supportRightBody" position="0 -0.18 0.026" text="value: Converts momentum into pressure.; align: center; color: #9fd8f2; width: 2.0; wrapCount: 20; lineHeight: 46; font: mozillavr"></a-entity>
+          </a-entity>
+
+          <a-cylinder position="0 0.2 1.65" radius="0.16" height="0.28" color="#13a6ff" material="emissive: #13a6ff; emissiveIntensity: 1.2"></a-cylinder>
+          <a-cylinder position="-0.48 0.2 1.48" radius="0.16" height="0.28" color="#00e5a0" material="emissive: #00e5a0; emissiveIntensity: 1.2"></a-cylinder>
+          <a-cylinder position="0.48 0.2 1.48" radius="0.16" height="0.28" color="#ffb347" material="emissive: #ffb347; emissiveIntensity: 1.2"></a-cylinder>
+
+          <a-entity id="boardTicker" position="0 0.46 2.25" text="value: TriptokCard deck lab online.; align: center; color: #9fd8f2; width: 6.8; wrapCount: 44; font: mozillavr"></a-entity>
+        </a-scene>
+      </div>
+    </div>
+  </section>
+
+  <section class="below-grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">Deck Shell</span>
+          <h2>Generated package</h2>
         </div>
+      </div>
+      <div class="deck-grid" id="deckGrid">
+        <article class="deck-card"><span>Commander</span><strong>Waiting for card</strong><p class="copy">Generate a player card to build the shell.</p></article>
+        <article class="deck-card"><span>Support A</span><strong>Waiting for card</strong><p class="copy">Utility card appears here.</p></article>
+        <article class="deck-card"><span>Support B</span><strong>Waiting for card</strong><p class="copy">Burst or control card appears here.</p></article>
+      </div>
+      <div class="footer-note">This is the fast prototype lane. The next real build is hand zones, turn flow, and deck persistence.</div>
     </div>
 
-    <div class="section">
-        <div class="section-title">Core Mechanics</div>
-        <div class="concepts-grid">
-            <div class="concept">
-                <h4>&#9889; Element System</h4>
-                <p>Six elemental types — Fire, Water, Grass, Electric, Dark, Psychic — assigned based on your Fortnite playstyle and weapon preferences.</p>
-            </div>
-            <div class="concept">
-                <h4>&#9876; MTG Combat</h4>
-                <p>Cards are Creatures, Instants, Sorceries, Enchantments, or Lands. Stack-based resolution allows for counterplay and reactive strategies.</p>
-            </div>
-            <div class="concept">
-                <h4>&#128202; Stat Conversion</h4>
-                <p>Wins → Rarity tier &nbsp;|&nbsp; Eliminations → Power &nbsp;|&nbsp; K/D → Toughness &nbsp;|&nbsp; Win Rate → Special ability threshold</p>
-            </div>
-            <div class="concept">
-                <h4>&#127942; Rarity Tiers</h4>
-                <p>Common, Uncommon, Rare, Epic, Legendary, Mythic — determined by cumulative player performance over the season.</p>
-            </div>
-            <div class="concept">
-                <h4>&#127760; Social Deck Sharing</h4>
-                <p>Share deck codes with the community. Browse top-rated decks in a public gallery. Import decks directly into your deck builder.</p>
-            </div>
-            <div class="concept">
-                <h4>&#128279; Live Data Sync</h4>
-                <p>Cards update seasonally as Fortnite stats evolve. A player who levels up gets boosted card stats at each season checkpoint.</p>
-            </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="eyebrow">Current Loop</span>
+          <h2>What is live now</h2>
         </div>
+      </div>
+      <div class="steps">
+        <article class="step-card">
+          <span>Step 01</span>
+          <h3>Search a player</h3>
+          <p class="copy">Use the existing Battle Royale lookup surface already in the site.</p>
+        </article>
+        <article class="step-card">
+          <span>Step 02</span>
+          <h3>Generate a commander</h3>
+          <p class="copy">Convert wins, K/D, eliminations, matches, and win rate into a readable card shell.</p>
+        </article>
+        <article class="step-card">
+          <span>Step 03</span>
+          <h3>Preview the deck in 3D</h3>
+          <p class="copy">A-Frame lets the game table feel real before we wire in a complete rules engine.</p>
+        </article>
+      </div>
     </div>
+  </section>
 
-    <div class="section">
-        <div class="section-title">Timeline</div>
-        <div class="timeline">
-            <div class="tl-item">
-                <div class="tl-dot">P1</div>
-                <div class="tl-line"></div>
-                <div class="tl-content">
-                    <div class="tl-phase-name">Card Generation Engine</div>
-                    <div class="tl-duration">&#9632; 2&ndash;3 weeks</div>
-                </div>
-            </div>
-            <div class="tl-item">
-                <div class="tl-dot">P2</div>
-                <div class="tl-line"></div>
-                <div class="tl-content">
-                    <div class="tl-phase-name">Card Browser &amp; Deck Builder</div>
-                    <div class="tl-duration">&#9632; 2&ndash;3 weeks</div>
-                </div>
-            </div>
-            <div class="tl-item">
-                <div class="tl-dot">P3</div>
-                <div class="tl-line"></div>
-                <div class="tl-content">
-                    <div class="tl-phase-name">Game Engine</div>
-                    <div class="tl-duration">&#9632; 3&ndash;4 weeks</div>
-                </div>
-            </div>
-            <div class="tl-item">
-                <div class="tl-dot">P4</div>
-                <div class="tl-content">
-                    <div class="tl-phase-name">Multiplayer &amp; Social</div>
-                    <div class="tl-duration">&#9632; 2&ndash;3 weeks</div>
-                </div>
-            </div>
-        </div>
+  <section class="panel" style="margin-top:18px">
+    <div class="panel-head">
+      <div>
+        <span class="eyebrow">Build Path</span>
+        <h2>Roadmap after the prototype</h2>
+      </div>
     </div>
-
-</div>
+    <div class="roadmap">
+      <article class="road-card">
+        <span>Phase 1</span>
+        <strong>Card generator</strong>
+        <p>Stat mapping, rarity logic, live art treatment, and stable support-card recipes.</p>
+      </article>
+      <article class="road-card">
+        <span>Phase 2</span>
+        <strong>Deck builder</strong>
+        <p>Saved decks, curve checks, lane filters, and a gallery that can be shared on-site.</p>
+      </article>
+      <article class="road-card">
+        <span>Phase 3</span>
+        <strong>Rules engine</strong>
+        <p>Turn order, stack resolution, combat, elemental interactions, and practice AI.</p>
+      </article>
+      <article class="road-card">
+        <span>Phase 4</span>
+        <strong>PvP arena</strong>
+        <p>Multiplayer matches, ladder seasons, spectating, and replay export back into the site.</p>
+      </article>
+    </div>
+  </section>
+</main>
 {% include "_site_footer.html" %}
+<script>
+const starterName = {{ current_player_name|tojson }};
+const focusPositions = {
+  board: { position: "0 2.6 5.9", label: "Board focus" },
+  commander: { position: "0 2.2 3.65", label: "Commander focus" },
+  support: { position: "1.75 2.15 4.3", label: "Support focus" },
+};
+
+const archetypeConfig = {
+  adaptive: { label: "Adaptive", attackBias: 1.0, shieldBias: 1.0, costBias: 1.0, copy: "Balanced shell that stays readable while the ruleset is still forming." },
+  aggro: { label: "Aggro", attackBias: 1.25, shieldBias: 0.85, costBias: 0.9, copy: "Front-load pressure and keep the curve low." },
+  control: { label: "Control", attackBias: 0.92, shieldBias: 1.25, costBias: 1.1, copy: "Higher shield and resource drag for slower matches." },
+  combo: { label: "Combo", attackBias: 1.08, shieldBias: 0.95, costBias: 1.2, copy: "Lower baseline pressure with a stronger ability payoff." },
+};
+
+const elementPalette = {
+  Storm: { frame: "#1f5375", art: "#296e96", glow: "#13a6ff" },
+  Ember: { frame: "#6b321d", art: "#8a4d2f", glow: "#ff7b2f" },
+  Verdant: { frame: "#205540", art: "#2c7156", glow: "#00e5a0" },
+  Void: { frame: "#443363", art: "#5b4582", glow: "#aa66ff" },
+  Solar: { frame: "#65511f", art: "#80692d", glow: "#ffb347" },
+};
+
+let activeArchetype = "adaptive";
+let lastCardModel = null;
+
+function $(id){ return document.getElementById(id); }
+function clamp(value, min, max){ return Math.max(min, Math.min(max, value)); }
+function fmtNum(value){ return Number(value || 0).toFixed(2); }
+function parsePercent(value){ return Number.parseFloat(String(value || "0").replace("%","")) || 0; }
+
+function setSceneFocus(mode){
+  const target = focusPositions[mode] || focusPositions.board;
+  const rig = $("deckCameraRig");
+  if (rig) rig.setAttribute("position", target.position);
+  $("sceneMode").textContent = target.label;
+  document.querySelectorAll(".scene-focus").forEach(btn => btn.classList.toggle("active", btn.dataset.focus === mode));
+}
+
+function setStatus(text){
+  $("cardStatus").textContent = text;
+}
+
+function toneFromStats(stats){
+  const wins = Number(stats.wins || 0);
+  const kd = Number(stats.kd || 0);
+  const kills = Number(stats.kills || 0);
+  if (wins >= 120 || kd >= 4.5) return "Storm";
+  if (kills >= 2500) return "Ember";
+  if (Number(stats.matches || 0) >= 800) return "Verdant";
+  if (parsePercent(stats.winPct) >= 12) return "Solar";
+  return "Void";
+}
+
+function rarityFromStats(stats){
+  const wins = Number(stats.wins || 0);
+  const kd = Number(stats.kd || 0);
+  const winPct = parsePercent(stats.winPct);
+  if (wins >= 250 || kd >= 6 || winPct >= 18) return "Mythic";
+  if (wins >= 120 || kd >= 4.5 || winPct >= 12) return "Legendary";
+  if (wins >= 60 || kd >= 3 || winPct >= 8) return "Epic";
+  if (wins >= 20 || kd >= 1.8 || winPct >= 5) return "Rare";
+  return "Uncommon";
+}
+
+function abilityFromModel(model){
+  if (activeArchetype === "aggro") return "On entry, gain +2 attack if your last turn dealt damage.";
+  if (activeArchetype === "control") return "Whenever you block, draw a tactic if your shield is still above half.";
+  if (activeArchetype === "combo") return "If you cast two support cards this turn, double this card's next burst.";
+  return "Once per round, convert one support card into either attack or shield.";
+}
+
+function deriveDeck(payload){
+  const stats = payload.stats || {};
+  const profile = archetypeConfig[activeArchetype];
+  const wins = Number(stats.wins || 0);
+  const kd = Number(stats.kd || 0);
+  const kills = Number(stats.kills || 0);
+  const matches = Number(stats.matches || 0);
+  const avgElim = Number(stats.avgElim || 0);
+  const element = toneFromStats(stats);
+  const rarity = rarityFromStats(stats);
+  const attack = clamp(Math.round(((kills / Math.max(matches, 1)) * 2.5 + avgElim + wins / 22) * profile.attackBias), 2, 12);
+  const shield = clamp(Math.round((kd * 2.8 + matches / 220) * profile.shieldBias), 2, 12);
+  const cost = clamp(Math.round(((attack + shield) / 3.2) * profile.costBias), 1, 8);
+  const name = (payload.player || {}).name || "Unknown Player";
+  const commander = {
+    name,
+    title: `${rarity} Commander`,
+    element,
+    rarity,
+    attack,
+    shield,
+    cost,
+    ability: abilityFromModel({ attack, shield, cost }),
+  };
+  const supports = [
+    {
+      name: `${element} Field Node`,
+      body: activeArchetype === "control" ? "Reduce incoming burst damage by 1 this turn." : "Add one energy if your commander is already on board.",
+      frame: elementPalette[element]?.frame || elementPalette.Void.frame,
+    },
+    {
+      name: `${profile.label} Burst`,
+      body: activeArchetype === "combo" ? "Store charge, then release it for doubled attack next turn." : "Gain immediate pressure based on current attack.",
+      frame: activeArchetype === "aggro" ? elementPalette.Ember.frame : elementPalette.Void.frame,
+    },
+  ];
+  const deck = [
+    `${name} / ${rarity} / ${element}`,
+    `${supports[0].name} - setup anchor`,
+    `${supports[1].name} - tempo spike`,
+  ];
+  return {
+    source: payload.source || "preview",
+    profile,
+    commander,
+    supports,
+    deck,
+    summary: `Wins ${wins} | K/D ${fmtNum(kd)} | Matches ${matches} | Win Rate ${stats.winPct || "0%"}`,
+  };
+}
+
+function updateScene(model){
+  const palette = elementPalette[model.commander.element] || elementPalette.Void;
+  $("commanderFrame").setAttribute("color", palette.frame);
+  $("commanderFrame").setAttribute("material", `emissive: ${palette.glow}; emissiveIntensity: 0.15`);
+  $("commanderArt").setAttribute("color", palette.art);
+  $("commanderName").setAttribute("text", "value", model.commander.name);
+  $("commanderMeta").setAttribute("text", "value", `${model.commander.rarity} ${model.commander.element} Commander`);
+  $("commanderAbility").setAttribute("text", "value", model.commander.ability);
+  $("commanderStats").setAttribute("text", "value", `${model.commander.attack} ATK / ${model.commander.shield} SHD / ${model.commander.cost} COST`);
+
+  $("supportLeftFrame").setAttribute("color", model.supports[0].frame);
+  $("supportRightFrame").setAttribute("color", model.supports[1].frame);
+  $("supportLeftName").setAttribute("text", "value", model.supports[0].name);
+  $("supportLeftBody").setAttribute("text", "value", model.supports[0].body);
+  $("supportRightName").setAttribute("text", "value", model.supports[1].name);
+  $("supportRightBody").setAttribute("text", "value", model.supports[1].body);
+  $("boardTicker").setAttribute("text", "value", `${model.commander.name} / ${model.commander.element} / ${model.profile.label} shell`);
+}
+
+function renderDeckCards(model){
+  $("heroElement").textContent = model.commander.element;
+  $("heroElementCopy").textContent = `${model.commander.attack} attack and ${model.commander.shield} shield are tuned for the ${model.commander.element} lane.`;
+  $("heroRarity").textContent = model.commander.rarity;
+  $("heroRarityCopy").textContent = `Source: ${model.summary}`;
+  $("heroArchetype").textContent = model.profile.label;
+  $("heroArchetypeCopy").textContent = model.profile.copy;
+  $("cardSourceBadge").textContent = model.source === "fortnite-api" ? "Live Fortnite data" : "Preview stat lane";
+  $("deckDirectionBadge").textContent = `${model.profile.label} shell`;
+  $("generatorNote").textContent = `${model.commander.name} resolves as a ${model.commander.rarity} ${model.commander.element} commander. ${model.commander.ability}`;
+  $("derivedStats").innerHTML = [
+    ["Attack", model.commander.attack, "Power from eliminations and pressure."],
+    ["Shield", model.commander.shield, "Stability from K/D and match depth."],
+    ["Cost", model.commander.cost, "Energy curve for the commander lane."],
+    ["Ability", model.commander.rarity, model.commander.ability],
+  ].map(([label, value, copy]) => `<article class="signal-card"><span>${label}</span><strong>${value}</strong><em>${copy}</em></article>`).join("");
+  $("deckGrid").innerHTML = [
+    ["Commander", model.commander.name, `${model.commander.attack} ATK / ${model.commander.shield} SHD / ${model.commander.cost} COST`],
+    ["Support A", model.supports[0].name, model.supports[0].body],
+    ["Support B", model.supports[1].name, model.supports[1].body],
+  ].map(([slot, title, copy]) => `<article class="deck-card"><span>${slot}</span><strong>${title}</strong><p class="copy">${copy}</p></article>`).join("");
+}
+
+async function generateCard(){
+  const input = $("playerSearch");
+  const value = (input.value || "").trim();
+  if (!value) {
+    setStatus("Enter a player name first");
+    return;
+  }
+  setStatus("Generating card");
+  try{
+    const response = await fetch(`/api/stats?name=${encodeURIComponent(value)}`, { credentials: "same-origin" });
+    const payload = await response.json();
+    if (!payload.ok) {
+      setStatus("Player lookup failed");
+      $("generatorNote").textContent = payload.error || "Could not derive a card from that player right now.";
+      return;
+    }
+    const model = deriveDeck(payload);
+    lastCardModel = model;
+    renderDeckCards(model);
+    updateScene(model);
+    setSceneFocus("commander");
+    setStatus(`Ready: ${model.commander.name}`);
+  } catch (_error) {
+    setStatus("Lookup error");
+    $("generatorNote").textContent = "The card lab could not reach player lookup right now.";
+  }
+}
+
+document.querySelectorAll(".scene-focus").forEach(button => {
+  button.addEventListener("click", () => setSceneFocus(button.dataset.focus));
+});
+
+document.querySelectorAll("#archetypeButtons .chip-btn").forEach(button => {
+  button.addEventListener("click", () => {
+    activeArchetype = button.dataset.archetype;
+    document.querySelectorAll("#archetypeButtons .chip-btn").forEach(item => item.classList.toggle("active", item === button));
+    if (lastCardModel) {
+      $("generateCardButton").click();
+    } else {
+      $("heroArchetype").textContent = archetypeConfig[activeArchetype].label;
+      $("heroArchetypeCopy").textContent = archetypeConfig[activeArchetype].copy;
+    }
+  });
+});
+
+$("generateCardButton").addEventListener("click", generateCard);
+$("heroGenerate").addEventListener("click", generateCard);
+$("playerSearch").addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    generateCard();
+  }
+});
+
+setSceneFocus("board");
+if (starterName) {
+  $("playerSearch").value = starterName;
+}
+</script>
 </body>
 </html>

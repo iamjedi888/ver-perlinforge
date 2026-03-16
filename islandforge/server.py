@@ -264,7 +264,9 @@ def news_page():
 
 @app.route("/cardgame")
 def cardgame():
-    return render_template("cardgame.html")
+    user = session.get("user") or {}
+    current_player_name = user.get("display_name") or session.get("display_name") or ""
+    return render_template("cardgame.html", current_player_name=current_player_name)
 
 
 @app.route("/sitemap.xml")

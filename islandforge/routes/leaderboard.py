@@ -59,6 +59,36 @@ def _safe_float(value, default=0.0):
         return default
 
 
+def _division_for_score(score):
+    score = _safe_int(score)
+    if score >= 420:
+        return "Mythic"
+    if score >= 280:
+        return "Legend"
+    if score >= 180:
+        return "Elite"
+    if score >= 100:
+        return "Pro"
+    if score >= 40:
+        return "Builder"
+    return "Starter"
+
+
+def _member_lane(member):
+    builder = (_safe_int(member.get("islands_created")) * 26) + (_safe_int(member.get("plots_total")) * 2)
+    signal = (_safe_int(member.get("posts_created")) * 18) + (_safe_int(member.get("likes_received")) * 3)
+    ops = (_safe_int(member.get("tickets")) * 8) + (_safe_int(member.get("channels_submitted")) * 20)
+    combat = (_safe_int(member.get("wins")) * 16) + round(_safe_float(member.get("kd")) * 18)
+    lanes = {
+        "Builder": builder,
+        "Signal": signal,
+        "Ops": ops,
+        "Combat": combat,
+    }
+    lane = max(lanes, key=lanes.get)
+    return lane, lanes
+
+
 def _member_board_payload():
     if not HAS_DB or not db_available():
         return {
@@ -158,6 +188,12 @@ def _member_board_payload():
             }
         )
 
+    for member in members:
+        lane, lanes = _member_lane(member)
+        member["lane"] = lane
+        member["lane_scores"] = lanes
+        member["division"] = _division_for_score(member.get("forge_score"))
+
     summary = {
         "members": len(members),
         "islands": len(islands),
@@ -167,7 +203,35 @@ def _member_board_payload():
         else 0,
         "local_signal_ready": local_signal_ready,
         "competitive_ready": competitive_ready,
+        "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+
+    highlights = []
+    for lane_name, field, detail in (
+        ("Builder", "islands_created", "Most island generation momentum"),
+        ("Signal", "posts_created", "Most feed and community output"),
+        ("Ops", "channels_submitted", "Most operations and channel movement"),
+        ("Combat", "wins", "Strongest competitive surface right now"),
+    ):
+        ranked = sorted(
+            members,
+            key=lambda item: (
+                _safe_float(item.get(field), 0.0),
+                _safe_float(item.get("forge_score"), 0.0),
+                _safe_float(item.get("kd"), 0.0),
+            ),
+            reverse=True,
+        )
+        leader = ranked[0] if ranked else None
+        highlights.append(
+            {
+                "lane": lane_name,
+                "member": leader.get("display_name") if leader else "No signal yet",
+                "value": leader.get(field, 0) if leader else 0,
+                "metric": field,
+                "detail": detail,
+            }
+        )
 
     notes = [
         "Local ranking is weighted toward TriptokForge activity until a real competitive season exists.",
@@ -175,7 +239,7 @@ def _member_board_payload():
         "Battle Royale stat lookup is separate and stays available through Player Lookup when Fortnite API access is configured.",
     ]
 
-    return {"members": members, "summary": summary, "notes": notes}
+    return {"members": members, "summary": summary, "notes": notes, "highlights": highlights}
 
 
 def _ecosystem_payload():
