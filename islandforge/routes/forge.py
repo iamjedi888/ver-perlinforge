@@ -63,6 +63,7 @@ except ImportError:
 _state = {
     "heightmap_bytes": None, "layout": None, "preview_bytes": None,
     "audio_path": None, "audio_filename": None, "audio_weights": None,
+    "audio_source_id": None,
     "output_dir": None, "output_folder_name": None, "download_prefix": "Island",
     "verse_package": None, "verse_zip_bytes": None,
 }
@@ -81,6 +82,10 @@ THEME_ALIASES = {
 }
 UEFN_DIRECT_IMPORT_MAX_PX = 2017
 LIVE_RUNTIME_MAX_PX = max(505, min(2017, int(os.environ.get("FORGE_LIVE_MAX_PX", "1009"))))
+AUDIO_LIBRARY_MANIFESTS = (
+    os.path.join(BASE_DIR, "config", "audio_library.json"),
+    os.path.join(AUDIO_DIR, "library.json"),
+)
 
 
 def _analysis_cache_path(audio_path: str) -> str:
@@ -126,6 +131,149 @@ def _get_audio_analysis(audio_path: str) -> tuple[dict, str]:
     weights = _normalize_audio_weights(weights)
     _store_cached_audio_analysis(audio_path, weights)
     return weights, "fresh"
+
+
+def _humanize_track_name(value: str) -> str:
+    stem = os.path.splitext(os.path.basename(str(value or "")))[0]
+    stem = re.sub(r"[_\-]+", " ", stem).strip()
+    return stem or "Untitled Track"
+
+
+def _local_audio_playback_url(filename: str) -> str:
+    return f"/audio/stream/{urllib.parse.quote(filename)}"
+
+
+def _safe_remote_audio_url(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    parsed = urllib.parse.urlparse(text)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return urllib.parse.urlunparse(parsed)
+
+
+def _load_audio_library_manifest() -> list[dict]:
+    entries: list[dict] = []
+    seen_ids: set[str] = set()
+
+    for manifest_path in AUDIO_LIBRARY_MANIFESTS:
+        if not os.path.exists(manifest_path):
+            continue
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+        except Exception:
+            continue
+
+        if isinstance(payload, dict):
+            raw_entries = payload.get("tracks") or payload.get("entries") or []
+        elif isinstance(payload, list):
+            raw_entries = payload
+        else:
+            raw_entries = []
+
+        if not isinstance(raw_entries, list):
+            continue
+
+        for index, raw in enumerate(raw_entries):
+            if not isinstance(raw, dict):
+                continue
+
+            filename = os.path.basename(str(raw.get("filename") or "").strip())
+            local_path = os.path.join(AUDIO_DIR, filename) if filename else ""
+            if filename and not os.path.exists(local_path):
+                local_path = ""
+
+            playback_url = _safe_remote_audio_url(
+                raw.get("url") or raw.get("uri") or raw.get("stream_url")
+            )
+            if not local_path and not playback_url:
+                continue
+
+            source_type = "local" if local_path else "remote"
+            manifest_weights = (
+                _normalize_audio_weights(raw.get("weights"))
+                if isinstance(raw.get("weights"), dict)
+                else None
+            )
+            duration_value = raw.get("duration_s") or raw.get("duration")
+            try:
+                duration_s = float(duration_value or 0.0)
+            except Exception:
+                duration_s = 0.0
+
+            entry_id = str(raw.get("id") or "").strip()
+            if not entry_id:
+                fallback = filename or f"remote-{index + 1}"
+                prefix = "local" if source_type == "local" else "remote"
+                entry_id = f"{prefix}:{fallback}"
+            entry_id = re.sub(r"[^0-9A-Za-z_.:\-]+", "-", entry_id).strip("-") or f"{source_type}:{index + 1}"
+            if entry_id in seen_ids:
+                continue
+            seen_ids.add(entry_id)
+
+            title = str(raw.get("title") or raw.get("display_name") or "").strip()
+            artist = str(raw.get("artist") or raw.get("creator") or "").strip()
+            album = str(raw.get("album") or "").strip()
+            tags = raw.get("tags") if isinstance(raw.get("tags"), list) else []
+
+            entry = {
+                "id": entry_id,
+                "filename": filename,
+                "title": title or _humanize_track_name(filename or playback_url),
+                "artist": artist,
+                "album": album,
+                "tags": tags,
+                "label": title or _humanize_track_name(filename or playback_url),
+                "source_type": source_type,
+                "playback_url": playback_url or _local_audio_playback_url(filename),
+                "path": local_path or None,
+                "manifest_weights": manifest_weights,
+                "duration_s": duration_s,
+                "deletable": source_type == "local",
+            }
+            entries.append(entry)
+
+    return entries
+
+
+def _resolve_audio_source(identifier: str = "", filename: str = "") -> dict | None:
+    source_id = str(identifier or "").strip()
+    source_filename = os.path.basename(str(filename or "").strip())
+
+    if source_id.startswith("local:") and not source_filename:
+        source_filename = os.path.basename(source_id.split(":", 1)[1])
+
+    manifest_entries = _load_audio_library_manifest()
+    for entry in manifest_entries:
+        if source_id and entry["id"] == source_id:
+            return entry
+        if source_filename and entry.get("filename") == source_filename:
+            return entry
+
+    if not source_filename:
+        return None
+
+    local_path = os.path.join(AUDIO_DIR, source_filename)
+    if not os.path.exists(local_path):
+        return None
+
+    return {
+        "id": f"local:{source_filename}",
+        "filename": source_filename,
+        "title": _humanize_track_name(source_filename),
+        "artist": "",
+        "album": "",
+        "tags": [],
+        "label": _humanize_track_name(source_filename),
+        "source_type": "local",
+        "playback_url": _local_audio_playback_url(source_filename),
+        "path": local_path,
+        "manifest_weights": None,
+        "duration_s": 0.0,
+        "deletable": True,
+    }
 
 
 def _sanitize_world_name(value: str) -> str:
@@ -474,26 +622,78 @@ def upload_audio():
         while os.path.exists(save_path): save_path = os.path.join(AUDIO_DIR, f"{stem}_{c}{sfx}"); c += 1
         f.save(save_path)
         weights, analysis_source = _get_audio_analysis(save_path)
-        _state["audio_path"] = save_path; _state["audio_filename"] = os.path.basename(save_path); _state["audio_weights"] = weights
-        return jsonify({"ok":True,"filename":os.path.basename(save_path),"weights":weights,"analysis_source":analysis_source})
+        filename = os.path.basename(save_path)
+        _state["audio_path"] = save_path
+        _state["audio_filename"] = filename
+        _state["audio_weights"] = weights
+        _state["audio_source_id"] = f"local:{filename}"
+        return jsonify({
+            "ok": True,
+            "id": f"local:{filename}",
+            "filename": filename,
+            "title": _humanize_track_name(filename),
+            "artist": "",
+            "playback_url": _local_audio_playback_url(filename),
+            "source_type": "local",
+            "weights": weights,
+            "analysis_source": analysis_source,
+            "can_generate": True,
+        })
     except Exception as e:
         traceback.print_exc(); return jsonify({"ok":False,"error":str(e)}),500
 
 @forge_bp.route("/audio/list")
 def audio_list():
     try:
+        manifest_entries = _load_audio_library_manifest()
+        manifest_locals = {
+            entry["filename"]: entry
+            for entry in manifest_entries
+            if entry.get("source_type") == "local" and entry.get("filename")
+        }
         files = []
         for fn in sorted(os.listdir(AUDIO_DIR)):
             if os.path.splitext(fn)[1].lower() not in SUPPORTED_EXTS:
                 continue
             path = os.path.join(AUDIO_DIR, fn)
             cached = _load_cached_audio_analysis(path)
+            manifest_entry = manifest_locals.get(fn) or {}
+            duration_s = (
+                round(float(cached.get("duration_s", 0.0)), 2) if cached
+                else round(float(manifest_entry.get("duration_s", 0.0) or 0.0), 2)
+            )
             files.append({
+                "id": manifest_entry.get("id") or f"local:{fn}",
                 "filename": fn,
+                "title": manifest_entry.get("title") or _humanize_track_name(fn),
+                "artist": manifest_entry.get("artist") or "",
+                "album": manifest_entry.get("album") or "",
+                "playback_url": _local_audio_playback_url(fn),
+                "source_type": "local",
                 "size_kb": round(os.path.getsize(path) / 1024, 1),
-                "active": _state["audio_filename"] == fn,
-                "analysis_ready": bool(cached),
-                "duration_s": round(float(cached.get("duration_s", 0.0)), 2) if cached else 0.0,
+                "active": (_state.get("audio_source_id") == (manifest_entry.get("id") or f"local:{fn}")) or _state["audio_filename"] == fn,
+                "analysis_ready": bool(cached or manifest_entry.get("manifest_weights")),
+                "can_generate": True,
+                "duration_s": duration_s,
+                "deletable": True,
+            })
+        for entry in manifest_entries:
+            if entry.get("source_type") == "local":
+                continue
+            files.append({
+                "id": entry["id"],
+                "filename": entry.get("filename") or "",
+                "title": entry.get("title") or entry.get("label") or "Remote Source",
+                "artist": entry.get("artist") or "",
+                "album": entry.get("album") or "",
+                "playback_url": entry.get("playback_url") or "",
+                "source_type": "remote",
+                "size_kb": 0,
+                "active": _state.get("audio_source_id") == entry["id"],
+                "analysis_ready": bool(entry.get("manifest_weights")),
+                "can_generate": bool(entry.get("manifest_weights")),
+                "duration_s": round(float(entry.get("duration_s", 0.0) or 0.0), 2),
+                "deletable": False,
             })
         return jsonify({"ok":True,"files":files})
     except Exception as e: return jsonify({"ok":False,"error":str(e)}),500
@@ -501,11 +701,48 @@ def audio_list():
 @forge_bp.route("/audio/select", methods=["POST"])
 def audio_select():
     try:
-        data = request.get_json(force=True); path = os.path.join(AUDIO_DIR, os.path.basename(data.get("filename","")))
-        if not os.path.exists(path): return jsonify({"ok":False,"error":"Not found"}),404
-        weights, analysis_source = _get_audio_analysis(path)
-        _state["audio_path"] = path; _state["audio_filename"] = os.path.basename(path); _state["audio_weights"] = weights
-        return jsonify({"ok":True,"filename":os.path.basename(path),"weights":weights,"analysis_source":analysis_source})
+        data = request.get_json(force=True) or {}
+        entry = _resolve_audio_source(data.get("id", ""), data.get("filename", ""))
+        if not entry:
+            return jsonify({"ok":False,"error":"Not found"}),404
+
+        if entry["source_type"] == "remote":
+            if not entry.get("manifest_weights"):
+                return jsonify({
+                    "ok": False,
+                    "error": "This remote source can play, but it does not have a generation profile yet. Add precomputed weights in the audio library manifest to use it for Forge."
+                }), 400
+            weights = _normalize_audio_weights(entry["manifest_weights"])
+            analysis_source = "manifest"
+            _state["audio_path"] = None
+            _state["audio_filename"] = entry["title"]
+        else:
+            path = entry["path"]
+            if not path or not os.path.exists(path):
+                return jsonify({"ok":False,"error":"Not found"}),404
+            if entry.get("manifest_weights"):
+                weights = _normalize_audio_weights(entry["manifest_weights"])
+                _store_cached_audio_analysis(path, weights)
+                analysis_source = "manifest"
+            else:
+                weights, analysis_source = _get_audio_analysis(path)
+            _state["audio_path"] = path
+            _state["audio_filename"] = os.path.basename(path)
+
+        _state["audio_weights"] = weights
+        _state["audio_source_id"] = entry["id"]
+        return jsonify({
+            "ok": True,
+            "id": entry["id"],
+            "filename": entry.get("filename") or "",
+            "title": entry.get("title") or entry.get("label") or "",
+            "artist": entry.get("artist") or "",
+            "playback_url": entry.get("playback_url") or "",
+            "source_type": entry["source_type"],
+            "weights": weights,
+            "analysis_source": analysis_source,
+            "can_generate": True,
+        })
     except Exception as e: traceback.print_exc(); return jsonify({"ok":False,"error":str(e)}),500
 
 @forge_bp.route("/audio/<filename>", methods=["DELETE"])
@@ -514,7 +751,17 @@ def audio_delete(filename):
         path = os.path.join(AUDIO_DIR, os.path.basename(filename))
         if not os.path.exists(path): return jsonify({"ok":False,"error":"Not found"}),404
         os.remove(path)
-        if _state["audio_filename"] == filename: _state["audio_path"] = _state["audio_filename"] = _state["audio_weights"] = None
+        cache_path = _analysis_cache_path(path)
+        if os.path.exists(cache_path):
+            try:
+                os.remove(cache_path)
+            except Exception:
+                pass
+        if _state["audio_filename"] == filename or _state.get("audio_source_id") == f"local:{filename}":
+            _state["audio_path"] = None
+            _state["audio_filename"] = None
+            _state["audio_weights"] = None
+            _state["audio_source_id"] = None
         return jsonify({"ok":True})
     except Exception as e: return jsonify({"ok":False,"error":str(e)}),500
 

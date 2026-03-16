@@ -1,0 +1,27 @@
+{
+  "tracks": [
+    {
+      "id": "local:demo-loop",
+      "filename": "demo-loop.mp3",
+      "title": "Demo Loop",
+      "artist": "Local Library",
+      "tags": ["local", "forge", "loop"]
+    },
+    {
+      "id": "remote:oracle-radio",
+      "url": "https://media.example.com/audio/oracle-radio.mp3",
+      "title": "Oracle Radio",
+      "artist": "Remote Stream",
+      "tags": ["remote", "uri", "stream"],
+      "weights": {
+        "sub_bass": 0.62,
+        "bass": 0.71,
+        "midrange": 0.46,
+        "presence": 0.58,
+        "brilliance": 0.33,
+        "tempo_bpm": 124.0,
+        "duration_s": 215.0
+      }
+    }
+  ]
+}

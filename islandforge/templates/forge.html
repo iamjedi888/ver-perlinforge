@@ -387,13 +387,25 @@
   .audio-play-btn:hover { border-color:var(--accent); color:var(--accent); }
   .audio-file-item.playing .audio-play-btn { border-color:var(--accent); color:var(--accent); background:rgba(0,229,160,.1); }
 
-  .audio-file-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .audio-file-main { flex:1; min-width:0; display:grid; gap:2px; }
+  .audio-file-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .audio-file-meta {
+    display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+    color:var(--dim); font-size:9px;
+  }
+  .audio-file-chip {
+    padding:1px 6px; border-radius:999px; border:1px solid var(--border2);
+    letter-spacing:0.7px; text-transform:uppercase;
+  }
+  .audio-file-chip.ready { color:var(--accent); border-color:rgba(0,229,160,.28); }
+  .audio-file-chip.pending { color:var(--warn); border-color:rgba(255,179,71,.28); }
   .audio-file-size { color:var(--dim); font-size:9px; flex-shrink:0; }
   .audio-file-del {
     background:none; border:none; color:var(--dim); cursor:pointer;
     font-size:12px; padding:0 2px; transition:color .15s; flex-shrink:0;
   }
   .audio-file-del:hover { color:var(--del); }
+  .audio-file-del[hidden] { display:none; }
   .audio-active-tag { font-family:var(--mono); font-size:9px; color:var(--accent); margin-top:6px; min-height:14px; }
   .audio-structure-note {
     margin-top:10px; padding:9px 11px; border-radius:8px; border:1px solid var(--border);
@@ -1204,6 +1216,13 @@
 // ── HELPERS ──
 const fmt = v => (v/100).toFixed(2);
 const $  = id => document.getElementById(id);
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+}[ch]));
 
 function toast(msg, err=false) {
   const el = $('toast');
@@ -1247,6 +1266,8 @@ async function parseApiResponse(response, fallbackMessage = 'Request failed') {
 const _audio = new Audio();
 _audio.volume = 0.8;
 _audio.loop   = true;
+_audio.preload = 'metadata';
+_audio.crossOrigin = 'anonymous';
 
 // Web Audio API — for live frequency analysis
 let _audioCtx    = null;
@@ -1259,9 +1280,13 @@ const BAR_COLORS = ['#ff6b35','#ff9f35','#00e5a0','#0091ff','#aa66ff'];
 
 // Current player state
 let _playerFile  = null;   // filename currently loaded
+let _playerLabel = null;
+let _playerLocalFilename = null;
+let _audioEntries = new Map();
 let _isMuted     = false;
 let _seeking     = false;
 let _audioFilterMode = 'all';
+let _waveformToken = 0;
 
 // ── Setup Web Audio context (must be triggered by user gesture) ──
 function ensureAudioCtx() {
@@ -1373,12 +1398,13 @@ function drawWaveformProgress(pct) {
 }
 
 // Sample audio for waveform display (offline decode)
-async function buildWaveform(url) {
+async function buildWaveform(url, token = 0) {
   try {
     const ctx  = new OfflineAudioContext(1, 44100 * 30, 44100);
     const resp = await fetch(url);
     const ab   = await resp.arrayBuffer();
     const buf  = await ctx.decodeAudioData(ab);
+    if (token && token !== _waveformToken) return;
     const raw  = buf.getChannelData(0);
     // Downsample to 600 points
     const pts  = 600;
@@ -1452,6 +1478,16 @@ _audio.addEventListener('ended', () => {
   updateLibPlayingState();
 });
 
+_audio.addEventListener('play', () => {
+  $('btn-play').textContent = '⏸';
+  updateLibPlayingState();
+});
+
+_audio.addEventListener('pause', () => {
+  $('btn-play').textContent = '▶';
+  updateLibPlayingState();
+});
+
 _audio.addEventListener('loadedmetadata', () => {
   $('player-time').textContent = '0:00 / ' + fmtTime(_audio.duration);
 });
@@ -1518,7 +1554,7 @@ function updateAudioLibraryMeta(totalCount = null, visibleCount = null) {
       ? `${total} saved source${total === 1 ? '' : 's'}`
       : `${visible} of ${total} source${total === 1 ? '' : 's'}`;
   if ($('audio-lib-count')) $('audio-lib-count').textContent = countLabel;
-  if ($('audio-lib-selected')) $('audio-lib-selected').textContent = _playerFile || 'No active source';
+  if ($('audio-lib-selected')) $('audio-lib-selected').textContent = _playerLabel || 'No active source';
 }
 
 function setAudioFilter(mode) {
@@ -1537,9 +1573,9 @@ function filterAudioLibrary() {
   let visible = 0;
 
   rows.forEach(row => {
-    const name = (row.dataset.fn || '').toLowerCase();
-    const matchesQuery = !query || name.includes(query);
-    const matchesMode = _audioFilterMode === 'all' || row.dataset.fn === _playerFile;
+    const haystack = (row.dataset.search || row.dataset.key || '').toLowerCase();
+    const matchesQuery = !query || haystack.includes(query);
+    const matchesMode = _audioFilterMode === 'all' || row.dataset.key === _playerFile;
     const show = matchesQuery && matchesMode;
     row.style.display = show ? '' : 'none';
     if (show) visible += 1;
@@ -1567,7 +1603,7 @@ function syncForgeConsole() {
   const importMode = resolution > 2017
     ? 'Research-only master field'
     : (streamingLane ? 'Streaming + partition lane' : 'Direct UEFN lane');
-  const sourceLabel = _playerFile ? _playerFile : 'Awaiting source rail';
+  const sourceLabel = _playerLabel || _playerFile || 'Awaiting source rail';
   const resolutionLabel = resolution > 2017
     ? `${resolution} x ${resolution} master / 2017 export cap`
     : `${resolution} x ${resolution} direct import rail`;
@@ -1604,14 +1640,15 @@ function syncGenerateGate() {
 }
 
 function updateAudioMission(filename = _playerFile) {
+  const sourceLabel = _playerLabel || filename || 'No audio loaded';
   const ready = Boolean(_audioAnalysis && filename);
   $('audio-mission-state').textContent = ready ? 'Armed' : 'Locked';
-  $('audio-track-name').textContent = filename || 'No audio loaded';
+  $('audio-track-name').textContent = sourceLabel;
   $('audio-tempo').textContent = ready ? `${Math.round(_audioAnalysis.tempo_bpm || 0)} bpm` : '-- bpm';
   $('audio-duration').textContent = ready ? fmtTime(_audioAnalysis.duration_s || 0) : '0:00';
   $('audio-profile').textContent = ready ? dominantAudioProfile(_audioAnalysis) : 'Awaiting analysis';
   $('audio-mission-note').textContent = ready
-    ? `Active file ${filename} is driving the current terrain pass. Generate now to turn its tempo, duration, and spectral weighting into the latest island run and Verse handoff package.`
+    ? `Active source ${sourceLabel} is driving the current terrain pass. Generate now to turn its tempo, duration, and spectral weighting into the latest island run and Verse handoff package.`
     : 'Load and analyse a sound file to unlock generation. Forge uses the resulting audio weights, tempo, and duration as part of the terrain pass and UEFN export package.';
   syncForgeConsole();
   syncGenerateGate();
@@ -1619,45 +1656,82 @@ function updateAudioMission(filename = _playerFile) {
 
 function setAudioMissionPending(filename) {
   _audioAnalysis = null;
+  const sourceLabel = _playerLabel || filename || 'audio source';
   $('audio-mission-state').textContent = 'Analysing';
-  $('audio-track-name').textContent = filename || 'No audio loaded';
+  $('audio-track-name').textContent = sourceLabel;
   $('audio-profile').textContent = 'Decoding source';
-  $('audio-mission-note').textContent = `Streaming ${filename || 'audio'} now. Forge is refreshing the analysis rail in the background so playback does not wait on server-side decoding.`;
+  $('audio-mission-note').textContent = `Streaming ${sourceLabel} now. Forge is refreshing the analysis rail in the background so playback does not wait on server-side decoding.`;
   syncForgeConsole();
   syncGenerateGate();
 }
 
+function scheduleWaveformBuild(entry) {
+  _waveformToken += 1;
+  const token = _waveformToken;
+  const isRemote = entry?.source_type === 'remote';
+  const isLarge = Number(entry?.size_kb || 0) > 12288;
+  if (isRemote || isLarge || !entry?.playback_url) {
+    drawWaveformProgress(0);
+    return;
+  }
+  setTimeout(() => {
+    if (token !== _waveformToken) return;
+    buildWaveform(entry.playback_url, token);
+  }, 0);
+}
+
 // ── Load a file into the player ──
-async function playerLoad(filename, autoplay = true) {
-  _playerFile = filename;
-  const url   = `/audio/stream/${encodeURIComponent(filename)}`;
+async function playerLoad(entryOrFilename, autoplay = true) {
+  const entry = typeof entryOrFilename === 'string'
+    ? (_audioEntries.get(entryOrFilename) || {
+        id: entryOrFilename,
+        filename: entryOrFilename,
+        title: entryOrFilename,
+        playback_url: `/audio/stream/${encodeURIComponent(entryOrFilename)}`,
+        source_type: 'local',
+        size_kb: 0,
+      })
+    : (entryOrFilename || {});
+
+  const key = entry.id || entry.filename || entry.playback_url;
+  const url = entry.playback_url || (entry.filename ? `/audio/stream/${encodeURIComponent(entry.filename)}` : '');
+  if (!key || !url) {
+    throw new Error('Audio source is missing a playback URL.');
+  }
+
+  _playerFile = key;
+  _playerLabel = entry.title || entry.label || entry.filename || key;
+  _playerLocalFilename = entry.filename || null;
 
   _audio.src  = url;
   _audio.load();
 
-  $('player-title').textContent = filename;
+  $('player-title').textContent = _playerLabel;
   $('player-time').textContent  = '0:00 / ...';
   $('seek-bar').value = 0;
   $('player-wrap').classList.add('visible');
 
-  // Build waveform in background (short files only to avoid OOM)
-  buildWaveform(url);
+  scheduleWaveformBuild(entry);
 
   if (autoplay) {
     ensureAudioCtx();
     if (_audioCtx.state === 'suspended') await _audioCtx.resume();
-    await _audio.play().catch(e => console.warn('autoplay blocked:', e));
-    $('btn-play').textContent = '⏸';
+    _audio.play()
+      .then(() => {
+        $('btn-play').textContent = '⏸';
+        updateLibPlayingState();
+      })
+      .catch(e => console.warn('autoplay blocked:', e));
   }
 
   updateLibPlayingState();
-  $('audio-active-tag').textContent = `▶ ${filename}`;
-  updateAudioMission(filename);
+  $('audio-active-tag').textContent = `▶ ${_playerLabel}`;
+  updateAudioMission(_playerLabel);
 }
 
 function updateLibPlayingState() {
   document.querySelectorAll('.audio-file-item').forEach(el => {
-    const isThis = el.dataset.fn === _playerFile;
+    const isThis = el.dataset.key === _playerFile;
     const isPlaying = isThis && !_audio.paused;
     el.classList.toggle('playing', isPlaying);
     el.classList.toggle('active',  isThis);
@@ -1679,10 +1753,17 @@ async function uploadAudio(input) {
     applyWeights(d.weights);
     showBands(d.weights);
     await refreshAudioLib();
-    // Auto-load and play the newly uploaded file
-    await playerLoad(d.filename, true);
+    await playerLoad({
+      id: d.id || `local:${d.filename}`,
+      filename: d.filename,
+      title: d.title || d.filename,
+      artist: d.artist || '',
+      playback_url: d.playback_url || `/audio/stream/${encodeURIComponent(d.filename)}`,
+      source_type: d.source_type || 'local',
+      size_kb: 0,
+    }, true);
     setStatus('READY');
-    toast(`Loaded: ${d.filename}`);
+    toast(`Loaded: ${d.title || d.filename}`);
   } catch(e) {
     setStatus('READY');
     toast(e.message, true);
@@ -1722,6 +1803,7 @@ async function refreshAudioLib() {
     const r = await fetch('/audio/list');
     const d = await parseApiResponse(r, 'Audio library load failed');
     const list = $('audio-file-list');
+    _audioEntries = new Map((d.files || []).map(file => [file.id || file.filename, file]));
     if (!d.files.length) {
       list.innerHTML = '<div id="audio-file-empty" style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:6px 2px">No saved files - upload one above</div>';
       updateAudioLibraryMeta(0, 0);
@@ -1729,30 +1811,43 @@ async function refreshAudioLib() {
       return;
     }
     list.innerHTML = d.files.map(f => `
-      <div class="audio-file-item ${f.filename===_playerFile ? ((!_audio.paused)?'playing':'active') : ''}" data-fn="${f.filename}">
-        <button class="audio-play-btn" data-fn="${f.filename}">${(f.filename===_playerFile && !_audio.paused)?'⏸':'▶'}</button>
-        <span class="audio-file-name" title="${f.filename}">${f.filename}</span>
-        <span class="audio-file-size">${f.size_kb}kb${f.duration_s ? ` • ${fmtTime(f.duration_s)}` : ''}</span>
-        <button class="audio-file-del" onclick="deleteAudio(event,'${f.filename}')" title="Delete">✕</button>
+      <div class="audio-file-item ${f.id===_playerFile ? ((!_audio.paused)?'playing':'active') : ''}" data-key="${escapeHtml(f.id || f.filename)}" data-search="${escapeHtml([f.title, f.artist, f.album, f.filename, f.source_type].filter(Boolean).join(' '))}">
+        <button class="audio-play-btn" data-key="${escapeHtml(f.id || f.filename)}">${(f.id===_playerFile && !_audio.paused)?'⏸':'▶'}</button>
+        <div class="audio-file-main">
+          <span class="audio-file-name" title="${escapeHtml(f.title || f.filename)}">${escapeHtml(f.title || f.filename)}</span>
+          <div class="audio-file-meta">
+            <span>${escapeHtml(f.artist || (f.source_type === 'remote' ? 'Remote stream' : 'Local source'))}</span>
+            <span class="audio-file-chip ${f.analysis_ready ? 'ready' : 'pending'}">${f.analysis_ready ? 'Forge ready' : (f.can_generate ? 'Scan on select' : 'Play only')}</span>
+            <span>${f.duration_s ? fmtTime(f.duration_s) : '--:--'}</span>
+            ${f.size_kb ? `<span>${f.size_kb}kb</span>` : ''}
+          </div>
+        </div>
+        <span class="audio-file-size">${f.source_type === 'remote' ? 'URI' : 'LOCAL'}</span>
+        <button class="audio-file-del" data-delete="${escapeHtml(f.filename || '')}" title="Delete" ${f.deletable ? '' : 'hidden'}>✕</button>
       </div>
     `).join('');
 
-    // Row click = select + play  |  play btn click = toggle play
     list.querySelectorAll('.audio-file-item').forEach(el => {
       el.addEventListener('click', async e => {
         if (e.target.classList.contains('audio-file-del')) return;
-        const fn = el.dataset.fn;
+        const sourceKey = el.dataset.key;
         if (e.target.classList.contains('audio-play-btn')) {
-          // Toggle play/pause for currently loaded file
-          if (fn === _playerFile) {
+          if (sourceKey === _playerFile) {
             playerToggle();
           } else {
-            await selectAudio(fn);
+            await selectAudio(sourceKey);
           }
           return;
         }
-        // Row click: select + load weights + play
-        await selectAudio(fn);
+        await selectAudio(sourceKey);
+      });
+    });
+    list.querySelectorAll('.audio-file-del').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        const filename = btn.dataset.delete;
+        if (filename) {
+          await deleteAudio(e, filename);
+        }
       });
     });
     filterAudioLibrary();
@@ -1761,22 +1856,43 @@ async function refreshAudioLib() {
   }
 }
 
-async function selectAudio(filename) {
+async function selectAudio(sourceKey) {
   setStatus('STREAMING AUDIO...');
   try {
+    const entry = _audioEntries.get(sourceKey);
+    if (!entry) {
+      throw new Error('Audio source could not be resolved.');
+    }
+    await playerLoad(entry, true);
+    if (!entry.can_generate) {
+      _audioAnalysis = null;
+      setAudioMissionPending(entry.title || entry.filename || sourceKey);
+      $('audio-mission-state').textContent = 'Playback only';
+      $('audio-profile').textContent = 'Manifest weights required';
+      $('audio-mission-note').textContent = 'This source can play immediately, but Forge cannot generate from it until precomputed weights are added to the audio library manifest.';
+      $('band-wrap').style.display = 'none';
+      syncForgeConsole();
+      syncGenerateGate();
+      setStatus('READY');
+      toast(`▶ ${entry.title || entry.filename} • playback only`);
+      return;
+    }
     const analysisPromise = fetch('/audio/select', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({filename})
+      body: JSON.stringify({ id: entry.id, filename: entry.filename || '' })
     });
-    await playerLoad(filename, true);
-    setAudioMissionPending(filename);
+    setAudioMissionPending(entry.title || entry.filename || sourceKey);
     const r = await analysisPromise;
     const d = await parseApiResponse(r, 'Audio selection failed');
     applyWeights(d.weights);
     showBands(d.weights);
     await refreshAudioLib();
     setStatus('READY');
-    toast(`▶ ${filename}${d.analysis_source === 'cache' ? ' • cached analysis' : ''}`);
+    const label = d.title || entry.title || entry.filename || sourceKey;
+    const suffix = d.analysis_source === 'cache'
+      ? ' • cached analysis'
+      : (d.analysis_source === 'manifest' ? ' • manifest profile' : '');
+    toast(`▶ ${label}${suffix}`);
   } catch(e) {
     setStatus('READY');
     toast(e.message, true);
@@ -1788,10 +1904,12 @@ async function deleteAudio(e, filename) {
   try {
     const r = await fetch(`/audio/${encodeURIComponent(filename)}`, {method:'DELETE'});
     const d = await parseApiResponse(r, 'Audio delete failed');
-    if (filename === _playerFile) {
+    if (filename === _playerLocalFilename || _playerFile === `local:${filename}`) {
       _audio.pause();
       _audio.src = '';
       _playerFile = null;
+      _playerLabel = null;
+      _playerLocalFilename = null;
       _audioAnalysis = null;
       $('player-wrap').classList.remove('visible');
       $('audio-active-tag').textContent = '';
