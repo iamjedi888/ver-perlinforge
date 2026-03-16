@@ -128,6 +128,43 @@ _QUEUE_CACHE = {}
 _QUEUE_CACHE_TTL = 900
 
 
+def queue_strategy(rotation_mode: str) -> str:
+    value = (rotation_mode or "").strip().casefold()
+    if value in {"random_pool", "shuffle", "shuffled", "random"}:
+        return "shuffle"
+    if value in {"queue", "ordered", "ordered_queue"}:
+        return "ordered"
+    return "single"
+
+
+def queue_label(rotation_mode: str, has_rotation: bool) -> str:
+    strategy = queue_strategy(rotation_mode)
+    if not has_rotation or strategy == "single":
+        return "Single"
+    return "Shuffle" if strategy == "shuffle" else "Queue"
+
+
+def _queue_mode_label(strategy: str) -> str:
+    return "Shuffled Queue" if strategy == "shuffle" else "Ordered Queue"
+
+
+def _build_queue_item(source_url: str, title: str = "") -> dict:
+    normalized = normalize_source_url(source_url)
+    embed_url = detect_embed(normalized)
+    player_kind = detect_player_kind(normalized, embed_url)
+    mode = detect_feed_mode(normalized, embed_url)
+    return {
+        "title": title or "",
+        "source_url": normalized,
+        "embed_url": embed_url,
+        "player_kind": player_kind,
+        "mode": mode,
+        "mode_label": label_for_mode(mode),
+        "provider": "youtube" if youtube_video_id(normalized) else "",
+        "video_id": youtube_video_id(normalized),
+    }
+
+
 def apply_channel_override(name: str, channel: dict) -> dict:
     if name not in CHANNEL_OVERRIDES:
         return channel
@@ -348,24 +385,33 @@ def _youtube_embed_from_ids(video_ids: list[str]) -> str:
     )
 
 
-def resolve_channel_rotation(source_urls: list[str], search_terms: list[str] | None = None, limit: int = 18) -> dict:
+def resolve_channel_rotation(
+    source_urls: list[str],
+    search_terms: list[str] | None = None,
+    rotation_mode: str = "queue",
+    limit: int = 18,
+) -> dict:
     normalized = [normalize_source_url(url) for url in (source_urls or []) if url]
     if not normalized:
         return {}
 
     search_terms = [str(item or "").strip() for item in (search_terms or []) if str(item or "").strip()]
-    queue_ids = []
-    seen_ids = set()
+    strategy = queue_strategy(rotation_mode)
+    queue_items = []
+    seen_queue_keys = set()
 
-    def add_video_id(video_id: str):
-        clean = (video_id or "").strip()
-        if not clean or clean in seen_ids:
+    def add_queue_source(source_url: str, title: str = ""):
+        item = _build_queue_item(source_url, title=title)
+        if not item["embed_url"] or item["player_kind"] != "iframe":
             return
-        seen_ids.add(clean)
-        queue_ids.append(clean)
+        queue_key = item["video_id"] or item["source_url"]
+        if not queue_key or queue_key in seen_queue_keys:
+            return
+        seen_queue_keys.add(queue_key)
+        queue_items.append(item)
 
     for source_url in normalized:
-        add_video_id(youtube_video_id(source_url))
+        add_queue_source(source_url)
 
     matched_term_count = 0
     feed_match_count = 0
@@ -376,53 +422,75 @@ def resolve_channel_rotation(source_urls: list[str], search_terms: list[str] | N
         if not items:
             continue
 
-        for item in items[:limit]:
-            before = len(queue_ids)
-            add_video_id(youtube_video_id(item.get("source_url", "")))
-            if len(queue_ids) > before:
-                feed_match_count += 1
-
-        for term in search_terms:
+        selected_items = []
+        if search_terms:
+            matched_items = []
             for item in items:
-                if not _matches_search_term(item, term):
+                if any(_matches_search_term(item, term) for term in search_terms):
+                    matched_items.append(item)
+            selected_items.extend(matched_items[:limit])
+        if len(selected_items) < limit:
+            seen_sources = {item.get("source_url", "") for item in selected_items}
+            for item in items:
+                source_key = item.get("source_url", "")
+                if not source_key or source_key in seen_sources:
                     continue
-                before = len(queue_ids)
-                add_video_id(youtube_video_id(item.get("source_url", "")))
-                if len(queue_ids) > before:
+                selected_items.append(item)
+                seen_sources.add(source_key)
+                if len(selected_items) >= limit:
+                    break
+
+        for item in selected_items:
+            before = len(queue_items)
+            add_queue_source(item.get("source_url", ""), title=item.get("title", ""))
+            if len(queue_items) > before:
+                feed_match_count += 1
+                if search_terms and any(_matches_search_term(item, term) for term in search_terms):
                     matched_term_count += 1
 
-    if len(queue_ids) >= 2:
-        random.shuffle(queue_ids)
-        summary_bits = [f"Random autoplay queue built from {len(queue_ids)} Square Enix-ready videos"]
+    if len(queue_items) >= 2:
+        if strategy == "shuffle":
+            random.shuffle(queue_items)
+        first_item = queue_items[0]
+        summary_bits = [f"{_queue_mode_label(strategy)} built from {len(queue_items)} playable sources"]
         if matched_term_count:
             summary_bits.append(f"{matched_term_count} term-matched picks added")
         elif feed_match_count:
             summary_bits.append(f"{feed_match_count} official uploads mixed in")
         return {
-            "embed_url": _youtube_embed_from_ids(queue_ids),
-            "source_url": normalized[0],
-            "mode": "replay",
-            "mode_label": "Random Queue",
-            "player_kind": "iframe",
-            "count": len(queue_ids),
+            "embed_url": first_item["embed_url"],
+            "source_url": first_item["source_url"],
+            "mode": first_item["mode"],
+            "mode_label": _queue_mode_label(strategy),
+            "player_kind": first_item["player_kind"],
+            "count": len(queue_items),
             "summary": ". ".join(summary_bits) + ".",
+            "queue_items": queue_items,
+            "queue_strategy": strategy,
         }
 
     playable = []
     for source_url in normalized:
         embed_url = detect_embed(source_url)
         if is_embeddable(embed_url):
-            playable.append((source_url, embed_url))
+            playable.append(_build_queue_item(source_url))
     if playable:
-        source_url, embed_url = random.choice(playable)
+        if strategy == "shuffle":
+            random.shuffle(playable)
+        first_item = playable[0]
+        summary = ""
+        if len(playable) > 1 and strategy != "single":
+            summary = f"{_queue_mode_label(strategy)} built from {len(playable)} playable links."
         return {
-            "embed_url": embed_url,
-            "source_url": source_url,
-            "mode": detect_feed_mode(source_url, embed_url),
-            "mode_label": "Random Source" if len(playable) > 1 else label_for_mode(detect_feed_mode(source_url, embed_url)),
-            "player_kind": "iframe",
+            "embed_url": first_item["embed_url"],
+            "source_url": first_item["source_url"],
+            "mode": first_item["mode"],
+            "mode_label": _queue_mode_label(strategy) if len(playable) > 1 and strategy != "single" else first_item["mode_label"],
+            "player_kind": first_item["player_kind"],
             "count": len(playable),
-            "summary": f"Random source selected from {len(playable)} playable links.",
+            "summary": summary,
+            "queue_items": playable,
+            "queue_strategy": strategy,
         }
 
     fallback = normalized[0]
@@ -435,6 +503,8 @@ def resolve_channel_rotation(source_urls: list[str], search_terms: list[str] | N
         "player_kind": detect_player_kind(fallback, embed_url),
         "count": len(normalized),
         "summary": "",
+        "queue_items": [],
+        "queue_strategy": strategy,
     }
 
 
@@ -624,6 +694,9 @@ def build_channels_context(channels: list) -> dict:
             or bool(search_terms)
             or any(is_youtube_channel_feed_source(url) for url in source_urls)
         )
+        effective_rotation_mode = stored_rotation_mode or ("queue" if has_rotation else "single")
+        current_queue_label = queue_label(effective_rotation_mode, has_rotation)
+        current_queue_strategy = queue_strategy(effective_rotation_mode) if has_rotation else "single"
         seen_scopes.add(scope)
 
         group = groups.setdefault(
@@ -650,8 +723,10 @@ def build_channels_context(channels: list) -> dict:
                 "scope": scope,
                 "scope_slug": scope.lower().replace(" ", "-"),
                 "has_rotation": has_rotation,
+                "queue_label": current_queue_label,
+                "queue_strategy": current_queue_strategy,
                 "provider_hint": channel.get("provider_hint", "") or "",
-                "rotation_mode": stored_rotation_mode or ("queue" if has_rotation else "single"),
+                "rotation_mode": effective_rotation_mode,
                 "autoplay": int(channel.get("autoplay") or 0),
                 "transition_title": channel.get("transition_title", "") or "",
                 "transition_copy": channel.get("transition_copy", "") or "",

@@ -41,6 +41,7 @@ def channel_queue_route():
     data = request.get_json(silent=True) or {}
     raw_sources = data.get("source_urls") or []
     raw_terms = data.get("search_terms") or []
+    rotation_mode = str(data.get("rotation_mode") or "").strip()
     if isinstance(raw_sources, str):
         raw_sources = split_source_urls(raw_sources)
     if isinstance(raw_terms, str):
@@ -50,7 +51,11 @@ def channel_queue_route():
     if not sources:
         return jsonify({"error": "required"}), 400
     try:
-        resolved = resolve_channel_rotation(sources, search_terms=search_terms)
+        resolved = resolve_channel_rotation(
+            sources,
+            search_terms=search_terms,
+            rotation_mode=rotation_mode or "queue",
+        )
         if not resolved:
             return jsonify({"error": "unresolved"}), 404
         return jsonify({"ok": True, **resolved})

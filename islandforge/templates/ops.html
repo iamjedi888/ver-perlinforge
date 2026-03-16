@@ -973,13 +973,13 @@
                 </label>
                 <label class="field">
                   <span>Rotation mode</span>
-                  <input id="channel-rotation" type="text" name="rotation_mode" list="channel-rotation-list" maxlength="32" value="{{ edit_channel.rotation_mode if edit_channel else 'auto' }}"/>
-                  <datalist id="channel-rotation-list">
-                    <option value="auto"></option>
-                    {% for mode in channel_rotation_modes %}
-                    <option value="{{ mode }}"></option>
-                    {% endfor %}
-                  </datalist>
+                  <select id="channel-rotation" name="rotation_mode">
+                    <option value="auto" {% if not edit_channel or (edit_channel.rotation_mode or 'auto') == 'auto' %}selected{% endif %}>auto</option>
+                    <option value="single" {% if edit_channel and edit_channel.rotation_mode == 'single' %}selected{% endif %}>single</option>
+                    <option value="queue" {% if edit_channel and edit_channel.rotation_mode == 'queue' %}selected{% endif %}>queue (ordered)</option>
+                    <option value="random_pool" {% if edit_channel and edit_channel.rotation_mode == 'random_pool' %}selected{% endif %}>random_pool (shuffle)</option>
+                  </select>
+                  <div class="helper-text">Use <strong>queue</strong> to keep link order. Use <strong>random_pool</strong> to shuffle through the source list.</div>
                 </label>
               </div>
               <div class="form-grid three">
@@ -1003,6 +1003,7 @@
               <div class="field">
                 <span>Search terms</span>
                 <textarea id="channel-search-terms" name="search_terms_text" maxlength="2000" placeholder="One term per line. Used for provider feed matching like Square Enix music or Fortnite uploads.">{{ edit_channel.search_terms_text if edit_channel else '' }}</textarea>
+                <div class="helper-text">Search terms activate when the channel uses queue-style rotation and the source list includes provider feeds such as YouTube <code>/videos</code> pages.</div>
               </div>
               <div class="form-grid two">
                 <label class="field">

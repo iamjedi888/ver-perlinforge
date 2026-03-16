@@ -508,13 +508,13 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
                 </div>
                 <div class="field">
                   <label for="channel-rotation">Rotation mode</label>
-                  <input id="channel-rotation" type="text" name="rotation_mode" list="channel-rotation-list" maxlength="32" value="{{ edit_channel.rotation_mode if edit_channel else 'auto' }}"/>
-                  <datalist id="channel-rotation-list">
-                    <option value="auto"></option>
-                    {% for mode in channel_rotation_modes %}
-                      <option value="{{ mode }}"></option>
-                    {% endfor %}
-                  </datalist>
+                  <select id="channel-rotation" name="rotation_mode">
+                    <option value="auto" {% if not edit_channel or (edit_channel.rotation_mode or 'auto') == 'auto' %}selected{% endif %}>auto</option>
+                    <option value="single" {% if edit_channel and edit_channel.rotation_mode == 'single' %}selected{% endif %}>single</option>
+                    <option value="queue" {% if edit_channel and edit_channel.rotation_mode == 'queue' %}selected{% endif %}>queue (ordered)</option>
+                    <option value="random_pool" {% if edit_channel and edit_channel.rotation_mode == 'random_pool' %}selected{% endif %}>random_pool (shuffle)</option>
+                  </select>
+                  <div class="mono" style="margin-top:6px; color:var(--muted)">Use <strong>queue</strong> to keep link order. Use <strong>random_pool</strong> to shuffle through the source list.</div>
                 </div>
                 <div class="field">
                   <label>Playback</label>
@@ -531,6 +531,7 @@ tbody tr:hover td { background: rgba(0,229,160,.03); }
               <div class="field">
                 <label for="channel-search-terms">Search terms</label>
                 <textarea id="channel-search-terms" name="search_terms_text" maxlength="2000" placeholder="One term per line. Used for provider feed matching like Square Enix music or Fortnite uploads.">{{ edit_channel.search_terms_text if edit_channel else '' }}</textarea>
+                <div class="mono" style="margin-top:6px; color:var(--muted)">Search terms activate when this channel uses a queue-style rotation and the source list includes feed URLs like YouTube <code>/videos</code> pages.</div>
               </div>
               <div class="field-grid three">
                 <div class="field">
